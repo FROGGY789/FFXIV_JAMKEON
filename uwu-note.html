@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>절테마 기믹 노트</title>
+<script src="./admin.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
@@ -455,6 +456,7 @@ ultima:[
 ]};
 
 const RN=['T1','T2','H1','H2','D1','D2','D3','D4'];
+if(!window.UWU)window.UWU={PH,RL,RN,RC,BC,draw,raid:'알테마'};
 const roleHtml=r=>r?`<div class="roles"><p class="rh">역할별로 할 일 · 주의사항</p>${r.map((x,i)=>`<div class="role"><i class="dot" style="background:${RC[RN[i][0]]}">${RN[i]}</i><div>${x[0]}${x[1]?`<em>${x[1]}</em>`:''}</div></div>`).join('')}</div>`:'';
 document.getElementById('main').innerHTML=PH.map(ph=>`
 <section class="phase band" id="${ph.id}" style="--ph:${ph.color}">

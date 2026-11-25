@@ -26,7 +26,6 @@
 
   /* ---------- 로그인 상태: 사진 데이터를 저장소에서 바로 읽고, 쓰기 연결 ---------- */
   if (token) {
-    window.__jamAdmin = true; // 랜딩 카드: 관리자일 땐 마우스 올려도 안 뒤집힘 (사진 칸 버튼을 누를 수 있게)
     // Pages 캐시(최대 10분) 때문에 방금 저장한 사진이 사라져 보이지 않게, 관리자는 API에서 최신본을 읽음
     const origFetch = window.fetch.bind(window);
     window.fetch = function (input, init) {
@@ -65,19 +64,40 @@
         toast('저장 실패: ' + e.message, 8000);
       } finally { busy = false; }
     }
-    async function put(name, content, retry = 1) {
+    async function put(name, content, message = '사진 업데이트', retry = 1) {
       toast('저장 중…');
       const cur = await gh(`/contents/${encodeURIComponent(name)}?ref=${BRANCH}`);
       const sha = cur.ok ? (await cur.json()).sha : undefined;
       const r = await gh(`/contents/${encodeURIComponent(name)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '사진 업데이트', content: b64(content), branch: BRANCH, sha })
+        body: JSON.stringify({ message, content: b64(content), branch: BRANCH, sha })
       });
-      if (r.status === 409 && retry) return put(name, content, retry - 1);
+      if (r.status === 409 && retry) return put(name, content, message, retry - 1);
       if (r.status === 401) { logout(true); throw new Error('토큰이 만료되었거나 잘못됨'); }
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || r.status);
     }
+
+    // 다른 스크립트(arena3d.js 기믹 편집)용
+    window.JamAdmin = {
+      on: true,
+      // 파일 내용(텍스트). ref = 커밋 sha (없으면 최신). 파일 없으면 null
+      async get(name, ref) {
+        const r = await gh(`/contents/${encodeURIComponent(name)}?ref=${ref || BRANCH}`, { headers: { Accept: 'application/vnd.github.raw+json' } });
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('읽기 실패 (' + r.status + ')');
+        return r.text();
+      },
+      async save(name, content, message) { await put(name, content, message); toast('저장됨 · 사이트 반영까지 1~2분', 4000); },
+      // 그 파일의 커밋 목록 (최신순)
+      async history(name) {
+        const r = await gh(`/commits?path=${encodeURIComponent(name)}&sha=${BRANCH}&per_page=40`);
+        if (!r.ok) throw new Error('이력 읽기 실패 (' + r.status + ')');
+        return (await r.json()).map(c => ({ sha: c.sha, date: c.commit.author.date, msg: c.commit.message.split('\n')[0] }));
+      }
+    };
+  } else {
+    window.JamAdmin = { on: false };
   }
 
   function b64(str) {

@@ -204,5 +204,5 @@ ultima:[
 
 const RN=['T1','T2','H1','H2','D1','D2','D3','D4'];
 
-window.UWU={PH,RL,RN,RC,BC,draw};
+window.UWU={PH,RL,RN,RC,BC,draw,raid:'알테마'};
 })();
