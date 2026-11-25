@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>절테마 기믹 노트</title>
-<script src="./admin.js?v=20261125k"></script>
+<script src="./admin.js?v=20261125l"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
@@ -289,7 +289,7 @@ const PH=[
  wake:'각성 조건: 저기압 2스택을 지닌 사람이 정화하면서 대형 돌개바람(Super Cyclone)을 4번 일으키기 → 가루다 에테르 공급 4스택.',
  cards:[
  {h:'오프닝 · 삭풍의 노래',en:'Slipstream / Mistral Song',
-  d:[{b:'가루다',at:[0,0]},{z:'cone',at:[0,0],dir:90,w:150,len:96},pp('T1',330,26),pp('T2',90,30),pp('H1',90,80),pp('H2',72,74),pp('D1',215,32),pp('D2',245,32),pp('D3',215,64),pp('D4',245,64),{t:'징표',at:[90,95],c:'#2e9e55'}],
+  d:[{b:'가루다',at:[0,0]},{z:'cone',at:[0,0],dir:90,w:150,len:96},pp('T1',330,26),pp('T2',90,30),pp('H1',90,80),pp('H2',72,74),pp('D1',215,32),pp('D2',245,32),pp('D3',215,64),pp('D4',245,64),{t:'징표',at:[90,95],c:'#2e9e55'},{z:'c',at:[90,30],r:11,step:3},{t:'회오리',at:[90,48],c:'var(--badS)',step:3},{seq:[{s:'T2가 서 있던 자리에 초록 회오리가 생김 → T1은 가루다를 서쪽으로 끌어서 피함'}]}],
   cap:'예시: 징표가 H1에게 뜬 경우',
   steps:['가루다를 중앙으로 끌고 시작. 힐러 2명은 동쪽.','반동 기류(전방 부채꼴, 기절): T1은 정면을 피해서 탱킹.','삭풍의 노래: 징표 받은 힐러에게 150° 부채꼴. <b>T2가 가루다와 힐러 사이에 서서 첫 피격</b>을 받음.','T2가 서 있던 자리에 초록 회오리가 생김. T1은 가루다를 서쪽으로 끌어서 회오리를 피함.'],
   tip:'딜러는 부채꼴 바깥(가루다 남서쪽)에서 딜. T2는 생존기 필수.'},
@@ -833,6 +833,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
 addEventListener('scroll',hide,{passive:true});
 }
 </script>
-<script src="./arena3d.js?v=20261125k"></script>
+<script src="./arena3d.js?v=20261125l"></script>
 </body>
 </html>

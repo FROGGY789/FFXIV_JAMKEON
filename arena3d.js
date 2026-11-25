@@ -11,6 +11,7 @@
  * 카드 데이터에 넣을 수 있는 추가 항목 (평면도에는 영향 없음)
  *   {seq:[{s:'설명', mv:{D1:[x,y]}, cast:'기술명', aggro:'T2'}, ...]}  재생 순서 직접 쓰기
  *   {aggro:'T2'}   어그로 잡는 탱커 (기본 T1). 머리 위 별 표시
+ *   항목에 step:3   그 재생 단계(1부터)에서 나타남
  *   카드 자체의 cast:'기술명'  재생 때 시전 바에 뜨는 이름 (기본: 카드 영문 이름)
  */
 (function () {
@@ -961,6 +962,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       });
     }
     const LAST = STEPS.length - 1;
+    // 항목에 step:N 이 있으면 그 단계(1부터)에서 나타남. 예) 장판이 깔린 뒤 생기는 회오리
+    ENT.forEach(e => { const o = items[e.idx]; if (o && o.step) { e.at = Math.min(LAST, Math.max(0, o.step - 1)); e.delay = 0; e.span = e.kind === 'zone' ? 0.6 : 1; } });
     while (pawnsE.length && pawnsE[0].pos.length < STEPS.length) extend();
 
     const easeO = t => 1 - Math.pow(1 - t, 3);
