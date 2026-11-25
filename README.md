@@ -15,16 +15,17 @@
 
 ## 관리자 (사진 올리기)
 
-사이트 오른쪽 아래 **관리자** 버튼 → GitHub 토큰으로 로그인.
+사이트 오른쪽 아래 **관리자** 버튼 → 비밀번호로 로그인.
+
+처음 한 번만 설정 필요 (로그인 창의 "처음 설정 / 비밀번호 변경"):
 
 1. GitHub → Settings → Developer settings → [Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
-2. Repository access: `FROGGY789/FFXIV_JAMKEON`만 선택
-3. Permissions: **Contents · Read and write**
-4. 만든 토큰을 로그인 창에 붙여넣기
+2. Repository access: `FROGGY789/FFXIV_JAMKEON`만 선택, Permissions: **Contents · Read and write**
+3. 토큰 + 새 비밀번호 입력 → 토큰이 비밀번호로 암호화돼서 `gh-pages`의 `admin-key.json`에 저장됨
 
 로그인하면 레이드 카드의 사진 칸에 이미지를 끌어다 놓거나 클릭해서 올릴 수 있음.
 사진은 `gh-pages` 브랜치의 `.image-slots.state.json`에 바로 커밋되고, 다른 사람 화면에는 1~2분 뒤 반영됨.
-토큰은 관리자 브라우저에만 저장됨.
+`admin-key.json`은 공개 파일이라 비밀번호가 짧으면 뚫릴 수 있음. 길게 쓸 것.
 
 > 사이트는 `gh-pages` 브랜치에서 배포됨. 관리자가 올린 사진 커밋도 거기 쌓이니까, 코드 수정을 올릴 때는
 > `gh-pages`를 먼저 받아서(merge) 올려야 사진이 안 날아감.

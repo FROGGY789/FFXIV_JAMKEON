@@ -1,10 +1,10 @@
 /* admin.js — 관리자 로그인 + 사진 저장
  *
- * 정적 사이트(GitHub Pages)라서 서버가 없음. 대신 관리자는 GitHub 토큰으로 로그인하고,
+ * 정적 사이트(GitHub Pages)라서 서버가 없음. 관리자는 비밀번호로 로그인하고(비밀번호로 잠근 GitHub 토큰을 품),
  * 사진 칸(<image-slot>)에 넣은 사진은 저장소 gh-pages 브랜치의 .image-slots.state.json 에
  * 바로 커밋됨. 사이트 반영까지 1~2분.
  *
- * - 토큰은 관리자 브라우저(localStorage)에만 저장됨.
+ * - 로그인하면 풀린 토큰은 그 브라우저(localStorage)에만 저장됨.
  * - 토큰 권한: 이 저장소만, Contents: Read and write.
  * - image-slot.js 보다 먼저 불러와야 함 (fetch 가로채기 때문).
  */
@@ -141,36 +141,89 @@ html.adm-on image-slot{outline:2px dashed color-mix(in srgb,var(--accent,#a597e3
     }
   }
 
-  function openLogin() {
+  /* ---------- 비밀번호 잠금 ----------
+   * GitHub 토큰을 비밀번호로 암호화(AES-GCM, PBKDF2)해서 gh-pages 의 admin-key.json 에 저장.
+   * 로그인 = 비밀번호로 토큰 복호화. 파일은 공개라서 비밀번호가 짧으면 뚫릴 수 있음 → 길게 쓸 것. */
+  const KEYFILE = 'admin-key.json', ITER = 600000;
+  const enc = new TextEncoder();
+  const toB64 = u8 => btoa(String.fromCharCode(...u8));
+  const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  async function deriveKey(pw, salt, iter) {
+    const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  async function lockToken(tok, pw) {
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(pw, salt, ITER);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(tok)));
+    return JSON.stringify({ v: 1, iter: ITER, salt: toB64(salt), iv: toB64(iv), ct: toB64(ct) });
+  }
+  async function unlockToken(pw) {
+    const r = await fetch(KEYFILE + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('아직 관리자 비밀번호가 설정 안 됨. 아래 "처음 설정"부터 할 것');
+    const j = await r.json();
+    const key = await deriveKey(pw, fromB64(j.salt), j.iter);
+    try { return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(j.iv) }, key, fromB64(j.ct))); }
+    catch (e) { throw new Error('비밀번호 틀림'); }
+  }
+  async function checkToken(t) {
+    const r = await fetch(API, { headers: { Authorization: 'Bearer ' + t }, cache: 'no-store' });
+    if (r.status === 401) throw new Error('GitHub 토큰이 올바르지 않거나 만료됨');
+    if (!r.ok) throw new Error('이 저장소에 접근 권한 없음 (' + r.status + ')');
+    const j = await r.json();
+    if (!j.permissions || !j.permissions.push) throw new Error('토큰에 쓰기 권한(Contents: Read and write) 없음');
+  }
+
+  function dialog(html, onSubmit) {
     const d = document.createElement('dialog'); d.className = 'adm';
-    d.innerHTML = `<form method="dialog">
-<h2>관리자 로그인</h2>
-<p>GitHub 토큰으로 로그인함. 로그인하면 사진 칸에 사진을 올릴 수 있고, 저장소에 바로 저장됨.</p>
-<p>토큰 만들기: GitHub → Settings → Developer settings → <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained tokens</a>
-→ Repository access: <b>${REPO}</b>만 선택 → Permissions: <b>Contents · Read and write</b>.</p>
-<input type="password" autocomplete="off" placeholder="github_pat_…" aria-label="GitHub 토큰" required>
-<div class="err" aria-live="polite"></div>
-<div class="row"><button type="button" value="cancel">취소</button><button class="pri" type="submit">로그인</button></div>
-</form>`;
+    d.innerHTML = `<form method="dialog">${html}<div class="err" aria-live="polite"></div>
+<div class="row"><button type="button" value="cancel">취소</button><button class="pri" type="submit">확인</button></div></form>`;
     document.body.appendChild(d);
-    const inp = d.querySelector('input'), err = d.querySelector('.err');
+    const err = d.querySelector('.err');
     d.querySelector('button[value=cancel]').addEventListener('click', () => d.close());
     d.addEventListener('close', () => d.remove());
     d.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault();
-      const t = inp.value.trim(); if (!t) return;
-      err.textContent = '확인 중…';
-      try {
-        const r = await fetch(API, { headers: { Authorization: 'Bearer ' + t }, cache: 'no-store' });
-        if (r.status === 401) throw new Error('토큰이 올바르지 않음');
-        if (!r.ok) throw new Error('이 저장소에 접근 권한 없음 (' + r.status + ')');
-        const j = await r.json();
-        if (!j.permissions || !j.permissions.push) throw new Error('쓰기 권한(Contents: Read and write) 없음');
-        localStorage.setItem(KEY, t);
-        location.reload();
-      } catch (ex) { err.textContent = ex.message; }
+      const btn = d.querySelector('button.pri'); btn.disabled = true; err.textContent = '확인 중…';
+      try { await onSubmit(d); } catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
     });
-    d.showModal(); inp.focus();
+    d.showModal(); const f = d.querySelector('input'); f && f.focus();
+    return d;
+  }
+
+  function openLogin() {
+    const d = dialog(`<h2>관리자 로그인</h2>
+<input type="password" name="pw" autocomplete="current-password" placeholder="비밀번호" aria-label="관리자 비밀번호" required>
+<p style="margin:10px 0 0"><a href="#" data-setup>처음 설정 / 비밀번호 변경</a></p>`, async d => {
+      const t = await unlockToken(d.querySelector('[name=pw]').value);
+      await checkToken(t);
+      localStorage.setItem(KEY, t); location.reload();
+    });
+    d.querySelector('[data-setup]').addEventListener('click', e => { e.preventDefault(); d.close(); openSetup(); });
+  }
+
+  function openSetup() {
+    dialog(`<h2>관리자 비밀번호 설정</h2>
+<p>GitHub 토큰은 여기서 한 번만 넣으면 됨. 토큰을 비밀번호로 잠가서 저장소에 저장하고, 이후 관리자는 비밀번호만 입력하면 됨.</p>
+<p>토큰 만들기: GitHub → Settings → Developer settings → <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained tokens</a>
+→ Repository access: <b>${REPO}</b>만 → Permissions: <b>Contents · Read and write</b>.</p>
+<input type="password" name="tok" autocomplete="off" placeholder="GitHub 토큰 (github_pat_…)" aria-label="GitHub 토큰" required>
+<input type="password" name="pw" autocomplete="new-password" placeholder="새 비밀번호 (8자 이상 권장)" aria-label="새 비밀번호" minlength="4" required style="margin-top:8px">
+<input type="password" name="pw2" autocomplete="new-password" placeholder="새 비밀번호 확인" aria-label="새 비밀번호 확인" required style="margin-top:8px">`, async d => {
+      const t = d.querySelector('[name=tok]').value.trim(), pw = d.querySelector('[name=pw]').value, pw2 = d.querySelector('[name=pw2]').value;
+      if (pw !== pw2) throw new Error('비밀번호 확인이 다름');
+      await checkToken(t);
+      token = t;
+      const body = await lockToken(t, pw);
+      const cur = await gh(`/contents/${KEYFILE}?ref=${BRANCH}`);
+      const sha = cur.ok ? (await cur.json()).sha : undefined;
+      const r = await gh(`/contents/${KEYFILE}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: '관리자 비밀번호 설정', content: b64(body), branch: BRANCH, sha }) });
+      if (!r.ok) throw new Error('저장 실패: ' + ((await r.json().catch(() => ({}))).message || r.status));
+      localStorage.setItem(KEY, t);
+      alert('설정 완료. 다른 기기에서는 1~2분 뒤부터 비밀번호로 로그인 가능.');
+      location.reload();
+    });
   }
 
   if (document.body) boot(); else addEventListener('DOMContentLoaded', boot);
