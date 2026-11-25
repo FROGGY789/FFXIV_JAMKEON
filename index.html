@@ -26,6 +26,10 @@ input,select,textarea,button{font:inherit;color:inherit}
 @media(min-width:1180px){.post-body{grid-template-columns:minmax(0,360px) minmax(0,1fr)}.post-body>ol{margin-top:22px!important}}
 .log-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 @media(min-width:900px){.log-grid{grid-template-columns:minmax(300px,380px) minmax(0,1fr)}}
+.log-photo{height:220px;margin:0 0 10px;border-radius:12px;overflow:hidden}
+.log-photo image-slot{display:block;width:100%;height:100%}
+html:not(.adm-on) .log-photo:not(:has(image-slot[data-filled])){display:none}
+html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
 </style>
 </helmet>
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
@@ -233,6 +237,7 @@ input,select,textarea,button{font:inherit;color:inherit}
             <div><div style="font-size:11.5px;color:var(--sub,#6f6c78)">{{ sx.l }}</div><div style="font-size:21px;font-weight:600;letter-spacing:-.03em;margin-top:2px">{{ sx.v }}</div></div>
           </sc-for>
         </div>
+        <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}">
         <div style="display:grid;gap:8px;margin-top:16px;border-top:1px solid var(--line,#dddbe2);padding-top:14px">
           <input type="date" value="{{ form.date }}" onChange="{{ setDate }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -245,13 +250,16 @@ input,select,textarea,button{font:inherit;color:inherit}
           <textarea rows="2" placeholder="오늘 막힌 곳, 다음에 바꿀 것" value="{{ form.memo }}" onChange="{{ setMemo }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px;resize:vertical"></textarea>
           <button onClick="{{ addLog }}" style="border:none;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer">기록 추가</button>
         </div>
+        </sc-if>
+        <sc-if value="{{ readOnly }}" hint-placeholder-val="{{ false }}"><p style="margin:16px 0 0;border-top:1px solid var(--line,#dddbe2);padding-top:12px;font-size:12.5px;color:var(--sub,#6f6c78);line-height:1.55">기록 추가·사진은 관리자 로그인 후 가능. 오른쪽 아래 관리자 버튼.</p></sc-if>
       </div>
       <div style="display:grid;gap:10px">
       <sc-for list="{{ logs }}" as="l">
-        <div style="background:var(--card,#ececef);border-radius:16px;padding:12px 14px">
+        <div class="log-card" style="background:var(--card,#ececef);border-radius:16px;padding:12px 14px">
+          <div class="log-photo"><image-slot id="log-{{ l.id }}" shape="rounded" radius="12" placeholder="이 날 사진 (끌어다 놓거나 클릭)"></image-slot></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
             <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--sub,#6f6c78)">{{ l.dateLabel }}</span>
-            <button onClick="{{ l.remove }}" title="삭제" style="border:none;background:none;cursor:pointer;color:var(--sub,#6f6c78);font-size:15px;line-height:1;padding:2px 4px">×</button>
+            <sc-if value="{{ l.canEdit }}"><button onClick="{{ l.remove }}" title="삭제" style="border:none;background:none;cursor:pointer;color:var(--sub,#6f6c78);font-size:15px;line-height:1;padding:2px 4px">×</button></sc-if>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px">
             <span style="font-size:15px;font-weight:600">{{ l.summary }}</span>
@@ -304,7 +312,8 @@ class Component extends DCLogic {
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
     return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
   componentDidMount(){
-    try{const l=localStorage.getItem('jml-logs-v2');if(l)this.setState({logs:JSON.parse(l)});const g=localStorage.getItem('jml-learned-v1');if(g)this.setState({learned:JSON.parse(g)})}catch(e){}
+    try{const g=localStorage.getItem('jml-learned-v1');if(g)this.setState({learned:JSON.parse(g)})}catch(e){}
+    this.loadLogs();
     this.applyTheme();
     if(!window.UWU)this._t=setInterval(()=>{if(window.UWU){clearInterval(this._t);this.forceUpdate()}},120);
   }
@@ -327,6 +336,14 @@ class Component extends DCLogic {
     Object.entries(t).forEach(([k,v])=>s.setProperty('--'+k,v));
     s.setProperty('--bad','rgba(226,64,52,.30)');s.setProperty('--badS','rgba(200,40,30,.8)');s.setProperty('--safe','rgba(40,170,90,.25)');s.setProperty('--safeS','rgba(30,140,70,.9)');s.setProperty('--buf','rgba(60,170,220,.25)');s.setProperty('--bufS','rgba(40,130,190,.9)')}
   save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  // 트라이 일지: 저장소 try-logs.json 에 공유 저장 (관리자만 쓰기). 없으면 이 브라우저에 남아 있던 기록을 씀
+  async loadLogs(){let j=null;try{const A=window.JamAdmin;const t=A&&A.on?await A.get('try-logs.json'):await fetch('try-logs.json',{cache:'no-cache'}).then(r=>r.ok?r.text():null);j=t?JSON.parse(t):null}catch(e){}
+    if(!j){try{const l=localStorage.getItem('jml-logs-v2');if(l)j=JSON.parse(l)}catch(e){}}
+    if(j&&typeof j==='object')this.setState({logs:j})}
+  async persistLogs(mut,msg){const A=window.JamAdmin;if(!A||!A.on){alert('관리자 로그인 후 가능');return}
+    let latest;try{const t=await A.get('try-logs.json');latest=t?JSON.parse(t):JSON.parse(JSON.stringify(this.state.logs))}catch(e){latest=JSON.parse(JSON.stringify(this.state.logs))}
+    mut(latest);this.setState({logs:latest});this.save('jml-logs-v2',latest);
+    try{await A.save('try-logs.json',JSON.stringify(latest,null,1),msg)}catch(e){alert('일지 저장 실패: '+e.message)}}
   statsOf(id){const L=this.state.logs[id]||[];const ph=this.phasesOf(id);
     const tries=L.reduce((a,b)=>a+(+b.tries||0),0),hours=L.reduce((a,b)=>a+(+b.hours||0),0);
     let bi=-1;L.forEach(l=>{const i=ph.indexOf(l.best);if(i>bi)bi=i});
@@ -390,10 +407,13 @@ class Component extends DCLogic {
       progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
       stats:[{l:'총 트라이',v:st.tries+'회'},{l:'총 시간',v:fmtH(st.hours)},{l:'세션',v:st.sessions+'회'},{l:'최고 진도',v:st.best}],
       form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setTries:setF('tries'),setHours:setF('hours'),setBest:setF('best'),setMemo:setF('memo'),
+      canEdit:!!(window.JamAdmin&&window.JamAdmin.on),readOnly:!(window.JamAdmin&&window.JamAdmin.on),
       addLog:()=>{if(!form.tries)return;const e={id:Date.now(),date:form.date,tries:+form.tries,hours:+form.hours||0,best:form.best,memo:form.memo.trim()};
-        this.setState(s=>{const logs={...s.logs,[view]:[e,...(s.logs[view]||[])]};this.save('jml-logs-v2',logs);return {logs,form:{...s.form,tries:'',hours:'',memo:''}}})},
+        this.setState(s=>({form:{...s.form,tries:'',hours:'',memo:''}}));
+        this.persistLogs(L=>{L[view]=[e,...(L[view]||[])]},`트라이 일지 추가: ${view} ${e.date}`)},
       logs:L.map(l=>({...l,dateLabel:l.date.replace(/-/g,'.'),summary:`${l.tries}회 · ${fmtH(+l.hours||0)}`,hasMemo:!!l.memo,
-        remove:()=>this.setState(s=>{const logs={...s.logs,[view]:(s.logs[view]||[]).filter(x=>x.id!==l.id)};this.save('jml-logs-v2',logs);return {logs}})})),
+        canEdit:!!(window.JamAdmin&&window.JamAdmin.on),
+        remove:()=>{if(!confirm(`${l.date} 기록을 삭제할까?`))return;this.persistLogs(L=>{L[view]=(L[view]||[]).filter(x=>x.id!==l.id)},`트라이 일지 삭제: ${view} ${l.date}`)}})),
       noLogs:!L.length};
   }
 }

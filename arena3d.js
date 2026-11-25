@@ -211,12 +211,25 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 .a3d-role b.t{display:inline-grid;place-items:center;min-width:34px;height:24px;border-radius:999px;color:#fff;font-size:12px;margin-right:6px}
 .a3d-role .ph{font-size:12px;color:var(--a3d-sub);font-weight:700}
 .a3d-role p{margin:6px 0 0}.a3d-role .w{color:#c0392b;font-size:13px;margin-top:4px}
+.a3d-pop{position:absolute;z-index:4;width:min(320px,calc(100% - 24px));background:var(--a3d-bg);border:1px solid var(--a3d-line);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.55;box-shadow:0 12px 30px rgba(0,0,0,.2);pointer-events:none;display:none}
+.a3d-pop b.t,.a3d-role b.t{display:inline-grid;place-items:center;min-width:34px;height:22px;border-radius:999px;color:#fff;font-size:12px;margin-right:6px}
+.a3d-why{margin-top:8px;padding-top:8px;border-top:1px dashed var(--a3d-line)}
+.a3d-why>b{display:block;font-size:12px;color:var(--a3d-sub);margin-bottom:2px}
+.a3d-why .none{color:var(--a3d-sub)}
+.a3d-gl{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:12.5px}
+.a3d-gl b{font-weight:800}
+.a3d-role textarea{width:100%;box-sizing:border-box;margin-top:4px;min-height:70px;font:inherit;font-size:13px;padding:6px 8px;border-radius:8px;border:1px solid var(--a3d-line);background:transparent;color:inherit;resize:vertical}
+.a3d-role{max-height:calc(100% - 24px);overflow:auto}
 .a3d-prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--a3d-line)}
 .a3d-prog>i{display:block;height:100%;width:0;background:var(--a3d-ink)}
 .a3d-side{position:absolute;top:12px;right:12px;bottom:12px;width:min(340px,calc(100% - 24px));overflow:auto;background:var(--a3d-bg);border:1px solid var(--a3d-line);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;z-index:2}
 .a3d-side.on{display:block}
 .a3d-side h3{font-size:14px;margin:0 0 6px;font-weight:800}
 .a3d-side ol{margin:0;padding-inline-start:20px}.a3d-side li{margin:4px 0}
+.a3d-side ol.go li{cursor:pointer;border-radius:8px;padding:3px 6px;margin:2px -6px}
+.a3d-side ol.go li:hover{background:color-mix(in srgb,var(--a3d-ink) 7%,transparent)}
+.a3d-side ol.go li.on{background:color-mix(in srgb,#f2c230 30%,transparent)}
+.a3d-side .gohint{font-size:12px;color:var(--a3d-sub);margin:0 0 6px}
 .a3d-side .hist{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
 .a3d-side .hist li{border:1px solid var(--a3d-line);border-radius:10px;padding:8px 10px;margin:0}
 .a3d-side .hist small{display:block;color:var(--a3d-sub);font-size:12px}
@@ -270,7 +283,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
   if (document.body) boot(); else addEventListener('DOMContentLoaded', boot);
 
   /* ---------- 다이얼로그 ---------- */
-  let dlg, stage, bar, titleEl, subEl, loadEl, capEl, sideEl, sideBtn, progEl, castEl, roleEl, prevBtn, nextBtn;
+  let dlg, stage, bar, titleEl, subEl, loadEl, capEl, sideEl, sideBtn, progEl, castEl, roleEl, popEl, prevBtn, nextBtn;
   function ensureDialog() {
     if (dlg) return;
     dlg = document.createElement('dialog');
@@ -283,13 +296,13 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
   <div class="a3d-stage"><div class="a3d-load"></div><div class="a3d-cap" aria-live="polite"></div>
     <div class="a3d-cast" aria-live="polite"><small></small><div class="nm"></div><div class="bar"><i></i></div></div>
     <div class="a3d-hint">드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말 클릭: 강조 + 할 일</div>
-    <div class="a3d-role" aria-live="polite"></div><aside class="a3d-side"></aside><div class="a3d-prog"><i></i></div></div>
+    <div class="a3d-role" aria-live="polite"></div><div class="a3d-pop" role="tooltip"></div><aside class="a3d-side"></aside><div class="a3d-prog"><i></i></div></div>
   <div class="a3d-bar"></div></div>`;
     document.body.appendChild(dlg);
     const q = s => dlg.querySelector(s);
     stage = q('.a3d-stage'); bar = q('.a3d-bar'); titleEl = q('#a3d-title span'); subEl = q('#a3d-title small');
     loadEl = q('.a3d-load'); capEl = q('.a3d-cap'); sideEl = q('.a3d-side'); sideBtn = q('.a3d-hb.side');
-    progEl = q('.a3d-prog>i'); castEl = q('.a3d-cast'); roleEl = q('.a3d-role');
+    progEl = q('.a3d-prog>i'); castEl = q('.a3d-cast'); roleEl = q('.a3d-role'); popEl = q('.a3d-pop');
     prevBtn = q('[data-nav="-1"]'); nextBtn = q('[data-nav="1"]');
     sideBtn.addEventListener('click', () => { if (sideEl.dataset.mode !== 'steps') showSteps(); const on = !sideEl.classList.contains('on'); sideEl.classList.toggle('on', on); sideBtn.setAttribute('aria-pressed', String(on)); });
     [prevBtn, nextBtn].forEach(b => b.addEventListener('click', () => { CONT = false; go(+b.dataset.nav, false); }));
@@ -369,9 +382,17 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     const steps = meta ? (meta.c.steps || []).map(htmlText) : (OPTS.steps || []);
     sideEl.dataset.mode = 'steps'; sideEl.innerHTML = '';
     const h = document.createElement('h3'); h.textContent = '공략 순서'; sideEl.appendChild(h);
-    const ol = document.createElement('ol');
-    steps.forEach(t => { const li = document.createElement('li'); li.textContent = t; ol.appendChild(li); });
+    const hint = document.createElement('p'); hint.className = 'gohint'; hint.textContent = '문장을 누르면 그 장면으로 이동함'; sideEl.appendChild(hint);
+    const ol = document.createElement('ol'); ol.className = 'go';
+    steps.forEach((t, i) => {
+      const li = document.createElement('li'); li.textContent = t; li.dataset.i = i; li.tabIndex = 0;
+      const go = () => R && R.gotoLine && R.gotoLine(i);
+      li.addEventListener('click', go);
+      li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      ol.appendChild(li);
+    });
     sideEl.appendChild(ol);
+    if (R && R.syncLines) R.syncLines();
     if (meta && meta.c.tip) { const p = document.createElement('p'); p.style.cssText = 'margin:8px 0 0;font-size:13px;color:var(--a3d-sub)'; p.textContent = htmlText(meta.c.tip); sideEl.appendChild(p); }
   }
 
@@ -850,6 +871,54 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     };
 
     /* --- 롤 강조 (시점은 그대로) + 할 일 --- */
+    // 롤 정보: 할 일 · 주의 · 왜? · 관련 용어
+    const whyOf = role => {
+      if (!meta) return '';
+      const ed = (EDITS[meta.key] || {})._why;
+      if (ed && ed[role] != null) return ed[role];
+      const rw = (U() && U().RW || {})[meta.key];
+      return (rw && rw[role]) || '';
+    };
+    function roleInfo(role, { editable } = {}) {
+      const f = document.createDocumentFragment();
+      const head = document.createElement('div');
+      const t = document.createElement('b'); t.className = 't'; t.textContent = role; t.style.background = RC[role[0]] || '#666';
+      const ph = document.createElement('span'); ph.className = 'ph'; ph.style.cssText = 'font-size:12px;color:var(--a3d-sub);font-weight:700';
+      ph.textContent = meta ? `${meta.ph.name} · 이 기믹에서 할 일` : '할 일';
+      head.append(t, ph); f.appendChild(head);
+      const ri = meta ? meta.rn.indexOf(role) : -1;
+      const row = meta && meta.roles && ri >= 0 ? meta.roles[ri] : null;
+      const duty = row ? htmlText(row[0]) : '', warn = row && row[1] ? htmlText(row[1]) : '';
+      const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = duty || '이 기믹에 따로 적힌 역할 없음'; f.appendChild(p);
+      if (warn) { const w = document.createElement('div'); w.className = 'w'; w.style.cssText = 'color:#c0392b;font-size:13px;margin-top:4px'; w.textContent = '⚠ ' + warn; f.appendChild(w); }
+      const why = whyOf(role);
+      const wb = document.createElement('div'); wb.className = 'a3d-why';
+      const wt = document.createElement('b'); wt.textContent = '왜?'; wb.appendChild(wt);
+      if (editable) {
+        const ta = document.createElement('textarea'); ta.value = why; ta.placeholder = `${role}가 이렇게 움직이는 이유를 적기 (저장을 눌러야 반영)`;
+        ta.setAttribute('aria-label', `${role} 이유`);
+        ta.addEventListener('input', () => {
+          const cur = Object.assign({}, EDITS[meta.key]);
+          cur._why = Object.assign({}, cur._why, { [role]: ta.value });
+          EDITS[meta.key] = cur; syncUI();
+        });
+        wb.appendChild(ta);
+      } else {
+        const wp = document.createElement('div'); wp.textContent = why || '아직 적힌 이유 없음'; if (!why) wp.className = 'none'; wb.appendChild(wp);
+      }
+      f.appendChild(wb);
+      // 관련 용어: 할 일·주의·이유에 나온 용어의 설명
+      const gl = (U() && U().GL) || [];
+      const text = duty + ' ' + warn + ' ' + why;
+      const hits = [];
+      [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
+      if (hits.length) {
+        const ul = document.createElement('ul'); ul.className = 'a3d-gl';
+        hits.forEach(g => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = htmlText(g[1]) + ': '; li.append(b, htmlText(g[2])); ul.appendChild(li); });
+        f.appendChild(ul);
+      }
+      return f;
+    }
     function applyFocus() {
       Object.entries(pawns).forEach(([r, o]) => {
         const on = !FOCUS || r === FOCUS;
@@ -862,15 +931,18 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       roleEl.classList.toggle('on', !!FOCUS);
       stage.querySelector('.a3d-hint').style.visibility = FOCUS ? 'hidden' : '';
       if (!FOCUS) return;
-      const head = document.createElement('div');
-      const t = document.createElement('b'); t.className = 't'; t.textContent = FOCUS; t.style.background = RC[FOCUS[0]] || '#666';
-      const ph = document.createElement('span'); ph.className = 'ph'; ph.textContent = meta ? `${meta.ph.name} · 이 기믹에서 할 일` : '할 일';
-      head.append(t, ph); roleEl.appendChild(head);
-      const ri = meta ? meta.rn.indexOf(FOCUS) : -1;
-      const row = meta && meta.roles && ri >= 0 ? meta.roles[ri] : null;
-      const p = document.createElement('p'); p.textContent = row && htmlText(row[0]) ? htmlText(row[0]) : '이 기믹에 따로 적힌 역할 없음';
-      roleEl.appendChild(p);
-      if (row && row[1]) { const w = document.createElement('div'); w.className = 'w'; w.textContent = '⚠ ' + htmlText(row[1]); roleEl.appendChild(w); }
+      roleEl.appendChild(roleInfo(FOCUS, { editable: EDIT && !!meta }));
+    }
+    // 마우스를 올리면 팝오버
+    function showPop(role, x, y) {
+      if (!role) { popEl.style.display = 'none'; popEl.dataset.role = ''; return; }
+      if (popEl.dataset.role !== role) { popEl.innerHTML = ''; popEl.appendChild(roleInfo(role)); popEl.dataset.role = role; }
+      popEl.style.display = 'block';
+      const r = stage.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
+      let lx = x - r.left + 16, ly = y - r.top + 16;
+      if (lx + w > r.width - 8) lx = x - r.left - w - 16;
+      if (ly + h > r.height - 8) ly = Math.max(8, r.height - h - 8);
+      popEl.style.left = Math.max(8, lx) + 'px'; popEl.style.top = ly + 'px';
     }
     function setFocus(role) { FOCUS = FOCUS === role ? null : role; applyFocus(); }
 
@@ -906,6 +978,22 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       contBtn.title = '처음 기믹부터 마지막까지 이어서 재생';
       gp.appendChild(contBtn);
     }
+    // 공략 순서 문장 ↔ 재생 단계: 카드에 stepMap:[단계번호,...] 이 있으면 그걸 쓰고, 없으면 순서대로 고르게 나눔
+    const lineCount = meta ? (meta.c.steps || []).length : (OPTS.steps || []).length;
+    const lineStep = i => {
+      const m = meta && meta.c.stepMap;
+      if (m && m[i] != null) return Math.min(LAST, Math.max(0, m[i] - 1));
+      return lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST;
+    };
+    let pickLine = -1;
+    function syncLines() {
+      if (sideEl.dataset.mode !== 'steps') return;
+      let on = -1;
+      if (pickLine >= 0 && lineStep(pickLine) === cur) on = pickLine;
+      else { for (let i = 0; i < lineCount; i++) if (lineStep(i) === cur) { on = i; break; } }
+      if (on < 0) for (let i = 0; i < lineCount; i++) if (lineStep(i) <= cur) on = i;
+      sideEl.querySelectorAll('ol.go li').forEach(li => li.classList.toggle('on', +li.dataset.i === on));
+    }
     function startStep(i) {
       cur = i;
       anim = { i, s: performance.now(), el: 0 };
@@ -921,6 +1009,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       const i1 = document.createElement('i'); i1.textContent = `${cur + 1} / ${STEPS.length}`;
       const b1 = document.createElement('b'); b1.textContent = stp.name === String(cur + 1) ? '' : stp.name;
       box.append(i1, b1, document.createTextNode(stp.cap));
+      syncLines();
       if (EDIT) { const d = document.createElement('span'); d.className = 'a3d-dirty'; d.textContent = dirty() ? '  · 저장 안 됨' : ''; box.appendChild(d); }
       capEl.appendChild(box);
     }
@@ -951,6 +1040,9 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     if (roles.length) {
       const gr = grp('롤');
       roles.forEach(r => { const b = btn(r, false, () => setFocus(r), 'role'); b.dataset.role = r; b.style.background = RC[r[0]] || '#666'; gr.appendChild(b); });
+      // 롤 버튼에 마우스를 올려도 팝오버 (버튼 위쪽에 표시)
+      gr.addEventListener('pointerover', e => { const b = e.target.closest('button.role'); if (!b || e.pointerType !== 'mouse') return; const rr = b.getBoundingClientRect(), sr = stage.getBoundingClientRect(); showPop(b.dataset.role, rr.left, sr.bottom - 10); popEl.style.top = Math.max(8, sr.height - popEl.offsetHeight - 12) + 'px'; });
+      gr.addEventListener('pointerout', e => { if (e.target.closest('button.role')) showPop(null); });
     }
     const gl = grp('표시');
     [['장판', 'zones'], ['롤·보스', 'units'], ['화살표·줄', 'guides'], ['글자', 'labels']].forEach(([t, k]) => {
@@ -1038,8 +1130,8 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
     const hintEl = stage.querySelector('.a3d-hint');
     const HINT = EDIT
-      ? '편집 중: 끌어서 옮김 · 부채꼴 장판은 끌면 시전자 기준 회전(Shift+끌기: 이동) · 직선 장판은 Shift+끌기로 회전 · 다 했으면 저장'
-      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말 클릭: 강조 + 할 일';
+      ? '편집 중: 끌어서 옮김 · 보스를 옮기면 보스에서 시작하는 장판도 같이 감(Shift: 보스만) · 부채꼴은 끌면 회전(Shift: 이동) · 직선 장판은 Shift+끌기로 회전'
+      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말에 마우스: 왜 그렇게? · 말 클릭: 강조';
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
     const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
@@ -1056,7 +1148,9 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         if (!ent || ent.fixed || ent.kind === 'tether') continue;
         const p0 = groundAt(e); if (!p0) break;
         const o = items[ent.idx] || {};
-        drag = { ent, p0, home: ent.g.position.clone(), mode: 'move' };
+        drag = { ent, p0, home: ent.g.position.clone(), mode: 'move', followers: [] };
+        // 보스를 옮기면 보스 자리에서 시작하는 장판(부채꼴 꼭짓점, 원·도넛 중심)도 같이 따라감
+        if (o.b != null && !e.shiftKey) drag.followers = followersOf(o).map(f => ({ ent: f, home: f.g.position.clone() }));
         // 부채꼴: 그냥 끌면 시전 위치(꼭짓점) 기준 회전 / 직선 장판: Shift+끌기로 가운데 기준 회전
         const rotCone = o.z === 'cone' && !e.shiftKey, rotBand = o.z === 'band' && e.shiftKey;
         if (rotCone || rotBand) {
@@ -1069,7 +1163,15 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       }
     };
     const onMove = e => {
-      if (!drag) return;
+      if (!drag) {
+        if (e.pointerType === 'mouse' && !e.buttons) {
+          setRay(e);
+          const hit = ray.intersectObjects(G.units.children, true).find(h => h.object.userData.role && h.object.parent.visible);
+          showPop(hit ? hit.object.userData.role : null, e.clientX, e.clientY);
+          renderer.domElement.style.cursor = hit && !EDIT ? 'help' : '';
+        } else showPop(null);
+        return;
+      }
       const p = groundAt(e); if (!p) return;
       if (drag.mode === 'rot') {
         let d = compass(p.x - drag.piv[0], p.z - drag.piv[1]) - drag.a0;
@@ -1084,6 +1186,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         return;
       }
       drag.ent.g.position.set(drag.home.x + (p.x - drag.p0.x), drag.home.y, drag.home.z + (p.z - drag.p0.z));
+      drag.followers.forEach(f => f.ent.g.position.set(f.home.x + (p.x - drag.p0.x), f.home.y, f.home.z + (p.z - drag.p0.z)));
     };
     const onUp = e => {
       if (drag) {
@@ -1091,7 +1194,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         const dd = drag;
         drag = null; controls.enabled = true; stage.style.cursor = ''; hintEl.textContent = HINT;
         if (dd.mode === 'rot') { if (dd.delta) commitRotate(ent, dd.delta, dd.piv); }
-        else if (Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz);
+        else if (Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz, dd.followers.map(f => f.ent));
         return;
       }
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
@@ -1100,15 +1203,30 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       if (hit) setFocus(hit.object.userData.role);
     };
     // 옮긴 결과를 데이터(EDITS)에 반영하고 다시 그림
-    function commitMove(ent, dx, dz) {
-      const o = items[ent.idx]; if (!o) return;
-      const patch = Object.assign({}, (EDITS[meta.key] || {})[ent.idx]);
-      const mv = q => { const v = xy(q); return [r1(v[0] + dx), r1(v[1] + dz)]; };
-      if (o.ar) patch.ar = [mv(o.ar[0]), mv(o.ar[1])];
-      else if (o.z === 'band') { patch.a = mv(o.a); patch.b = mv(o.b); }
-      else if (o.xy || o.at) { const c = at(o); patch.xy = [r1(c[0] + dx), r1(c[1] + dz)]; }
-      else return;
-      EDITS[meta.key] = Object.assign({}, EDITS[meta.key], { [ent.idx]: patch });
+    function followersOf(bossItem) {
+      const b = at(bossItem);
+      return ENT.filter(f => {
+        if (f.kind !== 'zone') return false;
+        const z = items[f.idx];
+        if (!z || !['c', 'donut', 'cone'].includes(z.z) || !(z.xy || z.at)) return false;
+        const c = at(z);
+        return Math.hypot(c[0] - b[0], c[1] - b[1]) < 4;
+      });
+    }
+    function commitMove(ent, dx, dz, followers = []) {
+      const cur = Object.assign({}, EDITS[meta.key]);
+      const one = e2 => {
+        const o = items[e2.idx]; if (!o) return;
+        const patch = Object.assign({}, cur[e2.idx]);
+        const mv = q => { const v = xy(q); return [r1(v[0] + dx), r1(v[1] + dz)]; };
+        if (o.ar) patch.ar = [mv(o.ar[0]), mv(o.ar[1])];
+        else if (o.z === 'band') { patch.a = mv(o.a); patch.b = mv(o.b); }
+        else if (o.xy || o.at) { const c = at(o); patch.xy = [r1(c[0] + dx), r1(c[1] + dz)]; }
+        else return;
+        cur[e2.idx] = patch;
+      };
+      one(ent); followers.forEach(one);
+      EDITS[meta.key] = cur;
       applyCard(meta.ph, meta.ci); refresh2D(); rebuild();
     }
     function commitRotate(ent, deg, piv) {
@@ -1127,6 +1245,8 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointermove', onMove);
     renderer.domElement.addEventListener('pointerup', onUp);
+    const onLeave = () => showPop(null);
+    renderer.domElement.addEventListener('pointerleave', onLeave);
 
     /* --- 처음 상태 --- */
     applyFocus();
@@ -1172,11 +1292,15 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 
     return {
       cam: () => ({ pos: camera.position.clone(), target: controls.target.clone() }),
+      gotoLine: i => { CONT = false; playing = false; pickLine = i; startStep(lineStep(i)); },
+      syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
         renderer.domElement.removeEventListener('pointerdown', onDown);
         renderer.domElement.removeEventListener('pointermove', onMove);
         renderer.domElement.removeEventListener('pointerup', onUp);
+        renderer.domElement.removeEventListener('pointerleave', onLeave);
+        popEl.style.display = 'none'; popEl.dataset.role = '';
         disposables.forEach(d => d.dispose && d.dispose());
         renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss();
         renderer.domElement.remove();
