@@ -1144,7 +1144,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); });
     ro.observe(stage);
 
-    let raf = 0;
+    let raf = 0, viewOff = 0;
     const clock = new T.Clock();
     (function loop() {
       raf = requestAnimationFrame(loop);
@@ -1155,6 +1155,12 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         controls.target.lerpVectors(tween.t0, tween.t1, e);
         if (u >= 1) tween = null;
       }
+      // 오른쪽 패널(공략 순서·편집 이력)이 열리면 화면을 왼쪽으로 밀어서 안 겹치게
+      const wantOff = sideEl.classList.contains('on') && W() > 640 ? (sideEl.offsetWidth + 24) / 2 : 0;
+      viewOff += (wantOff - viewOff) * (REDUCED ? 1 : 0.15);
+      if (Math.abs(wantOff - viewOff) < 0.5) viewOff = wantOff;
+      if (viewOff > 0.5) camera.setViewOffset(W(), H(), viewOff, 0, W(), H()); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
+      castEl.style.marginLeft = viewOff ? (-viewOff) + 'px' : '';
       tickPlay(performance.now());
       if (!REDUCED) animators.forEach(f => f(t));
       if (FOCUS && pawns[FOCUS]) { const s = 1 + 0.15 * Math.sin(t * 4); pawns[FOCUS].ring.scale.set(s, s, s); }
@@ -1174,7 +1180,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         disposables.forEach(d => d.dispose && d.dispose());
         renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss();
         renderer.domElement.remove();
-        castEl.style.display = 'none';
+        castEl.style.display = 'none'; castEl.style.marginLeft = '';
       }
     };
   }
