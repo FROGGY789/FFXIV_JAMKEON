@@ -280,18 +280,14 @@ const THEMES={
  '잉크 레드':{bg:'#f5f4f0',ink:'#111111',sub:'#64625e',card:'#e9e7e2',line:'#d8d5ce',accent:'#d4432c',dot:'#111111',warn:'#c0331d',floor:'#e7e3da',rim:'#b2ac9f',holo:'linear-gradient(135deg,#f4f1ea 0%,#e7e1d6 50%,#f4d8cf 100%)'}
 };
 const RAIDS=[
- {id:'ucob',no:'01',code:'UCoB',name:'절 바하무트',en:'The Unending Coil of Bahamut',ph:'절바하 사진',n:5},
- {id:'uwu',no:'02',code:'UWU',name:'절 알테마',tag:'웨폰 파괴작전',en:"The Weapon's Refrain",ph:'절테마 사진',n:5},
+ {id:'uwu',no:'01',code:'UWU',name:'절 알테마',tag:'웨폰 파괴작전',en:"The Weapon's Refrain",ph:'절테마 사진',n:5},
+ {id:'ucob',no:'02',code:'UCoB',name:'절 바하무트',en:'The Unending Coil of Bahamut',ph:'절바하 사진',n:5},
  {id:'tea',no:'03',code:'TEA',name:'절 알렉산더',en:'The Epic of Alexander',ph:'절알렉 사진',n:4},
  {id:'dsr',no:'04',code:'DSR',name:'절 용시전쟁',en:"Dragonsong's Reprise",ph:'절용시 사진',n:7},
  {id:'top',no:'05',code:'TOP',name:'절 오메가',en:'The Omega Protocol',ph:'절오메가 사진',n:6},
  {id:'fru',no:'06',code:'FRU',name:'절 에덴',en:'Futures Rewritten',ph:'절에덴 사진',n:5}
 ];
-const SEED={
- uwu:[{id:3,date:'2026-11-24',tries:18,hours:3,best:'P3 타이탄',memo:'감옥 우선순위 아직 헷갈림. 두 번째 산사태에서 2번 전멸.'},{id:2,date:'2026-11-21',tries:22,hours:3.5,best:'P2 이프리트',memo:'말뚝 역Z 순서 정리 완료. 분신 돌진 2차 반시계 이동 연습.'},{id:1,date:'2026-11-18',tries:25,hours:4,best:'P1 가루다',memo:'저기압 스택 흐름 익힘. D1→D2 정화 순서 실수 3회.'}],
- ucob:[{id:5,date:'2026-10-30',tries:12,hours:2,best:'클리어',memo:'클리어!'},{id:4,date:'2026-10-27',tries:30,hours:4.5,best:'P5',memo:'마지막 페이즈 직전 전멸 다수.'}],
- dsr:[{id:6,date:'2026-11-10',tries:15,hours:2.5,best:'P2',memo:''}]
-};
+const SEED={};
 const FLOW=[['P1 가루다','저기압 스택으로 각성','빛 장판 → 힐러','#2f7d5b'],['P2 이프리트','말뚝 4개로 각성','빛 장판 → 캐스터','#d2552b'],['P3 타이탄','감옥 연쇄로 각성','빛 장판 → 근딜','#a07228'],['P4 라하브레아','LB3 네 번 연속','캐스터→힐러→근딜→탱커','#6b4bb0'],['P5 알테마 웨폰','세 야만신 기믹 복합','게이지 100 = 전멸','#14868c']];
 const DROPS=[12,50,24,60,16,42],ROTS=[-3,2.2,-1.6,2.8,-2.2,1.8];
 const MONO="'JetBrains Mono',monospace";
@@ -308,7 +304,7 @@ class Component extends DCLogic {
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
     return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
   componentDidMount(){
-    try{const l=localStorage.getItem('jml-logs-v1');if(l)this.setState({logs:JSON.parse(l)});const g=localStorage.getItem('jml-learned-v1');if(g)this.setState({learned:JSON.parse(g)})}catch(e){}
+    try{const l=localStorage.getItem('jml-logs-v2');if(l)this.setState({logs:JSON.parse(l)});const g=localStorage.getItem('jml-learned-v1');if(g)this.setState({learned:JSON.parse(g)})}catch(e){}
     this.applyTheme();
     if(!window.UWU)this._t=setInterval(()=>{if(window.UWU){clearInterval(this._t);this.forceUpdate()}},120);
   }
@@ -395,9 +391,9 @@ class Component extends DCLogic {
       stats:[{l:'총 트라이',v:st.tries+'회'},{l:'총 시간',v:fmtH(st.hours)},{l:'세션',v:st.sessions+'회'},{l:'최고 진도',v:st.best}],
       form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setTries:setF('tries'),setHours:setF('hours'),setBest:setF('best'),setMemo:setF('memo'),
       addLog:()=>{if(!form.tries)return;const e={id:Date.now(),date:form.date,tries:+form.tries,hours:+form.hours||0,best:form.best,memo:form.memo.trim()};
-        this.setState(s=>{const logs={...s.logs,[view]:[e,...(s.logs[view]||[])]};this.save('jml-logs-v1',logs);return {logs,form:{...s.form,tries:'',hours:'',memo:''}}})},
+        this.setState(s=>{const logs={...s.logs,[view]:[e,...(s.logs[view]||[])]};this.save('jml-logs-v2',logs);return {logs,form:{...s.form,tries:'',hours:'',memo:''}}})},
       logs:L.map(l=>({...l,dateLabel:l.date.replace(/-/g,'.'),summary:`${l.tries}회 · ${fmtH(+l.hours||0)}`,hasMemo:!!l.memo,
-        remove:()=>this.setState(s=>{const logs={...s.logs,[view]:(s.logs[view]||[]).filter(x=>x.id!==l.id)};this.save('jml-logs-v1',logs);return {logs}})})),
+        remove:()=>this.setState(s=>{const logs={...s.logs,[view]:(s.logs[view]||[]).filter(x=>x.id!==l.id)};this.save('jml-logs-v2',logs);return {logs}})})),
       noLogs:!L.length};
   }
 }
