@@ -42,6 +42,8 @@
   const htmlText = s => { const d = document.createElement('div'); d.innerHTML = String(s == null ? '' : s); return d.textContent.trim(); };
   const clamp01 = v => Math.max(0, Math.min(1, v));
   const r1 = v => Math.round(v * 2) / 2;
+  // 나침반 각도(북 0°, 시계방향). dx 동쪽+, dy 남쪽+
+  const compass = (dx, dy) => (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
 
   /* ---------- 로딩 멘트 ---------- */
   const MEMBERS = ['로살리아', '키오레', '팔콘', '말랑찰떡', '홀가분', '피토', 'Ember'];
@@ -137,6 +139,7 @@
         if (p.xy) { delete o.at; o.xy = p.xy.slice(); }
         if (p.a) { o.a = p.a.slice(); o.b = p.b.slice(); }
         if (p.ar) o.ar = p.ar.map(q => q.slice());
+        if (p.dir != null) o.dir = p.dir;
       }
       d.push(o);
     });
@@ -1033,6 +1036,10 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     }
 
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
+    const hintEl = stage.querySelector('.a3d-hint');
+    const HINT = EDIT
+      ? '편집 중: 끌어서 옮김 · 부채꼴 장판은 끌면 시전자 기준 회전(Shift+끌기: 이동) · 직선 장판은 Shift+끌기로 회전 · 다 했으면 저장'
+      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말 클릭: 강조 + 할 일';
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
     const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
@@ -1048,7 +1055,14 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
         const ent = entOf(h.object);
         if (!ent || ent.fixed || ent.kind === 'tether') continue;
         const p0 = groundAt(e); if (!p0) break;
-        drag = { ent, p0, home: ent.g.position.clone() };
+        const o = items[ent.idx] || {};
+        drag = { ent, p0, home: ent.g.position.clone(), mode: 'move' };
+        // 부채꼴: 그냥 끌면 시전 위치(꼭짓점) 기준 회전 / 직선 장판: Shift+끌기로 가운데 기준 회전
+        const rotCone = o.z === 'cone' && !e.shiftKey, rotBand = o.z === 'band' && e.shiftKey;
+        if (rotCone || rotBand) {
+          const piv = rotCone ? at(o) : (() => { const a = xy(o.a), b = xy(o.b); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })();
+          drag.mode = 'rot'; drag.piv = piv; drag.a0 = compass(p0.x - piv[0], p0.z - piv[1]); drag.delta = 0;
+        }
         controls.enabled = false; stage.style.cursor = 'grabbing';
         renderer.domElement.setPointerCapture(e.pointerId);
         break;
@@ -1057,13 +1071,27 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     const onMove = e => {
       if (!drag) return;
       const p = groundAt(e); if (!p) return;
+      if (drag.mode === 'rot') {
+        let d = compass(p.x - drag.piv[0], p.z - drag.piv[1]) - drag.a0;
+        d = Math.round(((d + 540) % 360 - 180) / 5) * 5; // -180~180, 5도 단위
+        drag.delta = d;
+        const th = -d * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
+        const hx = drag.home.x - drag.piv[0], hz = drag.home.z - drag.piv[1];
+        drag.ent.g.position.set(drag.piv[0] + hx * c + hz * sn, drag.home.y, drag.piv[1] - hx * sn + hz * c);
+        drag.ent.g.rotation.y = th;
+        const o = items[drag.ent.idx];
+        hintEl.textContent = o.z === 'cone' ? `방향 ${((o.dir + d) % 360 + 360) % 360}° (${d > 0 ? '+' : ''}${d}°)` : `회전 ${d > 0 ? '+' : ''}${d}°`;
+        return;
+      }
       drag.ent.g.position.set(drag.home.x + (p.x - drag.p0.x), drag.home.y, drag.home.z + (p.z - drag.p0.z));
     };
     const onUp = e => {
       if (drag) {
         const ent = drag.ent, dx = r1(ent.g.position.x - drag.home.x), dz = r1(ent.g.position.z - drag.home.z);
-        drag = null; controls.enabled = true; stage.style.cursor = '';
-        if (Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz);
+        const dd = drag;
+        drag = null; controls.enabled = true; stage.style.cursor = ''; hintEl.textContent = HINT;
+        if (dd.mode === 'rot') { if (dd.delta) commitRotate(ent, dd.delta, dd.piv); }
+        else if (Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz);
         return;
       }
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
@@ -1083,6 +1111,19 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       EDITS[meta.key] = Object.assign({}, EDITS[meta.key], { [ent.idx]: patch });
       applyCard(meta.ph, meta.ci); refresh2D(); rebuild();
     }
+    function commitRotate(ent, deg, piv) {
+      const o = items[ent.idx]; if (!o) return;
+      const patch = Object.assign({}, (EDITS[meta.key] || {})[ent.idx]);
+      if (o.z === 'cone') patch.dir = ((o.dir + deg) % 360 + 360) % 360;
+      else if (o.z === 'band') {
+        const th = deg * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
+        // 나침반 시계방향 회전: x' = x cos - y sin, y' = x sin + y cos (y 아래가 남쪽)
+        const rot = q => { const v = xy(q), x = v[0] - piv[0], y = v[1] - piv[1]; return [r1(piv[0] + x * c - y * sn), r1(piv[1] + x * sn + y * c)]; };
+        patch.a = rot(o.a); patch.b = rot(o.b);
+      } else return;
+      EDITS[meta.key] = Object.assign({}, EDITS[meta.key], { [ent.idx]: patch });
+      applyCard(meta.ph, meta.ci); refresh2D(); rebuild();
+    }
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointermove', onMove);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -1098,9 +1139,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       if (REDUCED) moveCam(qp, qt, true);
       else { camera.position.set(0, 330, 40); controls.target.set(0, 0, 0); controls.update(); moveCam(qp, qt); tween.d = 1100; }
     }
-    stage.querySelector('.a3d-hint').textContent = EDIT
-      ? '편집 중: 말·보스·장판·화살표·글자를 끌어서 옮김 · 다 했으면 저장'
-      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말 클릭: 강조 + 할 일';
+    hintEl.textContent = HINT;
 
     const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); });
     ro.observe(stage);
