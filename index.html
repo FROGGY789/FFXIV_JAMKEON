@@ -347,7 +347,7 @@ class Component extends DCLogic {
         hangStyle:{transformOrigin:'50% 0',transform:`rotate(${fl?0:ROTS[i]}deg)`,transition:'transform .7s cubic-bezier(.2,.9,.25,1.15)'},
         threadStyle:{width:1,margin:'0 auto',background:'var(--sub)',opacity:.55,height:top-tt-10},
         flipStyle:{position:'absolute',inset:0,transformStyle:'preserve-3d',transition:'transform .75s cubic-bezier(.2,.8,.2,1)',transform:fl?'rotateY(180deg)':'rotateY(0deg)'},
-        enter:()=>{if(mode==='hover')this.setState({flip:r.id})},
+        enter:()=>{if(mode==='hover'&&!window.__jamAdmin)this.setState({flip:r.id})},
         leave:()=>{if(mode==='hover')this.setState({flip:null})},
         click:e=>{if(this._dragged||(e.target.closest&&e.target.closest('image-slot')))return;if(mode==='click')this.setState(s=>({flip:s.flip===r.id?null:r.id}));else this.open(r.id)},
         open:e=>{e.stopPropagation();if(!this._dragged)this.open(r.id)}}});

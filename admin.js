@@ -26,6 +26,7 @@
 
   /* ---------- 로그인 상태: 사진 데이터를 저장소에서 바로 읽고, 쓰기 연결 ---------- */
   if (token) {
+    window.__jamAdmin = true; // 랜딩 카드: 관리자일 땐 마우스 올려도 안 뒤집힘 (사진 칸 버튼을 누를 수 있게)
     // Pages 캐시(최대 10분) 때문에 방금 저장한 사진이 사라져 보이지 않게, 관리자는 API에서 최신본을 읽음
     const origFetch = window.fetch.bind(window);
     window.fetch = function (input, init) {
@@ -136,6 +137,11 @@ html.adm-on image-slot{outline:2px dashed color-mix(in srgb,var(--accent,#a597e3
         const box = el.parentElement; if (box && getComputedStyle(box).pointerEvents === 'none') box.style.pointerEvents = 'auto';
       };
       const scan = () => document.querySelectorAll('image-slot').forEach(guard);
+      // 사진 칸의 Replace 버튼: 원래 디자인 툴이 처리하는 신호라, 여기서 파일 선택 창을 직접 열어줌
+      document.addEventListener('image-slot:pick', e => {
+        const el = e.target && e.target.closest ? e.target.closest('image-slot') : null;
+        if (el && el.openFilePicker) el.openFilePicker();
+      });
       new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
       scan();
     }
