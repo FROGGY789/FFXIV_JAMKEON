@@ -1,8 +1,8 @@
 /* arena3d.js — 기믹 도식 3D 뷰어
  *
- * 평면도(SVG)를 그리는 draw(items) 와 같은 데이터를 받아서 Three.js 로 입체 필드를 그려요.
- * - draw() 가 만든 <svg data-arena="N"> 옆에 "3D로 보기" 버튼을 자동으로 붙여요.
- * - window.Arena3D.open(items, {title}) 으로 직접 열 수도 있어요.
+ * 평면도(SVG)를 그리는 draw(items) 와 같은 데이터를 받아서 Three.js 로 입체 필드를 그림.
+ * - draw() 가 만든 <svg data-arena="N"> 옆에 "3D로 보기" 버튼을 자동으로 붙임.
+ * - window.Arena3D.open(items, {title}) 으로 직접 열 수도 있음.
  *
  * 좌표: SVG (x, y) → 3D (x, 0, y). 북쪽 = -z, 필드 반지름 = 100.
  */
@@ -192,7 +192,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     if (!dlg.open) dlg.showModal();
     let L;
     try { L = await loadLibs(); }
-    catch (e) { loadEl.textContent = '3D 엔진을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; libs = null; return; }
+    catch (e) { loadEl.textContent = '3D 엔진을 불러오지 못함. 인터넷 연결을 확인 바람.'; libs = null; return; }
     if (!dlg.open) return;
     loadEl.style.display = 'none';
     teardown();
@@ -492,10 +492,10 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 
     /* --- 재생 타임라인 ---
      * 기본(자동): ① 배치 → ② 장판 → ③ 이동(실선 화살표) → ④ 이동(점선 화살표)
-     *   화살표 시작점/끝점 근처의 롤이 화살표를 따라 움직여요.
+     *   화살표 시작점/끝점 근처의 롤이 화살표를 따라 움직임.
      * 직접 작성: d 안에 {seq:[{s:'설명', mv:{D1:[x,y] 또는 pol(각도,거리)}}, ...]} 를 넣으면
-     *   ① 배치 → ② 장판 → 각 seq 단계 순서로 롤이 이동해요. 화살표는 마지막 단계에 보여요. */
-    const STEPS = [{ name: '배치', cap: '보스와 각 롤의 시작 위치' }, { name: '장판', cap: '장판 · 줄 · 표시가 깔려요' }];
+     *   ① 배치 → ② 장판 → 각 seq 단계 순서로 롤이 이동함. 화살표는 마지막 단계에 보임. */
+    const STEPS = [{ name: '배치', cap: '보스와 각 롤의 시작 위치' }, { name: '장판', cap: '장판 · 줄 · 표시가 깔림' }];
     const pawnsE = ENT.filter(e => e.kind === 'pawn');
     pawnsE.forEach(e => { e.pos = [e.p0, e.p0]; e.paths = []; });
     ENT.forEach(e => { e.at = e.kind === 'pawn' || e.kind === 'unit' ? 0 : 1; });

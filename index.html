@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./admin.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -21,6 +22,10 @@ input,select,textarea,button{font:inherit;color:inherit}
 @keyframes sway{0%,100%{rotate:-1deg}50%{rotate:1deg}}
 @keyframes dropIn{from{opacity:0;translate:0 -70px}to{opacity:1;translate:0 0}}
 @keyframes rise{from{opacity:0;translate:0 16px}to{opacity:1;translate:0 0}}
+.post-body{display:grid;grid-template-columns:minmax(0,1fr);column-gap:22px}
+@media(min-width:1180px){.post-body{grid-template-columns:minmax(0,360px) minmax(0,1fr)}.post-body>ol{margin-top:22px!important}}
+.log-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@media(min-width:900px){.log-grid{grid-template-columns:minmax(300px,380px) minmax(0,1fr)}}
 </style>
 </helmet>
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
@@ -33,10 +38,10 @@ input,select,textarea,button{font:inherit;color:inherit}
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span>
         <span>Ultimate Raid Lab · 기믹 노트 &amp; 트라이 일지</span>
       </div>
-      <h1 style="margin:26px 0 0;font-size:64px;line-height:1.04;font-weight:500;letter-spacing:-.045em">전멸 연구소<br><span style="color:var(--accent,#a597e3)">다음 트라이는 다르다.</span></h1>
+      <h1 style="margin:26px 0 0;font-size:64px;line-height:1.04;font-weight:500;letter-spacing:-.045em"><span style="font-weight:800">전멸 연구소</span><br><span style="color:var(--accent,#a597e3)">이걸 사네</span></h1>
     </div>
     <div style="max-width:290px;padding-top:58px">
-      <p style="margin:0;font-size:14px;line-height:1.65;color:var(--sub,#6f6c78);text-wrap:pretty">절 레이드 기믹을 모아 보고, 매일의 트라이를 기록하는 곳. 카드를 뒤집으면 기록이, 누르면 노트가 열려요.</p>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:var(--sub,#6f6c78);text-wrap:pretty">절 레이드 기믹을 모아 보고, 매일의 트라이를 기록하는 곳. 카드를 뒤집으면 기록이, 누르면 노트가 열림.</p>
       <div style="display:flex;align-items:center;gap:8px;margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--dot,#4fcf9a)"></span>
         <span>{{ totalLabel }}</span>
@@ -126,8 +131,8 @@ input,select,textarea,button{font:inherit;color:inherit}
     </div>
   </aside>
 
-  <main style="flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;gap:32px;padding:34px 40px 96px;align-items:flex-start">
-    <div style="flex:1 1 500px;min-width:0;max-width:760px">
+  <main style="flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;gap:32px;padding:34px clamp(20px,4vw,56px) 96px;align-items:flex-start">
+    <div style="flex:1 1 500px;min-width:0;max-width:1120px">
       <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span><span>Ultimate · {{ raid.code }} · #{{ raid.no }}</span></div>
       <h1 style="margin:16px 0 0;font-size:46px;line-height:1.06;font-weight:500;letter-spacing:-.045em">{{ raid.name }}<br><span style="color:var(--accent,#a597e3)">{{ raid.tag }}</span></h1>
       <p style="margin:10px 0 0;font-size:14px;color:var(--sub,#6f6c78)">{{ raid.en }}</p>
@@ -157,7 +162,7 @@ input,select,textarea,button{font:inherit;color:inherit}
               <div style="flex:1"><div style="font-size:14px;font-weight:600">전멸 연구소</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub,#6f6c78)">Pinned · 한눈에 보기</div></div>
             </div>
             <h3 style="margin:14px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.02em">한눈에 보는 절테마</h3>
-            <p style="margin:0;font-size:14.5px;line-height:1.65;text-wrap:pretty">야만신 셋을 각성시켜 잡고, 그 보상으로 받은 LB3를 네 번 이어 쓴 다음, 세 야만신의 힘을 흡수한 알테마 웨폰과 싸우는 구조예요. 앞 세 페이즈는 반드시 각성시켜서 잡아야 넘어갈 수 있어요.</p>
+            <p style="margin:0;font-size:14.5px;line-height:1.65;text-wrap:pretty">야만신 셋을 각성시켜 잡고, 그 보상으로 받은 LB3를 네 번 이어 쓴 다음, 세 야만신의 힘을 흡수한 알테마 웨폰과 싸우는 구조임. 앞 세 페이즈는 반드시 각성시켜서 잡아야 넘어갈 수 있음.</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:14px">
               <sc-for list="{{ flow }}" as="f" hint-placeholder-count="5">
                 <div style="{{ f.style }}"><div style="font-size:15px;font-weight:700;line-height:1.25">{{ f.n }}</div><div style="font-size:12px;opacity:.92;margin-top:4px;line-height:1.4">{{ f.s }}</div><div style="display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700">{{ f.lp }}</div></div>
@@ -187,13 +192,15 @@ input,select,textarea,button{font:inherit;color:inherit}
                 </div>
                 <h3 style="margin:14px 0 2px;font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.3;text-wrap:pretty">{{ it.h }}</h3>
                 <div style="font-size:12px;color:var(--sub,#6f6c78)">{{ it.en }}</div>
-                <div style="margin-top:14px;background:var(--bg,#f6f5f8);border-radius:14px;padding:14px 12px 10px;display:grid;justify-items:center">
+                <div class="post-body">
+                <div style="margin-top:14px;background:var(--bg,#f6f5f8);border-radius:14px;padding:14px 12px 10px;display:grid;justify-items:center;align-content:start">
                   <div style="width:100%;max-width:330px">{{ it.diagram }}</div>
                   <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:6px;text-align:center">{{ it.cap }}</div>
                 </div>
-                <ol style="margin:14px 0 0;padding-left:20px;font-size:14.5px;line-height:1.65;display:grid;gap:4px">
+                <ol style="margin:14px 0 0;padding-left:20px;font-size:14.5px;line-height:1.65;display:grid;gap:4px;align-content:start">
                   <sc-for list="{{ it.steps }}" as="st"><li style="text-wrap:pretty"><sc-for list="{{ st }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for></li></sc-for>
                 </ol>
+                </div>
                 <sc-if value="{{ it.hasTip }}"><p style="margin:12px 0 0;padding-top:10px;border-top:1px dashed var(--line,#dddbe2);font-size:13px;color:var(--sub,#6f6c78);line-height:1.55">{{ it.tip }}</p></sc-if>
                 <div style="{{ it.rolesWrap }}"><div style="overflow:hidden;min-height:0">
                   <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 18px;border-top:1px solid var(--line,#dddbe2);padding-top:12px">
@@ -216,14 +223,14 @@ input,select,textarea,button{font:inherit;color:inherit}
 
         <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
           <div style="border:1px dashed var(--line,#dddbe2);border-radius:20px;padding:40px 24px;text-align:center">
-            <div style="font-size:17px;font-weight:600">아직 정리된 기믹이 없어요</div>
-            <p style="margin:6px auto 0;max-width:36ch;font-size:14px;color:var(--sub,#6f6c78);line-height:1.6">이 레이드의 기믹 노트를 보내 주시면 여기에 피드로 올라와요. 트라이 일지는 지금 바로 쓸 수 있어요.</p>
+            <div style="font-size:17px;font-weight:600">아직 정리된 기믹이 없음</div>
+            <p style="margin:6px auto 0;max-width:36ch;font-size:14px;color:var(--sub,#6f6c78);line-height:1.6">이 레이드의 기믹 노트를 보내 주면 여기에 피드로 올라옴. 트라이 일지는 지금 바로 쓸 수 있음.</p>
           </div>
         </sc-if>
       </div>
       </div></sc-if>
       <sc-if value="{{ tabLog }}" hint-placeholder-val="{{ false }}">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:22px;align-items:start;animation:rise .4s both">
+      <div class="log-grid" style="margin-top:22px;animation:rise .4s both">
       <div style="background:var(--card,#ececef);border-radius:20px;padding:18px">
         <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span style="width:6px;height:6px;border-radius:50%;background:var(--dot,#4fcf9a)"></span><span>Try log · 트라이 일지</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:14px">
@@ -258,7 +265,7 @@ input,select,textarea,button{font:inherit;color:inherit}
           <sc-if value="{{ l.hasMemo }}"><p style="margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--sub,#6f6c78)">{{ l.memo }}</p></sc-if>
         </div>
       </sc-for>
-      <sc-if value="{{ noLogs }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--sub,#6f6c78);padding:4px 6px">아직 기록이 없어요. 첫 트라이를 남겨 보세요.</div></sc-if>
+      <sc-if value="{{ noLogs }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--sub,#6f6c78);padding:4px 6px">아직 기록이 없음. 첫 트라이를 남겨 볼 것.</div></sc-if>
       </div>
       </div>
       </sc-if>
@@ -377,7 +384,7 @@ class Component extends DCLogic {
         feed.push({isPhase:false,isPost:true,phase:ph.name,initial:ph.name.split(' ')[1][0],meta:`기믹 ${String(ci+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}`,
           avatarStyle:{width:36,height:36,borderRadius:'50%',background:ph.color,color:'#fff',display:'grid',placeItems:'center',fontSize:14,fontWeight:700,flex:'none'},
           h:c.h,en:c.en,cap:c.cap,diagram:this.svgFor(k,c.d),steps:c.steps.map(segs),hasTip:!!c.tip,tip:c.tip?dec(c.tip.replace(/<[^>]+>/g,'')):'',
-          learned:lr,learnLabel:lr?'✓ 익혔어요':'익혔어요',
+          learned:lr,learnLabel:lr?'✓ 익힘':'익힘',
           learnBtnStyle:{border:'none',padding:'8px 12px',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',color:'var(--ink)',background:lr?'color-mix(in srgb, var(--accent) 30%, transparent)':'transparent'},
           toggleLearned:()=>this.toggle('learned',k),hasRoles:!!R,rolesWrap:{display:'grid',gridTemplateRows:op&&R?'1fr':'0fr',opacity:op?1:0,transition:'grid-template-rows .45s cubic-bezier(.2,.8,.2,1), opacity .35s'},rolesLabel:op?'역할별 할 일 접기':'T1~D4 역할별 할 일',toggleRoles:()=>this.toggle('open',k),
           roles:(R||[]).map((x,i)=>({n:U.RN[i],segs:segs(x[0]),hasWarn:!!x[1],warn:x[1]?dec(x[1].replace(/<[^>]+>/g,'')):'',dotStyle:{width:26,height:26,borderRadius:'50%',background:U.RC[U.RN[i][0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'grid',placeItems:'center'}}))})})});
