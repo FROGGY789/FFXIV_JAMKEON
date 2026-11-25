@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./admin.js"></script>
+<script src="./admin.js?v=20261125g"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -11,9 +11,9 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js"></script>
-<script src="./uwu-data.js"></script>
-<script src="./arena3d.js"></script>
+<script src="./image-slot.js?v=20261125g"></script>
+<script src="./uwu-data.js?v=20261125g"></script>
+<script src="./arena3d.js?v=20261125g"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -84,7 +84,7 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
                     <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg);background:var(--holo);border-radius:18px;padding:16px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
                       <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase"><span>Try log / {{ c.no }}</span><span style="border:1px solid var(--ink,#16151a);border-radius:999px;padding:2px 8px;letter-spacing:.06em">{{ c.status }}</span></div>
                       <div style="font-size:15px;font-weight:600;margin-top:16px;letter-spacing:-.02em">{{ c.name }}</div>
-                      <div style="display:flex;align-items:baseline;gap:4px;margin-top:6px"><span style="font-size:48px;font-weight:500;letter-spacing:-.04em;line-height:1">{{ c.tries }}</span><span style="font-size:14px">회 트라이</span></div>
+                      <div style="display:flex;align-items:baseline;gap:4px;margin-top:6px"><span style="font-size:48px;font-weight:500;letter-spacing:-.04em;line-height:1">{{ c.tries }}</span><span style="font-size:14px">릴 트라이</span></div>
                       <div style="display:grid;margin-top:16px">
                         <sc-for list="{{ c.rows }}" as="row" hint-placeholder-count="4">
                           <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid color-mix(in srgb,var(--ink,#16151a) 14%,transparent);font-size:12.5px"><span style="opacity:.75">{{ row.l }}</span><span style="font-weight:600;text-align:right">{{ row.v }}</span></div>
@@ -197,14 +197,14 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
                   <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:6px;text-align:center">{{ it.cap }}</div>
                 </div>
                 <ol style="margin:14px 0 0;padding-left:20px;font-size:14.5px;line-height:1.65;display:grid;gap:4px;align-content:start">
-                  <sc-for list="{{ it.steps }}" as="st"><li style="text-wrap:pretty"><sc-for list="{{ st }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for></li></sc-for>
+                  <sc-for list="{{ it.steps }}" as="st"><li data-why="{{ st.why }}" style="text-wrap:pretty"><sc-for list="{{ st.segs }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for></li></sc-for>
                 </ol>
                 </div>
                 <sc-if value="{{ it.hasTip }}"><p style="margin:12px 0 0;padding-top:10px;border-top:1px dashed var(--line,#dddbe2);font-size:13px;color:var(--sub,#6f6c78);line-height:1.55">{{ it.tip }}</p></sc-if>
                 <div style="{{ it.rolesWrap }}"><div style="overflow:hidden;min-height:0">
                   <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 18px;border-top:1px solid var(--line,#dddbe2);padding-top:12px">
                     <sc-for list="{{ it.roles }}" as="r">
-                      <div style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;font-size:13.5px;line-height:1.45;padding:3px 0">
+                      <div data-why="{{ r.why }}" style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;font-size:13.5px;line-height:1.45;padding:3px 0">
                         <span style="{{ r.dotStyle }}">{{ r.n }}</span>
                         <div><sc-for list="{{ r.segs }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for><sc-if value="{{ r.hasWarn }}"><div style="color:var(--warn,#c0392b);font-size:12.5px;margin-top:2px">{{ r.warn }}</div></sc-if></div>
                       </div>
@@ -378,12 +378,12 @@ class Component extends DCLogic {
       edgeMove:e=>{const r=e.currentTarget.getBoundingClientRect(),x=e.clientX-r.left,z=Math.min(160,r.width*.14);const v=x<z?'l':x>r.width-z?'r':null;if(v!==this.state.edge)this.setState({edge:v})},
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
-    const base={...strip,isLanding:!view,isDetail:!!view,cards,totalLabel:`06 Ultimates · 누적 트라이 ${grand}회`,
+    const base={...strip,isLanding:!view,isDetail:!!view,cards,totalLabel:`06 Ultimates · 누적 ${grand}릴`,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
     const raid=RAIDS.find(r=>r.id===view),U=window.UWU,isU=view==='uwu'&&!!U;
-    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:this.statsOf(r.id).tries+' tries',go:()=>{if(!a)this.open(r.id)},
+    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:this.statsOf(r.id).tries+'릴',go:()=>{if(!a)this.open(r.id)},
       wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
       cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
     const feed=[];let total=0,learnedN=0;
@@ -394,11 +394,11 @@ class Component extends DCLogic {
       ph.cards.forEach((c,ci)=>{const k=ph.id+'-'+ci,lr=!!this.state.learned[k],op=!!this.state.open[k],R=(U.RL[ph.id]||[])[ci];
         feed.push({isPhase:false,isPost:true,phase:ph.name,initial:ph.name.split(' ')[1][0],meta:`기믹 ${String(ci+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}`,
           avatarStyle:{width:36,height:36,borderRadius:'50%',background:ph.color,color:'#fff',display:'grid',placeItems:'center',fontSize:14,fontWeight:700,flex:'none'},
-          h:c.h,en:c.en,cap:c.cap,diagram:this.svgFor(k,c.d),steps:c.steps.map(segs),hasTip:!!c.tip,tip:c.tip?dec(c.tip.replace(/<[^>]+>/g,'')):'',
+          h:c.h,en:c.en,cap:c.cap,diagram:this.svgFor(k,c.d),steps:c.steps.map((x,si)=>({segs:segs(x),why:ph.id+':'+ci+'|#'+si})),hasTip:!!c.tip,tip:c.tip?dec(c.tip.replace(/<[^>]+>/g,'')):'',
           learned:lr,learnLabel:lr?'✓ 익힘':'익힘',
           learnBtnStyle:{border:'none',padding:'8px 12px',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',color:'var(--ink)',background:lr?'color-mix(in srgb, var(--accent) 30%, transparent)':'transparent'},
           toggleLearned:()=>this.toggle('learned',k),hasRoles:!!R,rolesWrap:{display:'grid',gridTemplateRows:op&&R?'1fr':'0fr',opacity:op?1:0,transition:'grid-template-rows .45s cubic-bezier(.2,.8,.2,1), opacity .35s'},rolesLabel:op?'역할별 할 일 접기':'T1~D4 역할별 할 일',toggleRoles:()=>this.toggle('open',k),
-          roles:(R||[]).map((x,i)=>({n:U.RN[i],segs:segs(x[0]),hasWarn:!!x[1],warn:x[1]?dec(x[1].replace(/<[^>]+>/g,'')):'',dotStyle:{width:26,height:26,borderRadius:'50%',background:U.RC[U.RN[i][0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'grid',placeItems:'center'}}))})})});
+          roles:(R||[]).map((x,i)=>({n:U.RN[i],why:ph.id+':'+ci+'|'+U.RN[i],segs:segs(x[0]),hasWarn:!!x[1],warn:x[1]?dec(x[1].replace(/<[^>]+>/g,'')):'',dotStyle:{width:26,height:26,borderRadius:'50%',background:U.RC[U.RN[i][0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'grid',placeItems:'center'}}))})})});
     const chipStyle=a=>({border:'1px solid '+(a?'var(--ink)':'var(--line)'),background:a?'var(--ink)':'transparent',color:a?'var(--bg)':'var(--ink)',borderRadius:999,padding:'7px 14px',fontSize:13,fontWeight:600,cursor:'pointer'});
     const chips=isU?[{id:'all',label:'전체'},...U.PH.map(p=>({id:p.id,label:p.name}))].map(c=>({...c,style:chipStyle(filter===c.id),pick:()=>this.setState({filter:c.id})})):[];
     const tabS=a=>({border:'none',borderRadius:999,padding:'9px 18px',fontSize:13.5,fontWeight:600,cursor:'pointer',background:a?'var(--ink)':'transparent',color:a?'var(--bg)':'var(--ink)',transition:'background .25s, color .25s'});
@@ -408,7 +408,7 @@ class Component extends DCLogic {
       toGimmick:()=>this.setState({tab:'gimmick'}),toLog:()=>this.setState({tab:'log'}),tabGStyle:tabS(this.state.tab!=='log'),tabLStyle:tabS(this.state.tab==='log'),showOverview:isU&&filter==='all',
       flow:FLOW.map(f=>({n:f[0],s:f[1],lp:f[2],style:{background:f[3],color:'#fff',borderRadius:14,padding:12}})),
       progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
-      stats:[{l:'트라이',v:st.tries+'회'},{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best}],
+      stats:[{l:'트라이',v:st.tries+'릴'},{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best}],
       form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setStart:setF('start'),setEnd:setF('end'),setBest:setF('best'),setMemo:setF('memo'),
       canEdit:!!(window.JamAdmin&&window.JamAdmin.on),readOnly:!(window.JamAdmin&&window.JamAdmin.on),
       addLog:()=>{if(!form.start||!form.end){alert('시작·끝 시각을 넣을 것');return}const e={id:Date.now(),date:form.date,start:form.start,end:form.end,hours:spanH(form.start,form.end),best:form.best,memo:form.memo.trim()};

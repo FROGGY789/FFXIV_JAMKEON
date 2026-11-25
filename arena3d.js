@@ -174,6 +174,144 @@
     else if (n < 100) setTimeout(() => bootEdits(n + 1), 100);
   })(0);
 
+  /* ---------- 롤 정보 (할 일 · 주의 · 왜? · 관련 용어) ---------- */
+  function whyFor(key, role) {
+    const ed = (EDITS[key] || {})._why;
+    if (ed && ed[role] != null) return ed[role];
+    const u = U(); return ((u && u.RW || {})[key] || {})[role] || '';
+  }
+  function roleRow(key, role) {
+    const u = U(); if (!u) return null;
+    const [pid, ci] = key.split(':'), ph = u.PH.find(p => p.id === pid);
+    const ri = (u.RN || RN0).indexOf(role);
+    const row = ((u.RL || {})[pid] || [])[+ci];
+    return { ph, row: row && ri >= 0 ? row[ri] : null };
+  }
+  const hasWhy = (key, role) => !!whyFor(key, role);
+  function buildRoleInfo(key, role, { editable, onInput, compact } = {}) {
+    const f = document.createDocumentFragment();
+    const info = roleRow(key, role) || {};
+    if (compact) return buildWhyOnly(key, role);
+    const head = document.createElement('div');
+    const t = document.createElement('b'); t.className = 't'; t.textContent = role; t.style.background = RC[role[0]] || '#666';
+    const ph = document.createElement('span'); ph.style.cssText = 'font-size:12px;opacity:.7;font-weight:700';
+    ph.textContent = info.ph ? `${info.ph.name} · 이 기믹에서 할 일` : '할 일';
+    head.append(t, ph); f.appendChild(head);
+    const duty = info.row ? htmlText(info.row[0]) : '', warn = info.row && info.row[1] ? htmlText(info.row[1]) : '';
+    const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = duty || '이 기믹에 따로 적힌 역할 없음'; f.appendChild(p);
+    if (warn) { const w = document.createElement('div'); w.style.cssText = 'color:#c0392b;font-size:13px;margin-top:4px'; w.textContent = '⚠ ' + warn; f.appendChild(w); }
+    const why = whyFor(key, role);
+    const wb = document.createElement('div'); wb.className = 'a3d-why';
+    const wt = document.createElement('b'); wt.textContent = '왜?'; wb.appendChild(wt);
+    if (editable) {
+      const ta = document.createElement('textarea'); ta.value = why; ta.placeholder = `${role}가 이렇게 움직이는 이유를 적기 (저장을 눌러야 반영)`;
+      ta.setAttribute('aria-label', `${role} 이유`);
+      ta.addEventListener('input', () => onInput && onInput(ta.value));
+      wb.appendChild(ta);
+    } else {
+      const wp = document.createElement('div'); wp.textContent = why || '아직 적힌 이유 없음'; if (!why) wp.className = 'none'; wb.appendChild(wp);
+    }
+    f.appendChild(wb);
+    const gl = (U() && U().GL) || [];
+    const text = duty + ' ' + warn + ' ' + why, hits = [];
+    [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
+    if (hits.length) {
+      const ul = document.createElement('ul'); ul.className = 'a3d-gl';
+      hits.forEach(g => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = htmlText(g[1]) + ': '; li.append(b, htmlText(g[2])); ul.appendChild(li); });
+      f.appendChild(ul);
+    }
+    return f;
+  }
+  // 각주용: 할 일은 이미 보이니 "왜?"와 관련 용어만
+  function buildWhyOnly(key, role) {
+    const f = document.createDocumentFragment(), info = roleRow(key, role) || {};
+    const why = whyFor(key, role);
+    const p = document.createElement('div'); p.innerHTML = '<b class="lb">왜?</b> '; p.append(why || '아직 적힌 이유 없음'); f.appendChild(p);
+    const duty = info.row ? htmlText(info.row[0]) + ' ' + htmlText(info.row[1] || '') : '';
+    glossInto(f, duty + ' ' + why);
+    return f;
+  }
+  function glossInto(f, text) {
+    const gl = (U() && U().GL) || [], hits = [];
+    [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
+    if (!hits.length) return;
+    const ul = document.createElement('ul'); ul.className = 'a3d-gl';
+    hits.forEach(g => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = htmlText(g[1]) + ': '; li.append(b, htmlText(g[2])); ul.appendChild(li); });
+    f.appendChild(ul);
+  }
+  // 공략 문장(번호) 하나에 대한 설명: 직접 적은 이유(SW) + 문장에 나온 롤의 "왜?" + 문장에 나온 용어
+  function stepParts(key, idx) {
+    const u = U(); if (!u) return null;
+    const [pid, ci] = key.split(':'), ph = u.PH.find(p => p.id === pid), card = ph && ph.cards[+ci];
+    if (!card || !card.steps || card.steps[idx] == null) return null;
+    const text = htmlText(card.steps[idx]);
+    const ed = (EDITS[key] || {})._swhy;
+    const own = ed && ed[idx] != null ? ed[idx] : (((u.SW || {})[key] || {})[idx] || '');
+    const roles = [...new Set(text.match(/\b[THD][1-4]\b/g) || [])];
+    const byText = new Map();
+    roles.forEach(r => { const w = whyFor(key, r); if (w) byText.set(w, (byText.get(w) || []).concat(r)); });
+    const gl = u.GL || [], hits = [];
+    [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
+    return { ph, own, reasons: [...byText].map(([w, rs]) => [rs, w]), hits };
+  }
+  const hasStepWhy = (key, idx) => { const s = stepParts(key, idx); return !!(s && (s.own || s.reasons.length || s.hits.length)); };
+  function buildStepInfo(key, idx) {
+    const f = document.createDocumentFragment(), sp = stepParts(key, idx); if (!sp) return f;
+    const head = document.createElement('b'); head.className = 'lb'; head.textContent = '왜?'; f.appendChild(head);
+    if (sp.own) { const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = sp.own; f.appendChild(p); }
+    sp.reasons.forEach(([rs, w]) => {
+      const d = document.createElement('div'); d.style.cssText = 'margin-top:8px';
+      rs.forEach(r => { const t = document.createElement('b'); t.className = 't'; t.textContent = r; t.style.background = RC[r[0]] || '#666'; d.appendChild(t); });
+      const p = document.createElement('div'); p.style.marginTop = '3px'; p.textContent = w; d.appendChild(p); f.appendChild(d);
+    });
+    if (sp.hits.length) {
+      const ul = document.createElement('ul'); ul.className = 'a3d-gl'; ul.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px dashed var(--line,#dddbe2)';
+      sp.hits.forEach(g => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = htmlText(g[1]) + ': '; li.append(b, htmlText(g[2])); ul.appendChild(li); });
+      f.appendChild(ul);
+    }
+    if (!sp.own && !sp.reasons.length && !sp.hits.length) { const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = '아직 적힌 이유 없음'; f.appendChild(p); }
+    return f;
+  }
+  // data-why="페이즈:카드|롤" 또는 "페이즈:카드|#문장번호" 를 누르면 그 아래로 각주가 펼쳐짐 (다시 누르면 접힘)
+  function toggleNote(el) {
+    const box = el.tagName === 'LI' ? el : (el.lastElementChild || el);
+    const open = [...box.children].find(c => c.classList && c.classList.contains('jam-fn'));
+    if (open) {
+      open.classList.remove('open'); el.classList.remove('fn-open');
+      const done = () => open.remove();
+      if (REDUCED) done(); else { open.addEventListener('transitionend', done, { once: true }); setTimeout(done, 450); }
+      return;
+    }
+    const [key, role] = (el.getAttribute('data-why') || '').split('|'); if (!key || !role || !/^\w+:\d+$/.test(key)) return;
+    const fn = document.createElement('div'); fn.className = 'jam-fn';
+    const inner = document.createElement('div'); inner.className = 'in';
+    inner.appendChild(role[0] === '#' ? buildStepInfo(key, +role.slice(1)) : buildWhyOnly(key, role));
+    fn.appendChild(inner); box.appendChild(fn); el.classList.add('fn-open');
+    requestAnimationFrame(() => requestAnimationFrame(() => fn.classList.add('open')));
+  }
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (!t.closest || t.closest('button.why, a, button, input, textarea, select')) return;
+    const el = t.closest('[data-why]');
+    if (el && el.classList.contains('has-why')) toggleNote(el);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest && e.target.closest('[data-why].has-why');
+    if (el && e.target === el && !el.closest('dialog.a3d')) { e.preventDefault(); toggleNote(el); }
+  });
+  const pageHide = () => {};
+  // 노트 쪽 롤 표시에 별표(*) 붙이기: data-why 가 있고 이유가 적힌 롤
+  function markStars() {
+    document.querySelectorAll('[data-why]:not([data-star])').forEach(el => {
+      const [key, role] = el.getAttribute('data-why').split('|');
+      if (!U()) return;
+      if (!key || !role || !/^\w+:\d+$/.test(key)) return; // 아직 값이 안 채워진 표시
+      el.setAttribute('data-star', '1');
+      if (role[0] === '#' ? hasStepWhy(key, +role.slice(1)) : hasWhy(key, role)) { el.classList.add('has-why'); if (!el.hasAttribute('tabindex')) el.tabIndex = 0; }
+    });
+  }
+
   /* ---------- 스타일 ---------- */
   const css = `
 .a3d-btn{display:flex;align-items:center;gap:6px;margin:10px auto 0;padding:6px 14px;min-height:36px;border-radius:999px;
@@ -220,6 +358,18 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 .a3d-gl b{font-weight:800}
 .a3d-role textarea{width:100%;box-sizing:border-box;margin-top:4px;min-height:70px;font:inherit;font-size:13px;padding:6px 8px;border-radius:8px;border:1px solid var(--a3d-line);background:transparent;color:inherit;resize:vertical}
 .a3d-role{max-height:calc(100% - 24px);overflow:auto}
+.jam-fn{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .32s ease,opacity .32s ease,margin .32s ease;margin:0}
+.jam-fn.open{grid-template-rows:1fr;opacity:1;margin:6px 0 4px}
+.jam-fn>.in{overflow:hidden;min-height:0;font-size:12.5px;line-height:1.6;color:var(--sub,#6f6c78);font-weight:400;border-left:3px solid #f2c230;padding:0 0 0 10px}
+.jam-fn .lb{font-size:11.5px;font-weight:800;color:#b07d00;margin-right:2px}
+.jam-fn b.t{display:inline-grid;place-items:center;min-width:28px;height:18px;border-radius:999px;color:#fff;font-size:10.5px;margin:4px 4px 0 0}
+.jam-fn .a3d-gl{margin:6px 0 0;padding:6px 0 0;list-style:none;display:grid;gap:3px;border-top:1px dashed var(--line,#dddbe2)}
+.jam-fn .a3d-gl b{font-weight:800;color:var(--ink,#16151a)}
+@media (prefers-reduced-motion: reduce){.jam-fn{transition:none}}
+li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font-weight:800}
+[data-why].has-why{cursor:pointer}
+[data-why].has-why:focus-visible{outline:2px solid #f2c230;outline-offset:2px;border-radius:6px}
+[data-why].has-why:hover,[data-why].fn-open{background:color-mix(in srgb,#f2c230 16%,transparent);border-radius:6px}
 .a3d-prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--a3d-line)}
 .a3d-prog>i{display:block;height:100%;width:0;background:var(--a3d-ink)}
 .a3d-side{position:absolute;top:12px;right:12px;bottom:12px;width:min(340px,calc(100% - 24px));overflow:auto;background:var(--a3d-bg);border:1px solid var(--a3d-line);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;z-index:2}
@@ -248,6 +398,11 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 .a3d-bar button.warn{border-color:#c0392b;color:#c0392b}
 .a3d-bar button:focus-visible,.a3d-x:focus-visible,.a3d-hb:focus-visible{outline:3px solid var(--a3d-sub);outline-offset:2px}
 .a3d-dirty{color:#c0392b;font-weight:800}
+.a3d-bar button.sw{display:inline-flex;align-items:center;gap:8px;border-color:transparent;padding-left:4px}
+.a3d-bar button.sw .tr{position:relative;width:38px;height:22px;border-radius:999px;background:var(--a3d-line);transition:background .2s}
+.a3d-bar button.sw .tr::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.a3d-bar button.sw[aria-checked=true] .tr{background:#2e9e55}
+.a3d-bar button.sw[aria-checked=true] .tr::after{transform:translateX(16px)}
 @media(max-width:640px){dialog.a3d{width:100vw;height:100dvh;border-radius:0}.a3d-hint{display:none}.a3d-bar{display:grid;gap:8px;padding:8px 12px 10px}.a3d-grp{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.a3d-grp>*{flex:none}.a3d-hd .a3d-hb.nav{display:none}}
 `;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
@@ -278,8 +433,8 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       after.insertAdjacentElement('afterend', btn);
     });
   }
-  const mo = new MutationObserver(attach);
-  const boot = () => { attach(); mo.observe(document.body, { childList: true, subtree: true }); };
+  const mo = new MutationObserver(() => { attach(); markStars(); });
+  const boot = () => { attach(); markStars(); mo.observe(document.body, { childList: true, subtree: true }); };
   if (document.body) boot(); else addEventListener('DOMContentLoaded', boot);
 
   /* ---------- 다이얼로그 ---------- */
@@ -327,6 +482,8 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
   let SPEED = 1;           // 재생 배속
   let EDIT = false;        // 편집 모드
   let camState = null;     // 카드 넘길 때 카메라 유지
+  let POP3D = true;        // 3D 안 설명 팝오버
+  try { POP3D = localStorage.getItem('jamkeon.pop3d') !== '0'; } catch (e) {}
   const dirty = () => JSON.stringify(EDITS) !== JSON.stringify(SAVED);
 
   function go(delta, autoplay) {
@@ -386,6 +543,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     const ol = document.createElement('ol'); ol.className = 'go';
     steps.forEach((t, i) => {
       const li = document.createElement('li'); li.textContent = t; li.dataset.i = i; li.tabIndex = 0;
+      if (meta) { li.setAttribute('data-why', meta.key + '|#' + i); if (hasStepWhy(meta.key, i)) li.classList.add('has-why'); li.setAttribute('data-star', '1'); }
       const go = () => R && R.gotoLine && R.gotoLine(i);
       li.addEventListener('click', go);
       li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
@@ -603,7 +761,10 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
       const ringMat = track(new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false }));
       const ring = new T.Mesh(track(new T.RingGeometry(7, 9, 48)), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.6;
       g.add(ring);
-      const tag = label(role, { color: '#fff', bg: col, size: 5.5 }); tag.position.y = 21; g.add(tag);
+      const tag = label(role, { color: '#fff', bg: col, size: 5.5 }); tag.position.y = 21; tag.userData.role = role; g.add(tag);
+      // 마우스로 잡기 쉽게 보이지 않는 넓은 영역
+      const hit = new T.Mesh(track(new T.CylinderGeometry(8, 8, 30, 12)), track(new T.MeshBasicMaterial({ visible: false })));
+      hit.position.y = 14; hit.userData.role = role; g.add(hit);
       g.position.copy(W3(p));
       G.units.add(g);
       pawns[role] = { g, mat, ring, ringMat, tag, topY: 27 };
@@ -871,53 +1032,13 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     };
 
     /* --- 롤 강조 (시점은 그대로) + 할 일 --- */
-    // 롤 정보: 할 일 · 주의 · 왜? · 관련 용어
-    const whyOf = role => {
-      if (!meta) return '';
-      const ed = (EDITS[meta.key] || {})._why;
-      if (ed && ed[role] != null) return ed[role];
-      const rw = (U() && U().RW || {})[meta.key];
-      return (rw && rw[role]) || '';
-    };
     function roleInfo(role, { editable } = {}) {
-      const f = document.createDocumentFragment();
-      const head = document.createElement('div');
-      const t = document.createElement('b'); t.className = 't'; t.textContent = role; t.style.background = RC[role[0]] || '#666';
-      const ph = document.createElement('span'); ph.className = 'ph'; ph.style.cssText = 'font-size:12px;color:var(--a3d-sub);font-weight:700';
-      ph.textContent = meta ? `${meta.ph.name} · 이 기믹에서 할 일` : '할 일';
-      head.append(t, ph); f.appendChild(head);
-      const ri = meta ? meta.rn.indexOf(role) : -1;
-      const row = meta && meta.roles && ri >= 0 ? meta.roles[ri] : null;
-      const duty = row ? htmlText(row[0]) : '', warn = row && row[1] ? htmlText(row[1]) : '';
-      const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = duty || '이 기믹에 따로 적힌 역할 없음'; f.appendChild(p);
-      if (warn) { const w = document.createElement('div'); w.className = 'w'; w.style.cssText = 'color:#c0392b;font-size:13px;margin-top:4px'; w.textContent = '⚠ ' + warn; f.appendChild(w); }
-      const why = whyOf(role);
-      const wb = document.createElement('div'); wb.className = 'a3d-why';
-      const wt = document.createElement('b'); wt.textContent = '왜?'; wb.appendChild(wt);
-      if (editable) {
-        const ta = document.createElement('textarea'); ta.value = why; ta.placeholder = `${role}가 이렇게 움직이는 이유를 적기 (저장을 눌러야 반영)`;
-        ta.setAttribute('aria-label', `${role} 이유`);
-        ta.addEventListener('input', () => {
-          const cur = Object.assign({}, EDITS[meta.key]);
-          cur._why = Object.assign({}, cur._why, { [role]: ta.value });
-          EDITS[meta.key] = cur; syncUI();
-        });
-        wb.appendChild(ta);
-      } else {
-        const wp = document.createElement('div'); wp.textContent = why || '아직 적힌 이유 없음'; if (!why) wp.className = 'none'; wb.appendChild(wp);
-      }
-      f.appendChild(wb);
-      // 관련 용어: 할 일·주의·이유에 나온 용어의 설명
-      const gl = (U() && U().GL) || [];
-      const text = duty + ' ' + warn + ' ' + why;
-      const hits = [];
-      [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
-      if (hits.length) {
-        const ul = document.createElement('ul'); ul.className = 'a3d-gl';
-        hits.forEach(g => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = htmlText(g[1]) + ': '; li.append(b, htmlText(g[2])); ul.appendChild(li); });
-        f.appendChild(ul);
-      }
-      return f;
+      if (!meta) return buildRoleInfo('', role);
+      return buildRoleInfo(meta.key, role, { editable, onInput: v => {
+        const cur = Object.assign({}, EDITS[meta.key]);
+        cur._why = Object.assign({}, cur._why, { [role]: v });
+        EDITS[meta.key] = cur; syncUI();
+      } });
     }
     function applyFocus() {
       Object.entries(pawns).forEach(([r, o]) => {
@@ -935,7 +1056,7 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     }
     // 마우스를 올리면 팝오버
     function showPop(role, x, y) {
-      if (!role) { popEl.style.display = 'none'; popEl.dataset.role = ''; return; }
+      if (!role || !POP3D) { popEl.style.display = 'none'; popEl.dataset.role = ''; return; }
       if (popEl.dataset.role !== role) { popEl.innerHTML = ''; popEl.appendChild(roleInfo(role)); popEl.dataset.role = role; }
       popEl.style.display = 'block';
       const r = stage.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
@@ -1039,12 +1160,16 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
     const roles = RN0.filter(r => pawns[r]).concat(Object.keys(pawns).filter(r => !RN0.includes(r)));
     if (roles.length) {
       const gr = grp('롤');
-      roles.forEach(r => { const b = btn(r, false, () => setFocus(r), 'role'); b.dataset.role = r; b.style.background = RC[r[0]] || '#666'; gr.appendChild(b); });
+      roles.forEach(r => { const b = btn(r + (meta && hasWhy(meta.key, r) ? '*' : ''), false, () => setFocus(r), 'role'); b.dataset.role = r; b.style.background = RC[r[0]] || '#666'; gr.appendChild(b); });
       // 롤 버튼에 마우스를 올려도 팝오버 (버튼 위쪽에 표시)
       gr.addEventListener('pointerover', e => { const b = e.target.closest('button.role'); if (!b || e.pointerType !== 'mouse') return; const rr = b.getBoundingClientRect(), sr = stage.getBoundingClientRect(); showPop(b.dataset.role, rr.left, sr.bottom - 10); popEl.style.top = Math.max(8, sr.height - popEl.offsetHeight - 12) + 'px'; });
       gr.addEventListener('pointerout', e => { if (e.target.closest('button.role')) showPop(null); });
     }
     const gl = grp('표시');
+    const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'sw'; sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-checked', String(POP3D)); sw.innerHTML = '<span class="tr" aria-hidden="true"></span>설명 팝오버';
+    sw.addEventListener('click', () => { POP3D = !POP3D; sw.setAttribute('aria-checked', String(POP3D)); try { localStorage.setItem('jamkeon.pop3d', POP3D ? '1' : '0'); } catch (e) {} if (!POP3D) { showPop(null); pageHide(); } });
+    gl.appendChild(sw);
     [['장판', 'zones'], ['롤·보스', 'units'], ['화살표·줄', 'guides'], ['글자', 'labels']].forEach(([t, k]) => {
       if (!G[k].children.length) return;
       gl.appendChild(btn(t, true, b => { G[k].visible = !G[k].visible; b.setAttribute('aria-pressed', String(G[k].visible)); }));
