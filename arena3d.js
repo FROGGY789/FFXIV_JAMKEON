@@ -1183,6 +1183,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     /* --- 편집 (관리자) --- */
     const A = window.JamAdmin;
+    if (A && !A.on && meta) {
+      // 로그인 안 된 상태: 버튼은 보이고, 누르면 관리자 로그인
+      const ge = grp('편집');
+      const b = btn('✎ 편집', null, () => { if (A.login) A.login(); else alert('오른쪽 아래 관리자 버튼으로 로그인 후 가능'); });
+      b.title = '관리자 로그인 후 편집 가능'; ge.appendChild(b);
+    }
     if (A && A.on && meta) {
       const ge = grp('편집');
       ge.appendChild(btn(EDIT ? '편집 끝내기' : '✎ 편집', EDIT, () => {

@@ -97,7 +97,7 @@
       }
     };
   } else {
-    window.JamAdmin = { on: false };
+    window.JamAdmin = { on: false, login: () => openLogin() };
   }
 
   function b64(str) {
