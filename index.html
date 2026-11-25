@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="./image-slot.js"></script>
+<script src="./uwu-data.js"></script>
+<script src="./arena3d.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent,#a597e3)}a:hover{color:var(--ink,#16151a)}
+input,select,textarea,button{font:inherit;color:inherit}
+@keyframes sway{0%,100%{rotate:-1deg}50%{rotate:1deg}}
+@keyframes dropIn{from{opacity:0;translate:0 -70px}to{opacity:1;translate:0 0}}
+@keyframes rise{from{opacity:0;translate:0 16px}to{opacity:1;translate:0 0}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
+
+<sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+<div style="padding:44px 56px 36px;max-width:1360px;margin:0 auto" data-screen-label="Landing">
+  <div style="display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span>
+        <span>Ultimate Raid Lab · 기믹 노트 &amp; 트라이 일지</span>
+      </div>
+      <h1 style="margin:26px 0 0;font-size:64px;line-height:1.04;font-weight:500;letter-spacing:-.045em">전멸 연구소<br><span style="color:var(--accent,#a597e3)">다음 트라이는 다르다.</span></h1>
+    </div>
+    <div style="max-width:290px;padding-top:58px">
+      <p style="margin:0;font-size:14px;line-height:1.65;color:var(--sub,#6f6c78);text-wrap:pretty">절 레이드 기믹을 모아 보고, 매일의 트라이를 기록하는 곳. 카드를 뒤집으면 기록이, 누르면 노트가 열려요.</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--dot,#4fcf9a)"></span>
+        <span>{{ totalLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div onMouseMove="{{ edgeMove }}" onMouseLeave="{{ edgeLeave }}" style="position:relative">
+  <button onClick="{{ prev }}" aria-label="이전" style="{{ prevStyle }}">←</button>
+  <button onClick="{{ next }}" aria-label="다음" style="{{ nextStyle }}">→</button>
+  <div ref="{{ stripRef }}" onPointerDown="{{ pDown }}" onPointerMove="{{ pMove }}" onPointerUp="{{ pUp }}" onPointerCancel="{{ pUp }}" style="overflow-x:auto;margin:30px 0 0;padding:0 0 10px;scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;touch-action:pan-y;user-select:none">
+    <div style="position:relative;height:700px;width:150%">
+      <svg style="position:absolute;left:0;top:0;width:100%;height:120px;overflow:visible" viewBox="0 0 100 120" preserveAspectRatio="none"><path d="M0 20 Q50 60 100 20" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".7"></path></svg>
+      <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr))">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <div style="position:relative;scroll-snap-align:start">
+            <div style="{{ c.swayStyle }}">
+              <div style="{{ c.hangStyle }}">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--rim,#b5b0c2);margin:-3px auto 0"></div>
+                <div style="{{ c.threadStyle }}"></div>
+                <div style="width:20px;height:14px;margin:0 auto -6px;border-radius:6px 6px 3px 3px;background:var(--rim,#b5b0c2);position:relative;z-index:2;display:grid;place-items:center"><div style="width:6px;height:6px;border-radius:50%;border:1.5px solid var(--bg,#f6f5f8)"></div></div>
+                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:460px;perspective:1400px;cursor:pointer">
+                  <div style="{{ c.flipStyle }}">
+                    <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card,#ececef);border-radius:18px;padding:12px 12px 14px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
+                      <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span>Ultimate · {{ c.code }}</span><span>#{{ c.no }}</span></div>
+                      <div style="height:300px;margin-top:12px;border-radius:14px;overflow:hidden">
+                        <image-slot id="raid-{{ c.id }}" shape="rounded" radius="14" placeholder="{{ c.ph }}"></image-slot>
+                      </div>
+                      <div style="margin-top:14px;font-size:24px;font-weight:500;letter-spacing:-.03em">{{ c.name }}</div>
+                      <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:2px">{{ c.en }}</div>
+                      <div style="flex:1"></div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line,#dddbe2);padding-top:10px">
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase">View notes</span>
+                        <span style="width:26px;height:26px;border-radius:50%;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);display:grid;place-items:center;font-size:13px">↗</span>
+                      </div>
+                    </div>
+                    <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg);background:var(--holo);border-radius:18px;padding:16px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
+                      <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase"><span>Try log / {{ c.no }}</span><span style="border:1px solid var(--ink,#16151a);border-radius:999px;padding:2px 8px;letter-spacing:.06em">{{ c.status }}</span></div>
+                      <div style="font-size:15px;font-weight:600;margin-top:16px;letter-spacing:-.02em">{{ c.name }}</div>
+                      <div style="display:flex;align-items:baseline;gap:4px;margin-top:6px"><span style="font-size:48px;font-weight:500;letter-spacing:-.04em;line-height:1">{{ c.tries }}</span><span style="font-size:14px">회 트라이</span></div>
+                      <div style="display:grid;margin-top:16px">
+                        <sc-for list="{{ c.rows }}" as="row" hint-placeholder-count="4">
+                          <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid color-mix(in srgb,var(--ink,#16151a) 14%,transparent);font-size:12.5px"><span style="opacity:.75">{{ row.l }}</span><span style="font-weight:600;text-align:right">{{ row.v }}</span></div>
+                        </sc-for>
+                      </div>
+                      <div style="flex:1"></div>
+                      <button onClick="{{ c.open }}" style="border:none;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span>기믹 노트 열기</span><span>↗</span></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">
+    <span>Wipe. Learn. Repeat.</span>
+    <span>{{ hintLabel }}</span>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:flex-start;min-height:100vh" data-screen-label="Detail">
+  <aside style="flex:0 0 228px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line,#dddbe2);padding:22px 0 48px">
+    <button onClick="{{ goHome }}" style="border:none;background:none;cursor:pointer;display:flex;gap:8px;align-items:center;padding:0 22px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink,#16151a)"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span><span>← 전멸 연구소</span></button>
+    <div style="position:relative;margin-top:22px;padding:0 30px">
+      <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--sub,#6f6c78);opacity:.4"></div>
+      <div style="display:flex;flex-direction:column;gap:26px;position:relative">
+        <sc-for list="{{ minis }}" as="m" hint-placeholder-count="6">
+          <div style="{{ m.wrapStyle }}">
+            <div style="width:18px;height:12px;margin:0 auto -5px;border-radius:5px 5px 3px 3px;background:var(--rim,#b5b0c2);position:relative;z-index:2"></div>
+            <div onClick="{{ m.go }}" style="{{ m.cardStyle }}">
+              <div style="height:92px;border-radius:9px;overflow:hidden;pointer-events:none">
+                <image-slot id="raid-{{ m.id }}" shape="rounded" radius="9" placeholder="{{ m.ph }}"></image-slot>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:8px"><span style="font-size:14px;font-weight:600;letter-spacing:-.02em">{{ m.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--sub,#6f6c78)">{{ m.code }}</span></div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub,#6f6c78);margin-top:3px">{{ m.triesLabel }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;gap:32px;padding:34px 40px 96px;align-items:flex-start">
+    <div style="flex:1 1 500px;min-width:0;max-width:760px">
+      <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span><span>Ultimate · {{ raid.code }} · #{{ raid.no }}</span></div>
+      <h1 style="margin:16px 0 0;font-size:46px;line-height:1.06;font-weight:500;letter-spacing:-.045em">{{ raid.name }}<br><span style="color:var(--accent,#a597e3)">{{ raid.tag }}</span></h1>
+      <p style="margin:10px 0 0;font-size:14px;color:var(--sub,#6f6c78)">{{ raid.en }}</p>
+      <div style="display:inline-flex;gap:4px;margin-top:20px;padding:4px;border-radius:999px;background:var(--card,#ececef)">
+        <button onClick="{{ toGimmick }}" style="{{ tabGStyle }}">기믹</button>
+        <button onClick="{{ toLog }}" style="{{ tabLStyle }}">트라이 일지 · {{ logCount }}</button>
+      </div>
+      <sc-if value="{{ tabGimmick }}" hint-placeholder-val="{{ true }}"><div style="animation:rise .4s both">
+
+      <sc-if value="{{ hasNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;display:flex;align-items:center;gap:12px">
+          <div style="flex:1;height:4px;border-radius:4px;background:var(--line,#dddbe2);overflow:hidden"><div style="{{ progressStyle }}"></div></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub,#6f6c78)">{{ progressLabel }}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;position:sticky;top:0;z-index:4;background:var(--bg,#f6f5f8);padding:10px 0">
+          <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="6">
+            <button onClick="{{ ch.pick }}" style="{{ ch.style }}">{{ ch.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="display:grid;gap:16px;margin-top:14px">
+        <sc-if value="{{ showOverview }}" hint-placeholder-val="{{ true }}">
+          <article style="background:var(--card,#ececef);border-radius:20px;padding:18px 20px 20px;animation:rise .5s both">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);display:grid;place-items:center;font-size:13px;font-weight:700">전</div>
+              <div style="flex:1"><div style="font-size:14px;font-weight:600">전멸 연구소</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub,#6f6c78)">Pinned · 한눈에 보기</div></div>
+            </div>
+            <h3 style="margin:14px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.02em">한눈에 보는 절테마</h3>
+            <p style="margin:0;font-size:14.5px;line-height:1.65;text-wrap:pretty">야만신 셋을 각성시켜 잡고, 그 보상으로 받은 LB3를 네 번 이어 쓴 다음, 세 야만신의 힘을 흡수한 알테마 웨폰과 싸우는 구조예요. 앞 세 페이즈는 반드시 각성시켜서 잡아야 넘어갈 수 있어요.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:14px">
+              <sc-for list="{{ flow }}" as="f" hint-placeholder-count="5">
+                <div style="{{ f.style }}"><div style="font-size:15px;font-weight:700;line-height:1.25">{{ f.n }}</div><div style="font-size:12px;opacity:.92;margin-top:4px;line-height:1.4">{{ f.s }}</div><div style="display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700">{{ f.lp }}</div></div>
+              </sc-for>
+            </div>
+          </article>
+        </sc-if>
+
+        <sc-for list="{{ feed }}" as="it" hint-placeholder-count="3">
+          <div>
+            <sc-if value="{{ it.isPhase }}">
+              <div style="display:flex;gap:14px;padding:18px 0 2px">
+                <div style="{{ it.barStyle }}"></div>
+                <div style="min-width:0">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">{{ it.count }}</div>
+                  <div style="font-size:26px;font-weight:600;letter-spacing:-.03em;margin-top:2px">{{ it.name }}</div>
+                  <p style="margin:6px 0 0;font-size:14px;color:var(--sub,#6f6c78);line-height:1.6;text-wrap:pretty">{{ it.wake }}</p>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ it.isPost }}">
+              <article style="background:var(--card,#ececef);border-radius:20px;padding:18px 20px 12px;animation:rise .5s both">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="{{ it.avatarStyle }}">{{ it.initial }}</div>
+                  <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">{{ it.phase }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub,#6f6c78)">{{ it.meta }}</div></div>
+                  <sc-if value="{{ it.learned }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-radius:999px;padding:4px 9px">익힘</span></sc-if>
+                </div>
+                <h3 style="margin:14px 0 2px;font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.3;text-wrap:pretty">{{ it.h }}</h3>
+                <div style="font-size:12px;color:var(--sub,#6f6c78)">{{ it.en }}</div>
+                <div style="margin-top:14px;background:var(--bg,#f6f5f8);border-radius:14px;padding:14px 12px 10px;display:grid;justify-items:center">
+                  <div style="width:100%;max-width:330px">{{ it.diagram }}</div>
+                  <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:6px;text-align:center">{{ it.cap }}</div>
+                </div>
+                <ol style="margin:14px 0 0;padding-left:20px;font-size:14.5px;line-height:1.65;display:grid;gap:4px">
+                  <sc-for list="{{ it.steps }}" as="st"><li style="text-wrap:pretty"><sc-for list="{{ st }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for></li></sc-for>
+                </ol>
+                <sc-if value="{{ it.hasTip }}"><p style="margin:12px 0 0;padding-top:10px;border-top:1px dashed var(--line,#dddbe2);font-size:13px;color:var(--sub,#6f6c78);line-height:1.55">{{ it.tip }}</p></sc-if>
+                <div style="{{ it.rolesWrap }}"><div style="overflow:hidden;min-height:0">
+                  <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 18px;border-top:1px solid var(--line,#dddbe2);padding-top:12px">
+                    <sc-for list="{{ it.roles }}" as="r">
+                      <div style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;font-size:13.5px;line-height:1.45;padding:3px 0">
+                        <span style="{{ r.dotStyle }}">{{ r.n }}</span>
+                        <div><sc-for list="{{ r.segs }}" as="s"><span style="{{ s.style }}">{{ s.t }}</span></sc-for><sc-if value="{{ r.hasWarn }}"><div style="color:var(--warn,#c0392b);font-size:12.5px;margin-top:2px">{{ r.warn }}</div></sc-if></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div></div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;border-top:1px solid var(--line,#dddbe2);padding-top:10px">
+                  <button onClick="{{ it.toggleLearned }}" style="{{ it.learnBtnStyle }}">{{ it.learnLabel }}</button>
+                  <sc-if value="{{ it.hasRoles }}"><button onClick="{{ it.toggleRoles }}" style="border:none;background:transparent;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink,#16151a)">{{ it.rolesLabel }}</button></sc-if>
+                </div>
+              </article>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed var(--line,#dddbe2);border-radius:20px;padding:40px 24px;text-align:center">
+            <div style="font-size:17px;font-weight:600">아직 정리된 기믹이 없어요</div>
+            <p style="margin:6px auto 0;max-width:36ch;font-size:14px;color:var(--sub,#6f6c78);line-height:1.6">이 레이드의 기믹 노트를 보내 주시면 여기에 피드로 올라와요. 트라이 일지는 지금 바로 쓸 수 있어요.</p>
+          </div>
+        </sc-if>
+      </div>
+      </div></sc-if>
+      <sc-if value="{{ tabLog }}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:22px;align-items:start;animation:rise .4s both">
+      <div style="background:var(--card,#ececef);border-radius:20px;padding:18px">
+        <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span style="width:6px;height:6px;border-radius:50%;background:var(--dot,#4fcf9a)"></span><span>Try log · 트라이 일지</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:14px">
+          <sc-for list="{{ stats }}" as="sx" hint-placeholder-count="4">
+            <div><div style="font-size:11.5px;color:var(--sub,#6f6c78)">{{ sx.l }}</div><div style="font-size:21px;font-weight:600;letter-spacing:-.03em;margin-top:2px">{{ sx.v }}</div></div>
+          </sc-for>
+        </div>
+        <div style="display:grid;gap:8px;margin-top:16px;border-top:1px solid var(--line,#dddbe2);padding-top:14px">
+          <input type="date" value="{{ form.date }}" onChange="{{ setDate }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <input type="number" min="0" placeholder="트라이 횟수" value="{{ form.tries }}" onChange="{{ setTries }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
+            <input type="number" min="0" step="0.5" placeholder="시간 (h)" value="{{ form.hours }}" onChange="{{ setHours }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
+          </div>
+          <select value="{{ form.best }}" onChange="{{ setBest }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
+            <sc-for list="{{ phaseOpts }}" as="o"><option value="{{ o }}">최고 진도 · {{ o }}</option></sc-for>
+          </select>
+          <textarea rows="2" placeholder="오늘 막힌 곳, 다음에 바꿀 것" value="{{ form.memo }}" onChange="{{ setMemo }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px;resize:vertical"></textarea>
+          <button onClick="{{ addLog }}" style="border:none;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer">기록 추가</button>
+        </div>
+      </div>
+      <div style="display:grid;gap:10px">
+      <sc-for list="{{ logs }}" as="l">
+        <div style="background:var(--card,#ececef);border-radius:16px;padding:12px 14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--sub,#6f6c78)">{{ l.dateLabel }}</span>
+            <button onClick="{{ l.remove }}" title="삭제" style="border:none;background:none;cursor:pointer;color:var(--sub,#6f6c78);font-size:15px;line-height:1;padding:2px 4px">×</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px">
+            <span style="font-size:15px;font-weight:600">{{ l.summary }}</span>
+            <span style="font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--accent,#a597e3) 28%,transparent)">{{ l.best }}</span>
+          </div>
+          <sc-if value="{{ l.hasMemo }}"><p style="margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--sub,#6f6c78)">{{ l.memo }}</p></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noLogs }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--sub,#6f6c78);padding:4px 6px">아직 기록이 없어요. 첫 트라이를 남겨 보세요.</div></sc-if>
+      </div>
+      </div>
+      </sc-if>
+    </div>
+  </main>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;라벤더&quot;,&quot;세이지&quot;,&quot;선셋&quot;,&quot;미드나이트&quot;,&quot;잉크 레드&quot;],&quot;default&quot;:&quot;라벤더&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;flipTrigger&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;hover&quot;,&quot;click&quot;],&quot;default&quot;:&quot;hover&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sway&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const THEMES={
+ '라벤더':{bg:'#f6f5f8',ink:'#16151a',sub:'#6c6975',card:'#ececef',line:'#dcdae1',accent:'#9d8fe0',dot:'#4fcf9a',warn:'#c0392b',floor:'#e6e3ec',rim:'#b5b0c2',holo:'linear-gradient(135deg,#c4e6f2 0%,#eaf1cb 32%,#f2d7ea 64%,#cbbcf3 100%)'},
+ '세이지':{bg:'#f3f4ef',ink:'#171a16',sub:'#636a5f',card:'#e7e9e2',line:'#d6d9cf',accent:'#6f9a7a',dot:'#d49a3f',warn:'#b23a2a',floor:'#e3e6dc',rim:'#adb4a5',holo:'linear-gradient(135deg,#d3ead0 0%,#eef0cd 45%,#cde3e7 100%)'},
+ '선셋':{bg:'#faf5f1',ink:'#1d1613',sub:'#766760',card:'#f0e7e1',line:'#e5d8cf',accent:'#df7f5c',dot:'#5b9fd6',warn:'#b8321f',floor:'#f0e5dc',rim:'#c3b0a3',holo:'linear-gradient(135deg,#ffd8c0 0%,#ffefc4 35%,#f8cfe0 70%,#e6c6f2 100%)'},
+ '미드나이트':{bg:'#101217',ink:'#eceef3',sub:'#959cab',card:'#1b1e26',line:'#2a2f3b',accent:'#a395ff',dot:'#4fd6a0',warn:'#ff7b6b',floor:'#232836',rim:'#4b5467',holo:'linear-gradient(135deg,#27385a 0%,#3b2c5f 38%,#1e4a52 70%,#4a2e4f 100%)'},
+ '잉크 레드':{bg:'#f5f4f0',ink:'#111111',sub:'#64625e',card:'#e9e7e2',line:'#d8d5ce',accent:'#d4432c',dot:'#111111',warn:'#c0331d',floor:'#e7e3da',rim:'#b2ac9f',holo:'linear-gradient(135deg,#f4f1ea 0%,#e7e1d6 50%,#f4d8cf 100%)'}
+};
+const RAIDS=[
+ {id:'ucob',no:'01',code:'UCoB',name:'절 바하무트',en:'The Unending Coil of Bahamut',ph:'절바하 사진',n:5},
+ {id:'uwu',no:'02',code:'UWU',name:'절 알테마',tag:'웨폰 파괴작전',en:"The Weapon's Refrain",ph:'절테마 사진',n:5},
+ {id:'tea',no:'03',code:'TEA',name:'절 알렉산더',en:'The Epic of Alexander',ph:'절알렉 사진',n:4},
+ {id:'dsr',no:'04',code:'DSR',name:'절 용시전쟁',en:"Dragonsong's Reprise",ph:'절용시 사진',n:7},
+ {id:'top',no:'05',code:'TOP',name:'절 오메가',en:'The Omega Protocol',ph:'절오메가 사진',n:6},
+ {id:'fru',no:'06',code:'FRU',name:'절 에덴',en:'Futures Rewritten',ph:'절에덴 사진',n:5}
+];
+const SEED={
+ uwu:[{id:3,date:'2026-11-24',tries:18,hours:3,best:'P3 타이탄',memo:'감옥 우선순위 아직 헷갈림. 두 번째 산사태에서 2번 전멸.'},{id:2,date:'2026-11-21',tries:22,hours:3.5,best:'P2 이프리트',memo:'말뚝 역Z 순서 정리 완료. 분신 돌진 2차 반시계 이동 연습.'},{id:1,date:'2026-11-18',tries:25,hours:4,best:'P1 가루다',memo:'저기압 스택 흐름 익힘. D1→D2 정화 순서 실수 3회.'}],
+ ucob:[{id:5,date:'2026-10-30',tries:12,hours:2,best:'클리어',memo:'클리어!'},{id:4,date:'2026-10-27',tries:30,hours:4.5,best:'P5',memo:'마지막 페이즈 직전 전멸 다수.'}],
+ dsr:[{id:6,date:'2026-11-10',tries:15,hours:2.5,best:'P2',memo:''}]
+};
+const FLOW=[['P1 가루다','저기압 스택으로 각성','빛 장판 → 힐러','#2f7d5b'],['P2 이프리트','말뚝 4개로 각성','빛 장판 → 캐스터','#d2552b'],['P3 타이탄','감옥 연쇄로 각성','빛 장판 → 근딜','#a07228'],['P4 라하브레아','LB3 네 번 연속','캐스터→힐러→근딜→탱커','#6b4bb0'],['P5 알테마 웨폰','세 야만신 기믹 복합','게이지 100 = 전멸','#14868c']];
+const DROPS=[12,50,24,60,16,42],ROTS=[-3,2.2,-1.6,2.8,-2.2,1.8];
+const MONO="'JetBrains Mono',monospace";
+const dec=t=>t.replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&');
+const segs=html=>{const out=[];let b=0,hl=0;String(html).split(/(<\/?b>|<span class="hl">|<\/span>)/).forEach(tok=>{
+ if(tok==='<b>')b++;else if(tok==='</b>')b--;else if(tok==='<span class="hl">')hl++;else if(tok==='</span>')hl--;
+ else if(tok)out.push({t:dec(tok.replace(/<[^>]+>/g,'')),style:{fontWeight:b?700:'inherit',background:hl?'linear-gradient(transparent 42%, color-mix(in srgb, var(--accent) 38%, transparent) 42%)':'none',borderRadius:2}})});return out};
+const fmtH=h=>(Math.round(h*10)/10)+'시간';
+
+class Component extends DCLogic {
+  state={view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
+  blankForm(id){return {date:new Date().toISOString().slice(0,10),tries:'',hours:'',best:this.phasesOf(id)[0],memo:''}}
+  phasesOf(id){const r=RAIDS.find(x=>x.id===id);if(id==='uwu'&&window.UWU)return [...window.UWU.PH.map(p=>p.name),'클리어'];
+    if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
+    return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
+  componentDidMount(){
+    try{const l=localStorage.getItem('jml-logs-v1');if(l)this.setState({logs:JSON.parse(l)});const g=localStorage.getItem('jml-learned-v1');if(g)this.setState({learned:JSON.parse(g)})}catch(e){}
+    this.applyTheme();
+    if(!window.UWU)this._t=setInterval(()=>{if(window.UWU){clearInterval(this._t);this.forceUpdate()}},120);
+  }
+  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf)}
+  strip=React.createRef();
+  colW(el){return el.firstElementChild.offsetWidth/6}
+  snap(el,dir=0){const w=this.colW(el);let i=Math.round(el.scrollLeft/w)+dir;i=Math.max(0,Math.min(2,i));const max=el.scrollWidth-el.clientWidth;
+    el.style.scrollSnapType='none';el.scrollTo({left:Math.min(max,i*w),behavior:'smooth'});clearTimeout(this._st);this._st=setTimeout(()=>{el.style.scrollSnapType='x mandatory'},700)}
+  step(d){const el=this.strip.current;if(el)this.snap(el,d)}
+  pDown(e){if(e.pointerType!=='mouse'||e.button!==0)return;const el=this.strip.current;if(!el)return;cancelAnimationFrame(this._raf);
+    this._drag={x:e.clientX,left:el.scrollLeft,t:performance.now(),v:0,lx:e.clientX};this._dragged=false;el.style.scrollSnapType='none';el.style.cursor='grabbing'}
+  pMove(e){const d=this._drag,el=this.strip.current;if(!d||!el)return;const dx=e.clientX-d.x;if(Math.abs(dx)>6){this._dragged=true;if(this.state.flip&&(this.props.flipTrigger??'hover')==='hover')this.setState({flip:null})}
+    const now=performance.now();d.v=(e.clientX-d.lx)/Math.max(1,now-d.t);d.lx=e.clientX;d.t=now;el.scrollLeft=d.left-dx}
+  pUp(){const d=this._drag,el=this.strip.current;this._drag=null;if(!d||!el)return;el.style.cursor='grab';
+    let v=-d.v*16;const tick=()=>{v*=.93;el.scrollLeft+=v;if(Math.abs(v)>1.5)this._raf=requestAnimationFrame(tick);else this.snap(el,0)};
+    if(Math.abs(v)>2)this._raf=requestAnimationFrame(tick);else this.snap(el,0);
+    setTimeout(()=>{this._dragged=false},0)}
+  componentDidUpdate(pp,ps){this.applyTheme();if(ps.view!==this.state.view)window.scrollTo(0,0)}
+  applyTheme(){const t=THEMES[this.props.theme]||THEMES['라벤더'];const s=document.documentElement.style;
+    Object.entries(t).forEach(([k,v])=>s.setProperty('--'+k,v));
+    s.setProperty('--bad','rgba(226,64,52,.30)');s.setProperty('--badS','rgba(200,40,30,.8)');s.setProperty('--safe','rgba(40,170,90,.25)');s.setProperty('--safeS','rgba(30,140,70,.9)');s.setProperty('--buf','rgba(60,170,220,.25)');s.setProperty('--bufS','rgba(40,130,190,.9)')}
+  save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  statsOf(id){const L=this.state.logs[id]||[];const ph=this.phasesOf(id);
+    const tries=L.reduce((a,b)=>a+(+b.tries||0),0),hours=L.reduce((a,b)=>a+(+b.hours||0),0);
+    let bi=-1;L.forEach(l=>{const i=ph.indexOf(l.best);if(i>bi)bi=i});
+    const best=bi<0?'—':ph[bi];const last=L.length?[...L].sort((a,b)=>b.date.localeCompare(a.date))[0].date.replace(/-/g,'.'):'—';
+    return {tries,hours,sessions:L.length,best,last,status:best==='클리어'?'Cleared':L.length?'진행 중':'기록 없음'}}
+  open(id){this.setState({view:id,flip:null,filter:'all',tab:'gimmick',form:this.blankForm(id)})}
+  svgFor(k,d){this._svg=this._svg||{};if(!this._svg[k]){const s=window.UWU.draw(d).replace('<svg ','<svg style="width:100%;height:auto;display:block;color:var(--ink)" ');this._svg[k]=React.createElement('div',{dangerouslySetInnerHTML:{__html:s}})}return this._svg[k]}
+  toggle(key,k){this.setState(s=>{const v={...s[key],[k]:!s[key][k]};if(key==='learned')this.save('jml-learned-v1',v);return {[key]:v}})}
+
+  renderVals(){
+    const mode=this.props.flipTrigger??'hover', sway=this.props.sway??true;
+    const {view,flip,filter,form}=this.state;
+    const grand=RAIDS.reduce((a,r)=>a+this.statsOf(r.id).tries,0);
+    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/6,tt=20+80*f*(1-f),top=150+DROPS[i],st=this.statsOf(r.id),fl=flip===r.id;
+      return {...r,tries:st.tries,status:st.status,
+        rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'세션',v:st.sessions+'회'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
+        swayStyle:{position:'absolute',left:22,right:22,top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
+        hangStyle:{transformOrigin:'50% 0',transform:`rotate(${fl?0:ROTS[i]}deg)`,transition:'transform .7s cubic-bezier(.2,.9,.25,1.15)'},
+        threadStyle:{width:1,margin:'0 auto',background:'var(--sub)',opacity:.55,height:top-tt-10},
+        flipStyle:{position:'absolute',inset:0,transformStyle:'preserve-3d',transition:'transform .75s cubic-bezier(.2,.8,.2,1)',transform:fl?'rotateY(180deg)':'rotateY(0deg)'},
+        enter:()=>{if(mode==='hover')this.setState({flip:r.id})},
+        leave:()=>{if(mode==='hover')this.setState({flip:null})},
+        click:e=>{if(this._dragged||(e.target.closest&&e.target.closest('image-slot')))return;if(mode==='click')this.setState(s=>({flip:s.flip===r.id?null:r.id}));else this.open(r.id)},
+        open:e=>{e.stopPropagation();if(!this._dragged)this.open(r.id)}}});
+    const arrow=s=>{const on=this.state.edge===s;return {position:'absolute',top:360,[s==='l'?'left':'right']:12,zIndex:10,width:52,height:52,borderRadius:'50%',border:'none',
+      background:'var(--ink)',color:'var(--bg)',fontSize:18,cursor:'pointer',boxShadow:'0 14px 30px -14px rgba(0,0,0,.5)',
+      opacity:on?1:0,pointerEvents:on?'auto':'none',transform:`translateY(-50%) translateX(${on?0:(s==='l'?-12:12)}px) scale(${on?1:.85})`,transition:'opacity .25s, transform .3s cubic-bezier(.2,.8,.2,1)'}};
+    const strip={stripRef:this.strip,pDown:e=>this.pDown(e),pMove:e=>this.pMove(e),pUp:e=>this.pUp(e),prev:()=>this.step(-1),next:()=>this.step(1),
+      edgeMove:e=>{const r=e.currentTarget.getBoundingClientRect(),x=e.clientX-r.left,z=Math.min(160,r.width*.14);const v=x<z?'l':x>r.width-z?'r':null;if(v!==this.state.edge)this.setState({edge:v})},
+      edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
+      prevStyle:arrow('l'),nextStyle:arrow('r')};
+    const base={...strip,isLanding:!view,isDetail:!!view,cards,totalLabel:`06 Ultimates · 누적 트라이 ${grand}회`,
+      hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
+    if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
+
+    const raid=RAIDS.find(r=>r.id===view),U=window.UWU,isU=view==='uwu'&&!!U;
+    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:this.statsOf(r.id).tries+' tries',go:()=>{if(!a)this.open(r.id)},
+      wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
+      cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
+    const feed=[];let total=0,learnedN=0;
+    if(isU)U.PH.forEach(ph=>{const n=ph.cards.length;
+      ph.cards.forEach((c,ci)=>{total++;if(this.state.learned[ph.id+'-'+ci])learnedN++});
+      if(filter!=='all'&&filter!==ph.id)return;
+      feed.push({isPhase:true,isPost:false,name:ph.name,wake:ph.wake,count:`${String(n).padStart(2,'0')} gimmicks`,barStyle:{width:4,borderRadius:4,background:ph.color,flex:'none'}});
+      ph.cards.forEach((c,ci)=>{const k=ph.id+'-'+ci,lr=!!this.state.learned[k],op=!!this.state.open[k],R=(U.RL[ph.id]||[])[ci];
+        feed.push({isPhase:false,isPost:true,phase:ph.name,initial:ph.name.split(' ')[1][0],meta:`기믹 ${String(ci+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}`,
+          avatarStyle:{width:36,height:36,borderRadius:'50%',background:ph.color,color:'#fff',display:'grid',placeItems:'center',fontSize:14,fontWeight:700,flex:'none'},
+          h:c.h,en:c.en,cap:c.cap,diagram:this.svgFor(k,c.d),steps:c.steps.map(segs),hasTip:!!c.tip,tip:c.tip?dec(c.tip.replace(/<[^>]+>/g,'')):'',
+          learned:lr,learnLabel:lr?'✓ 익혔어요':'익혔어요',
+          learnBtnStyle:{border:'none',padding:'8px 12px',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',color:'var(--ink)',background:lr?'color-mix(in srgb, var(--accent) 30%, transparent)':'transparent'},
+          toggleLearned:()=>this.toggle('learned',k),hasRoles:!!R,rolesWrap:{display:'grid',gridTemplateRows:op&&R?'1fr':'0fr',opacity:op?1:0,transition:'grid-template-rows .45s cubic-bezier(.2,.8,.2,1), opacity .35s'},rolesLabel:op?'역할별 할 일 접기':'T1~D4 역할별 할 일',toggleRoles:()=>this.toggle('open',k),
+          roles:(R||[]).map((x,i)=>({n:U.RN[i],segs:segs(x[0]),hasWarn:!!x[1],warn:x[1]?dec(x[1].replace(/<[^>]+>/g,'')):'',dotStyle:{width:26,height:26,borderRadius:'50%',background:U.RC[U.RN[i][0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'grid',placeItems:'center'}}))})})});
+    const chipStyle=a=>({border:'1px solid '+(a?'var(--ink)':'var(--line)'),background:a?'var(--ink)':'transparent',color:a?'var(--bg)':'var(--ink)',borderRadius:999,padding:'7px 14px',fontSize:13,fontWeight:600,cursor:'pointer'});
+    const chips=isU?[{id:'all',label:'전체'},...U.PH.map(p=>({id:p.id,label:p.name}))].map(c=>({...c,style:chipStyle(filter===c.id),pick:()=>this.setState({filter:c.id})})):[];
+    const tabS=a=>({border:'none',borderRadius:999,padding:'9px 18px',fontSize:13.5,fontWeight:600,cursor:'pointer',background:a?'var(--ink)':'transparent',color:a?'var(--bg)':'var(--ink)',transition:'background .25s, color .25s'});
+    const st=this.statsOf(view),L=[...(this.state.logs[view]||[])].sort((a,b)=>b.date.localeCompare(a.date));
+    const setF=k=>e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,[k]:v}}))};
+    return {...base,raid:{...raid,tag:raid.tag||'기믹 노트'},minis,feed,chips,hasNotes:isU,isEmpty:view!=='uwu',tabGimmick:this.state.tab!=='log',tabLog:this.state.tab==='log',logCount:L.length,
+      toGimmick:()=>this.setState({tab:'gimmick'}),toLog:()=>this.setState({tab:'log'}),tabGStyle:tabS(this.state.tab!=='log'),tabLStyle:tabS(this.state.tab==='log'),showOverview:isU&&filter==='all',
+      flow:FLOW.map(f=>({n:f[0],s:f[1],lp:f[2],style:{background:f[3],color:'#fff',borderRadius:14,padding:12}})),
+      progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
+      stats:[{l:'총 트라이',v:st.tries+'회'},{l:'총 시간',v:fmtH(st.hours)},{l:'세션',v:st.sessions+'회'},{l:'최고 진도',v:st.best}],
+      form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setTries:setF('tries'),setHours:setF('hours'),setBest:setF('best'),setMemo:setF('memo'),
+      addLog:()=>{if(!form.tries)return;const e={id:Date.now(),date:form.date,tries:+form.tries,hours:+form.hours||0,best:form.best,memo:form.memo.trim()};
+        this.setState(s=>{const logs={...s.logs,[view]:[e,...(s.logs[view]||[])]};this.save('jml-logs-v1',logs);return {logs,form:{...s.form,tries:'',hours:'',memo:''}}})},
+      logs:L.map(l=>({...l,dateLabel:l.date.replace(/-/g,'.'),summary:`${l.tries}회 · ${fmtH(+l.hours||0)}`,hasMemo:!!l.memo,
+        remove:()=>this.setState(s=>{const logs={...s.logs,[view]:(s.logs[view]||[]).filter(x=>x.id!==l.id)};this.save('jml-logs-v1',logs);return {logs}})})),
+      noLogs:!L.length};
+  }
+}
+</script>
+</body>
+</html>

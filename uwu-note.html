@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>절테마 기믹 노트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+/* VOICE: 공대원이 트라이 전에 펼쳐 보는 실전 노트. 간결하고 정확하게.
+   IDEA: 레이드 택틱 보드 — 원형 필드 위에 말(토큰)을 올려 놓은 전술판.
+   PICTURE: 기믹마다 원형 아레나 도식, T1~D4 토큰과 장판·화살표.
+   COLOUR and TYPE: 종이 흰색 + 잉크 남색, 페이즈마다 야만신 색(바람 초록, 불 주홍, 땅 황토, 혼돈 보라, 알테마 청록). Noto Sans KR.
+   LAYOUT: 상단 범례·주의, 페이즈 탭 줄, 기믹 카드(도식 + 단계) 2열 → 모바일 1열. */
+:root{color-scheme:light dark;
+--bg:light-dark(#fbfaf7,#0f1218);--ink:light-dark(#141b2d,#e7eaf2);--sub:light-dark(#525b70,#9aa3b8);
+--line:light-dark(#dcd8cf,#2a3040);--card:light-dark(#ffffff,#161b25);--floor:light-dark(#ece7dc,#222837);--rim:light-dark(#b9b1a1,#4b5467);
+--bad:rgba(226,64,52,.30);--badS:rgba(200,40,30,.75);--safe:rgba(40,170,90,.25);--safeS:rgba(30,140,70,.9);--buf:rgba(60,170,220,.25);--bufS:rgba(40,130,190,.9);
+--ph:#2f7d5b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 10px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(26px,3.4vw,34px);line-height:1.1;margin:0 0 6px;font-weight:900}
+h3{font-size:19px;margin:0 0 6px;line-height:1.3}
+p{margin:0 0 10px}
+.lead{color:var(--sub);max-width:70ch}
+.top{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:860px){.top{grid-template-columns:minmax(0,1fr)}}
+.note{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:16px 18px;font-size:15px}
+.note b{color:#c0392b}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 0 0;font-size:14px;color:var(--sub)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:10px;font-weight:700}
+.sw{width:22px;height:14px;border-radius:4px;display:inline-block}
+nav.scroll{display:flex;gap:8px;overflow-x:auto;padding:12px max(5vw,16px);border-block:1px solid var(--line);background:var(--bg)}
+@media(min-width:900px){nav.scroll{position:sticky;top:0;z-index:5}}
+nav a{flex:none;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-weight:700;font-size:15px;min-height:44px;display:inline-flex;align-items:center}
+nav a:focus-visible{outline:3px solid var(--ph);outline-offset:2px}
+section.phase{border-top:8px solid var(--ph)}
+.wake{display:inline-block;background:color-mix(in srgb,var(--ph) 14%,transparent);border-radius:10px;padding:8px 12px;margin:6px 0 18px;font-size:15px}
+.cards{display:grid;gap:18px}
+.card{display:grid;grid-template-columns:minmax(0,350px) minmax(0,1fr);gap:20px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+@media(max-width:700px){.card{grid-template-columns:minmax(0,1fr)}}
+.card svg{width:100%;height:auto;display:block;max-width:380px;margin:0 auto}
+.card ol,.card ul{margin:4px 0 8px;padding-inline-start:20px}
+.card li{margin:3px 0}
+.en{color:var(--sub);font-size:14px;font-weight:500}
+.tip{font-size:14px;color:var(--sub);border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+.cap{font-size:13px;color:var(--sub);text-align:center;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{font-size:14px;color:var(--sub);font-weight:700}
+.scroll{overflow-x:auto}
+footer{color:var(--sub);font-size:14px}
+footer a{color:inherit}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--sub)}.stack td:empty{display:none}}
+
+
+.roles{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:700px){.roles{grid-template-columns:minmax(0,1fr)}}
+.role{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:start;font-size:14.5px;line-height:1.45;padding:4px 0}
+.role .dot{width:26px;height:26px;font-size:11px;font-style:normal}
+.role em{display:block;font-style:normal;color:#c0392b;font-size:13.5px}
+.rh{grid-column:1/-1;font-size:14px;font-weight:700;color:var(--sub);margin:0}
+
+.why{all:unset;cursor:help;border-bottom:1.5px dotted currentColor;text-underline-offset:3px}
+.why:hover,.why:focus-visible,.why[aria-expanded=true]{background:color-mix(in srgb,#f2c230 35%,transparent);border-radius:3px}
+#pop{position:fixed;z-index:20;max-width:300px;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.25);display:none}
+#pop b{color:inherit}#pop .pt{display:block;font-weight:700;margin-bottom:4px;color:#f2c230}
+.hl{background:linear-gradient(transparent 35%,rgba(70,150,255,.38) 35%);padding:0 2px;border-radius:2px}
+.home{border-top:8px solid #141b2d}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0 8px}
+@media(max-width:760px){.flow{grid-template-columns:minmax(0,1fr)}}
+.node{border-radius:14px;padding:14px;color:#fff;position:relative}
+.node b{display:block;font-size:20px;line-height:1.2}
+.node small{display:block;font-size:13px;opacity:.92;margin-top:4px}
+.node .lp{display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+@media(max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.box ul,.box ol{margin:4px 0 0;padding-inline-start:20px}.box li{margin:4px 0}
+dl.gl{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:6px 14px;margin:0}
+dl.gl dt{font-weight:700}dl.gl dd{margin:0;color:var(--sub)}
+@media(max-width:600px){dl.gl{grid-template-columns:minmax(0,1fr)}dl.gl dd{margin-bottom:8px}}
+html{scroll-padding-top:72px;scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+
+<header class="band">
+<div class="wrap top">
+<div>
+<h1>절테마 기믹 노트</h1>
+<p class="lead">절 알테마 웨폰 파괴작전(UWU) 페이즈별 기믹과 T1~D4 위치를 한 장씩 정리했어요. 도식은 위쪽이 북쪽이고, 보스·장판·이동 방향은 예시 배치예요.</p>
+<div class="legend">
+<span><i class="dot" style="background:#2f6fe4">T1</i>T1 = 메인탱(MT)</span>
+<span><i class="dot" style="background:#2f6fe4">T2</i>T2 = 서브탱(ST)</span>
+<span><i class="dot" style="background:#2e9e55">H1</i>힐러</span>
+<span><i class="dot" style="background:#d24545">D1</i>D1·D2 근딜 / D3·D4 원딜·캐스터</span>
+<span><i class="sw" style="background:var(--bad);border:1.5px solid var(--badS)"></i>맞으면 안 되는 곳</span>
+<span><i class="sw" style="background:var(--safe);border:1.5px solid var(--safeS)"></i>안전지대</span>
+<span><i class="sw" style="background:var(--buf);border:1.5px solid var(--bufS)"></i>기믹용 장판·구슬</span>
+<span><span class="hl">파란 형광펜</span> = 탱교 타이밍</span>
+</div>
+</div>
+<div class="note">
+<p><b>먼저 확인하세요.</b> 이 노트의 위치·우선순위는 <b>글로벌 공팟 표준(Clees 가이드 + 공팟 매크로)</b> 기준이에요. 한국 공대는 처리법이 다를 수 있으니, 들어갈 파티의 모집글이나 공략이 항상 우선이에요.</p>
+<p style="margin:0">기믹 한국어 이름 중 확실하지 않은 건 영어 이름을 같이 적었어요. 게임 안의 이름으로 맞춰 쓰면 돼요.</p>
+</div>
+</div>
+</header>
+
+<nav class="scroll" aria-label="페이즈 이동">
+<a href="#home">홈</a><a href="#garuda">P1 가루다</a><a href="#ifrit">P2 이프리트</a><a href="#titan">P3 타이탄</a><a href="#laha">P4 라하브레아</a><a href="#ultima">P5 알테마</a><a href="#stacks">저기압 정리표</a>
+</nav>
+
+<section class="band home" id="home">
+<div class="wrap">
+<h2>한눈에 보는 절테마</h2>
+<p class="lead">야만신 셋을 <b>깨워서(각성)</b> 잡고, 그 보상으로 받은 LB3를 네 번 이어 쓴 다음, 세 야만신의 힘을 흡수한 알테마 웨폰과 싸우는 구조예요. 앞 세 페이즈를 그냥 잡기만 하면 안 되고, 반드시 각성시켜서 잡아야 다음으로 넘어갈 수 있어요.</p>
+
+<div class="flow" aria-label="페이즈 흐름">
+<div class="node" style="background:#2f7d5b"><b>P1 가루다</b><small>저기압 스택으로 각성</small><span class="lp">빛 장판 → 힐러</span></div>
+<div class="node" style="background:#d2552b"><b>P2 이프리트</b><small>말뚝 4개로 각성</small><span class="lp">빛 장판 → 캐스터</span></div>
+<div class="node" style="background:#a07228"><b>P3 타이탄</b><small>감옥 연쇄로 각성</small><span class="lp">빛 장판 → 근딜</span></div>
+<div class="node" style="background:#6b4bb0"><b>P4 라하브레아</b><small>LB3 네 번 연속</small><span class="lp">캐스터→힐러→근딜→탱커</span></div>
+<div class="node" style="background:#14868c"><b>P5 알테마 웨폰</b><small>세 야만신 기믹 복합</small><span class="lp">게이지 100 = 전멸</span></div>
+</div>
+
+<div class="grid2">
+<div class="box">
+<h3>핵심 규칙 ① 각성 시스템</h3>
+<ol>
+<li>야만신마다 정해진 기믹을 제대로 처리하면 <b>에테르 공급</b> 스택이 1개씩 쌓여요.</li>
+<li>4스택이 되면 <b>각성</b>. 기술이 강해지는 대신(회오리 추가, 십자 잔불, 산사태 2연속 등) 잡을 자격이 생겨요.</li>
+<li>각성한 야만신을 잡으면 그 자리에 <b>빛 장판</b>이 생기고, 밟은 사람이 <b>한계 돌파</b> 버프를 받아요.</li>
+<li>한계 돌파를 가진 사람이 LB3를 쓰면 게이지가 다시 3단으로 차요. 그래서 P4에서 LB3를 네 번 이어 쓸 수 있어요.</li>
+</ol>
+<p class="tip">각성 없이 잡거나 빛 장판을 엉뚱한 사람이 밟으면 P4의 LB 릴레이가 끊겨서 전멸해요.</p>
+</div>
+
+<div class="box">
+<h3>핵심 규칙 ② 각성 조건 요약</h3>
+<div class="scroll"><table class="stack">
+<thead><tr><th style="white-space:nowrap">야만신</th><th>각성 조건</th><th style="white-space:nowrap">빛 장판</th></tr></thead>
+<tbody>
+<tr><td style="white-space:nowrap">가루다</td><td>저기압 2스택 보유자가 고기압 장판·뇌우고기압 줄로 정화 → 대형 돌개바람 4회</td><td style="white-space:nowrap">힐러</td></tr>
+<tr><td style="white-space:nowrap">이프리트</td><td>염옥의 말뚝 4개를 용암 분출 2회씩 맞혀 키운 뒤 파괴</td><td style="white-space:nowrap">캐스터</td></tr>
+<tr><td style="white-space:nowrap">타이탄</td><td>감옥 3개 연쇄 폭발로 생긴 진흙 장판 위에 타이탄이 일정 시간 서 있기</td><td style="white-space:nowrap">근딜</td></tr>
+</tbody></table></div>
+</div>
+
+<div class="box">
+<h3>전체에 걸친 주의점</h3>
+<ul>
+<li><b>맵 외곽 벽은 즉사</b>예요. 넉백(폭렬 난사, 대격진, 에테르 폭발) 때 특히 조심.</li>
+<li>야만신마다 <b>시간 초과 전멸기</b>가 있어요(약 2분 45초~2분 55초). 각성시키되 딜은 계속 넣어야 해요.</li>
+<li>야만신끼리 어그로를 공유하지 않아서, 새 야만신이 나올 때마다 <b>탱커가 어그로를 다시 잡아요</b>.</li>
+<li>가루다에서 남긴 <b>저기압 1스택</b>이 알테마 페이즈의 뇌우고기압 줄 처리에 다시 쓰여요(맨 아래 표 참고).</li>
+<li>LB 릴레이 때문에 파티에 <b>캐스터 1명, 근딜 1명은 반드시</b> 있어야 해요.</li>
+<li>알테마의 <b>에테르 게이지</b>는 사망할 때마다, 구슬에 들어간 인원만큼 올라요. 100이 되면 전멸이라 죽지 않는 게 곧 딜이에요.</li>
+</ul>
+</div>
+
+<div class="box">
+<h3>자주 나오는 용어</h3>
+<dl class="gl">
+<dt>에테르 공급</dt><dd>야만신 각성 스택. 4개면 각성.</dd>
+<dt>각성</dt><dd>야만신이 파란 빛을 띠며 강화된 상태. 잡으면 빛 장판.</dd>
+<dt>한계 돌파</dt><dd>빛 장판 버프. LB3 사용 시 게이지 3단 회복.</dd>
+<dt>저기압 / 고기압</dt><dd>가루다 디버프. 저기압 3스택에서 정화하면 전멸.</dd>
+<dt>작열</dt><dd>힐러에게 붙는 이프리트 장판 디버프. 본대와 떨어지기.</dd>
+<dt>화강암 감옥</dt><dd>타이탄의 돌감옥. 우선순위대로 일렬로 서기.</dd>
+<dt>흡착식 에테르 폭뢰</dt><dd>알테마 디버프. 시간이 끝나면 주변까지 폭발.</dd>
+<dt>정합견</dt><dd>보스에게 거는 파티 경감 세 개(정신 교란·탱커 경감·견제)의 묶음.</dd>
+</dl>
+</div>
+</div>
+
+<div class="box" style="margin-top:18px">
+<h3>직군별로 특히 조심할 것</h3>
+<div class="grid2" style="margin-top:8px">
+<div><p style="margin:0 0 4px"><i class="dot" style="background:#2f6fe4">T</i> <b>탱커</b></p><ul>
+<li>야만신이 바뀔 때마다 <b>어그로 다시 잡기</b>. 이프리트는 T2가 먼저, 타이탄 중반에 T2로 교대.</li>
+<li>탱교 시점은 아래  표 참고.</li>
+<li><b>무적기 타이밍</b>이 정해져 있어요: 이프리트 소각 3회(T2, 마지막엔 T1), 알테마 유도 레이저.</li>
+<li>보스 정면(반동 기류, 하강 기류, 바위·산 쪼개기)이 본대를 향하지 않게.</li>
+<li>T2는 가루다 저기압 2스택 담당, T1은 알테마 구슬 4개 모두 담당이라 <b>생존기 배분</b>을 미리 정하기.</li>
+</ul></div>
+<div><p style="margin:0 0 4px"><i class="dot" style="background:#2e9e55">H</i> <b>힐러</b></p><ul>
+<li><b>폭렬 난사 전 보호막</b>은 생명줄이에요. 늦으면 넉백으로 벽 사망.</li>
+<li>무작위 대상 기믹이 많아요: 삭풍의 노래 징표, 작열, 감옥. <b>내가 걸렸는지</b> 항상 확인.</li>
+<li>작열 상태로는 본대에 가지 않기. 알테마 파괴 환상에선 작열 힐러가 뇌우고기압 줄도 받아요.</li>
+<li>가루다 빛 장판과 P4 힐러 LB3(파멸 해제)는 <b>지정된 힐러 한 명</b>이 담당.</li>
+</ul></div>
+<div><p style="margin:0 0 4px"><i class="dot" style="background:#d24545">D1</i> <b>근딜(D1·D2)</b></p><ul>
+<li>가루다에서 <b>저기압 정화 담당</b>(D1 → D2 순서). 둘이 동시에 들어가면 안 돼요.</li>
+<li>타이탄 감옥 우선순위 1·2번이라 <b>감옥 줄서기</b>를 가장 자주 해요.</li>
+<li>말뚝 처치 순서 지키기. 두 개를 동시에 터뜨리면 위험해요.</li>
+<li>타이탄 빛 장판 → P4에서 <b>근딜 LB3로 라하브레아 처치</b>(세 번째).</li>
+</ul></div>
+<div><p style="margin:0 0 4px"><i class="dot" style="background:#d24545">D3</i> <b>원딜·캐스터(D3·D4)</b></p><ul>
+<li>이프리트 <b>용암 분출 유도 담당</b>. 말뚝을 키우는 핵심이라 위치가 틀리면 각성 실패.</li>
+<li>D4는 가루다 동쪽 뇌우고기압 줄, D3는 알테마 첫 번째 뇌우고기압 줄 담당.</li>
+<li>이프리트 빛 장판은 <b>타이탄이 착지한 뒤에</b> 밟기 → P4 <b>캐스터 LB3가 첫 번째</b>.</li>
+<li>견제·정신 교란 같은 경감은 정해진 타이밍에 맞춰 쓰기.</li>
+</ul></div>
+</div>
+</div>
+
+<div class="box" style="margin-top:18px">
+<h3>이 노트 보는 법</h3>
+<p style="margin:0">점선 밑줄이 있는 단어에 마우스를 올리거나 탭하면 <b>왜 그렇게 하는지</b> 설명이 떠요. 위 탭에서 페이즈를 골라 기믹 카드를 순서대로 보세요. 도식은 위쪽이 북쪽이고, 파란 동그라미는 탱커(T1=메인탱, T2=서브탱), 초록은 힐러, 빨강은 딜러(D1·D2 근딜, D3·D4 원딜)예요. 각 카드 아래에는 <b>T1~D4가 그 단계에서 할 일과 주의사항</b>이 있어요(빨간 글씨가 주의). 처음에는 <b>P1 가루다만</b> 확실히 익히고, 진도에 맞춰 다음 페이즈로 넘어가는 걸 추천해요.</p>
+</div>
+</div>
+</section>
+<main id="main"></main>
+<div id="pop" role="tooltip"></div>
+
+<section class="band" id="stacks" style="border-top:1px solid var(--line)">
+<div class="wrap">
+<h2>저기압(Thermal Low) 스택 흐름</h2>
+<p class="lead">가루다에서 남긴 저기압 1스택이 알테마 페이즈의 뇌우고기압 줄 처리에 다시 쓰여요. 누가 몇 스택인지가 핵심이에요.</p>
+<div class="scroll">
+<table class="stack">
+<thead><tr><th>시점</th><th>T1</th><th>T2</th><th>H1·H2</th><th>D1·D2</th><th>D3</th><th>D4</th></tr></thead>
+<tbody>
+<tr><td>가시깃털 처치 직전</td><td>0</td><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>T2 장판 정화 → 바람의 칼날 1회</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>바람의 칼날 2회</td><td>1</td><td>2</td><td>1</td><td>2</td><td>1</td><td>1</td></tr>
+<tr><td>D1 → D2 순서로 장판 정화</td><td>1</td><td>2</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>뇌우고기압 줄(T2·D4) 처리 후 = 가루다 각성</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>알테마: 뇌우고기압 줄 담당</td><td colspan="6">파괴환상: D3 → 작열 힐러 / 억압환상: T1 (저기압 보유자가 받아야 함)</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<footer class="band" style="border-top:1px solid var(--line)">
+<div class="wrap">
+<p>참고 자료: <a href="https://clees.me/guides/uwu">Clees UWU 가이드</a> · <a href="https://ffxiv.tuufless.com/ultimates/uwu">공팟 매크로(tuufless)</a> · <a href="https://www.icy-veins.com/ffxiv/the-weapons-refrain-ultimate-guides-hub">Icy Veins UWU</a> · <a href="https://ffxiv.consolegameswiki.com/wiki/The_Weapon%27s_Refrain_(Ultimate)">Consolegameswiki</a> · 나무위키 「알테마 웨폰 파괴작전」</p>
+<p style="margin:0">보스 등장 위치와 장판 방향은 매번 바뀌어요. 도식은 그중 한 경우를 그린 예시예요.</p>
+</div>
+</footer>
+
+<script>
+{
+const RC={T:'#2f6fe4',H:'#2e9e55',D:'#d24545'};
+const BC={'가루다':'#2f7d5b','이프리트':'#d2552b','타이탄':'#a07228','알테마':'#14868c','라하브레아':'#6b4bb0'};
+const P=(a,d)=>{const r=a*Math.PI/180;return [+(Math.sin(r)*d).toFixed(1),+(-Math.cos(r)*d).toFixed(1)]};
+const xy=v=>v.length===2&&v.pol?P(v[0],v[1]):v;
+const at=o=>o.xy?o.xy:P(o.at[0],o.at[1]);
+const K={bad:['var(--bad)','var(--badS)'],safe:['var(--safe)','var(--safeS)'],buf:['var(--buf)','var(--bufS)']};
+let aid=0;
+function draw(items){
+  const id='m'+(aid++);
+  let s=`<svg data-arena="${(window.__arena=window.__arena||[]).push(items)-1}" viewBox="-128 -128 256 256" role="img" xmlns="http://www.w3.org/2000/svg"><defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>`;
+  s+=`<circle r="100" fill="var(--floor)" stroke="var(--rim)" stroke-width="2.5"/><circle r="50" fill="none" stroke="var(--rim)" stroke-width=".6" stroke-dasharray="2 3"/><path d="M0 -100V100M-100 0H100" stroke="var(--rim)" stroke-width=".5" stroke-dasharray="2 3"/>`;
+  [['북',0],['동',90],['남',180],['서',270]].forEach(([t,a])=>{const [x,y]=P(a,113);s+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--sub)">${t}</text>`});
+  const top=[];
+  for(const o of items){
+    const k=K[o.k||'bad'];
+    if(o.z==='c'){const [x,y]=at(o);s+=`<circle cx="${x}" cy="${y}" r="${o.r}" fill="${k[0]}" stroke="${k[1]}" stroke-width="1.2"/>`}
+    else if(o.z==='donut'){const [x,y]=at(o);s+=`<path fill-rule="evenodd" d="M${x-o.r2} ${y}a${o.r2} ${o.r2} 0 1 0 ${o.r2*2} 0a${o.r2} ${o.r2} 0 1 0 ${-o.r2*2} 0zM${x-o.r1} ${y}a${o.r1} ${o.r1} 0 1 0 ${o.r1*2} 0a${o.r1} ${o.r1} 0 1 0 ${-o.r1*2} 0z" fill="${k[0]}" stroke="${k[1]}" stroke-width="1.2"/>`}
+    else if(o.z==='cone'){const [x,y]=at(o);const a1=o.dir-o.w/2,a2=o.dir+o.w/2;const [x1,y1]=P(a1,o.len),[x2,y2]=P(a2,o.len);s+=`<path d="M${x} ${y}L${x+x1} ${y+y1}A${o.len} ${o.len} 0 ${o.w>180?1:0} 1 ${x+x2} ${y+y2}Z" fill="${k[0]}" stroke="${k[1]}" stroke-width="1.2"/>`}
+    else if(o.z==='band'){const [x1,y1]=xy(o.a),[x2,y2]=xy(o.b);const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),nx=-dy/L*o.w/2,ny=dx/L*o.w/2;s+=`<path d="M${x1+nx} ${y1+ny}L${x2+nx} ${y2+ny}L${x2-nx} ${y2-ny}L${x1-nx} ${y1-ny}Z" fill="${k[0]}" stroke="${k[1]}" stroke-width="1.2"/>`}
+    else if(o.ar){const [x1,y1]=xy(o.ar[0]),[x2,y2]=xy(o.ar[1]);top.push(`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="currentColor" color="${o.c||'var(--ink)'}" stroke-width="2" fill="none" marker-end="url(#${id})" ${o.dash?'stroke-dasharray="4 3"':''}/>`)}
+    else if(o.arc){const {r,a1,a2}=o.arc;const [x1,y1]=P(a1,r),[x2,y2]=P(a2,r);const cw=a2>a1?1:0;const big=Math.abs(a2-a1)>180?1:0;top.push(`<path d="M${x1} ${y1}A${r} ${r} 0 ${big} ${cw} ${x2} ${y2}" stroke="currentColor" color="${o.c||'var(--ink)'}" stroke-width="2" fill="none" marker-end="url(#${id})" ${o.dash?'stroke-dasharray="4 3"':''}/>`)}
+    else if(o.te){const [x1,y1]=xy(o.te[0]),[x2,y2]=xy(o.te[1]);s+=`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${o.c||'#27a35a'}" stroke-width="2.4" stroke-dasharray="5 3"/>`}
+    else if(o.b){const [x,y]=at(o);const c=o.c||BC[o.b]||'#555';const r=o.r||11;top.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${o.up?y-r-4:y+r+10}" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--ink)" paint-order="stroke" stroke="var(--floor)" stroke-width="3">${o.b}</text>`)}
+    else if(o.p){const [x,y]=at(o);top.push(`<circle cx="${x}" cy="${y}" r="8" fill="${RC[o.p[0]]}" stroke="#fff" stroke-width="1.4"/><text x="${x}" y="${y+3.3}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff">${o.p}</text>`)}
+    else if(o.t){const [x,y]=at(o);top.push(`<text x="${x}" y="${y}" text-anchor="middle" font-size="${o.fs||9}" font-weight="700" fill="${o.c||'var(--ink)'}" paint-order="stroke" stroke="var(--floor)" stroke-width="3">${o.t}</text>`)}
+    else if(o.m){const [x,y]=at(o);top.push(`<rect x="${x-7}" y="${y-7}" width="14" height="14" rx="3" fill="#f2c230" stroke="#7a5a00"/><text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="9" font-weight="900" fill="#3a2a00">${o.m}</text>`)}
+  }
+  return s+top.join('')+'</svg>';
+}
+const pp=(r,a,d)=>({p:r,at:[a,d]}), px=(r,x,y)=>({p:r,xy:[x,y]});
+const pol=(a,d)=>{const v=[a,d];v.pol=1;return v};
+
+const PH=[
+{id:'garuda',name:'P1 가루다',color:'#2f7d5b',
+ wake:'각성 조건: 저기압 2스택을 지닌 사람이 정화하면서 대형 돌개바람(Super Cyclone)을 4번 일으키기 → 가루다 에테르 공급 4스택.',
+ cards:[
+ {h:'오프닝 · 삭풍의 노래',en:'Slipstream / Mistral Song',
+  d:[{b:'가루다',at:[0,0]},{z:'cone',at:[0,0],dir:90,w:150,len:96},pp('T1',330,26),pp('T2',90,30),pp('H1',90,80),pp('H2',72,74),pp('D1',215,32),pp('D2',245,32),pp('D3',215,64),pp('D4',245,64),{t:'징표',at:[90,95],c:'#2e9e55'}],
+  cap:'예시: 징표가 H1에게 뜬 경우',
+  steps:['가루다를 중앙으로 끌고 시작. 힐러 2명은 동쪽.','반동 기류(전방 부채꼴, 기절): T1은 정면을 피해서 탱킹.','삭풍의 노래: 징표 받은 힐러에게 150° 부채꼴. <b>T2가 가루다와 힐러 사이에 서서 첫 피격</b>을 받아요.','T2가 서 있던 자리에 초록 회오리가 생겨요. T1은 가루다를 서쪽으로 끌어서 회오리를 피해요.'],
+  tip:'딜러는 부채꼴 바깥(가루다 남서쪽)에서 딜. T2는 생존기 필수.'},
+ {h:'깃털 단계 · 가시깃털로 저기압 쌓기',en:'Satin Plume ×4 / Spiny Plume',
+  d:[{b:'가루다',xy:[-36,0]},{z:'c',at:[90,30],r:11},{t:'회오리',at:[90,48],c:'var(--badS)'},{b:'가시깃털',xy:[-86,0],r:7,c:'#6d8f3b'},px('T2',-70,0),px('T1',-36,-20),{b:'',xy:[-24,-34],r:4,c:'#9bbf6a'},{b:'',xy:[-24,34],r:4,c:'#9bbf6a'},{b:'',xy:[-52,-30],r:4,c:'#9bbf6a'},{b:'',xy:[-52,30],r:4,c:'#9bbf6a'},px('D1',-12,-10),px('D2',-12,10),px('H1',4,-22),px('H2',4,22),px('D3',8,-4),px('D4',22,8),{t:'부드러운 깃털 ×4',xy:[-38,-46],fs:8}],
+  cap:'초록 점 = 부드러운 깃털(빨리 처치)',
+  steps:['부드러운 깃털 4개 + 가시깃털 1개(서쪽) 등장.','<b>가시깃털은 T2가 제일 먼저 때려서</b> 줄을 가져가요. 그 전엔 광역기 금지.','T1은 하강 기류(무시전 전방 공격)를 받는 위치로 복귀, 나머지는 부드러운 깃털을 광역으로 빨리 처치(방치하면 수면).','가시깃털의 돌개바람을 T2가 2번 맞아 <b>저기압 2스택</b>. 3번째 공격 전에 가시깃털을 처치해요(3스택은 전멸).','깃털비: 가루다 비명소리가 들리면 장판을 피해요.']},
+ {h:'바람의 칼날 1회 · 장판 안/밖 나누기',en:'Gigastorm bubble / Friction',
+  d:[{z:'c',xy:[-50,0],r:36,k:'buf'},{t:'고기압 장판',xy:[-50,-42],c:'var(--bufS)'},px('T1',-62,-14),px('H1',-40,-14),px('H2',-62,8),px('D3',-40,8),px('D4',-51,24),px('T2',2,-16),px('D1',2,6),px('D2',18,-4),{b:'가루다',at:[60,62]},{ar:[[-6,-20],[-28,-24]],dash:1,c:'var(--bufS)'},{t:'① T2 먼저 정화',xy:[10,-34],fs:8}],
+  cap:'장판 안: T1 H1 H2 D3 D4 / 밖: T2 D1 D2',
+  steps:['가시깃털이 죽은 자리에 고기압 장판(초록 거품)이 생겨요.','<b>T2가 장판에 들어가 2스택 정화</b> → 대형 돌개바람(전체 피해) → 가루다 1스택.','T2는 다시 밖으로 나가 D1·D2와 함께 서요.','바람의 칼날 1회: 전원 한곳에 모여 맞음. 장판 안 인원은 바로 정화돼서, 밖에 있던 <b>T2·D1·D2만 1스택</b>이 남아요.']},
+ {h:'바람의 칼날 2회 · D1 → D2 순서로 정화',en:'Friction ×2',
+  d:[{z:'c',xy:[-50,0],r:36,k:'buf'},px('T1',8,-18),px('T2',26,-18),px('H1',44,-18),px('H2',8,2),px('D3',26,2),px('D4',44,2),px('D1',-6,-8),px('D2',-6,12),{ar:[[-14,-8],[-40,-8]],c:'var(--bufS)'},{t:'② D1',xy:[-28,-16],c:'var(--bufS)'},{ar:[[-14,12],[-40,12]],c:'var(--bufS)',dash:1},{t:'③ D2',xy:[-28,28],c:'var(--bufS)'},{b:'가루다',at:[60,70]}],
+  cap:'② D1 정화 → 힐로 피 채우고 → ③ D2 정화',
+  steps:['전원 <b>장판 밖</b>에 모여서 바람의 칼날 2회를 맞아요. 전원 +1스택.','이제 T2·D1·D2가 2스택, 나머지는 1스택.','<b>D1이 먼저 장판에 들어가 정화</b>(가루다 2스택) → 힐러가 피를 채운 뒤 <b>D2 정화</b>(가루다 3스택).','결과: T2만 2스택, T1·H1·H2·D3·D4는 1스택, D1·D2는 0스택.'],
+  tip:'한 번에 두 명이 들어가면 피해가 겹쳐서 위험해요. 반드시 한 명씩.'},
+ {h:'미드루다 · 신기루 자매와 삭풍의 노래',en:'Chirada & Suparna / Mistral Song / Wicked Wheel',
+  d:[{b:'가루다',at:[0,0]},{z:'c',at:[0,0],r:26},{b:'신기루',at:[0,92],r:8,c:'#56a37f'},{b:'신기루',at:[270,92],r:8,c:'#56a37f'},pp('T1',0,72),pp('T2',270,72),{arc:{r:84,a1:345,a2:200},c:'#2f6fe4',dash:1},{arc:{r:78,a1:100,a2:255},c:'#2f6fe4',dash:1},{t:'T1: 북→서→남',at:[318,62],fs:8,c:'#2f6fe4'},{t:'T2: 동→남→서',at:[140,66],fs:8,c:'#2f6fe4'},pp('H1',128,46),pp('H2',118,56),pp('D1',145,56),pp('D2',132,64),pp('D3',150,44),pp('D4',112,42)],
+  cap:'예시: 자매가 북·서에 등장 → T1 북, T2 서',
+  steps:['가루다가 대기 폭발 후 자매(신기루) 소환 → 깃털비. 가루다는 중앙에 두고 <b>남쪽에 모여</b> 깃털비를 유도했다가, 피하면서 <b>남동쪽으로 이동</b>.','자매가 외곽 두 방향에 등장해서 탱커가 아닌 두 명에게 삭풍의 노래.','<b>T1: 북쪽부터 반시계(북→서→남)</b>로 보고 처음 만나는 자매 앞으로.','<b>T2: 동쪽부터 시계(동→남→서)</b>로 보고 처음 만나는 자매 앞으로.','가루다 장판(마녀의 수레바퀴)이 보이면 중앙에서 떨어져 있기. 회오리는 T1·T2가 서 있던 자리에 생겨서 중앙은 안전해요.']},
+ {h:'뇌우고기압 · 가루다 각성',en:'Mesohigh tethers → Awakened',
+  d:[{b:'가루다',at:[0,4]},{b:'신기루',at:[90,92],r:8,c:'#56a37f'},{b:'신기루',at:[270,92],r:8,c:'#56a37f'},pp('T2',270,66),pp('D4',90,66),{te:[pol(270,84),pol(270,66)]},{te:[pol(90,84),pol(90,66)]},pp('T1',0,22),pp('H1',168,42),pp('H2',192,42),pp('D1',158,56),pp('D2',202,56),pp('D3',180,62),{t:'서쪽 줄 = T2',at:[255,62],fs:8},{t:'동쪽 줄 = D4',at:[105,62],fs:8}],
+  cap:'줄 받는 사람은 본대에서 떨어져서 처리',
+  steps:['부드러운 깃털 4개를 다시 처치. 자매가 동·서로 돌아와 뇌우고기압 줄을 연결.','<b>서쪽 줄 = T2, 동쪽 줄 = D4</b>. 둘 다 본대에서 멀리 떨어져서 받기(주변에 광역 피해).','T1은 반동 기류를 바깥으로 유도한 뒤 하강 기류 위치로.','줄이 터지면서 T2의 2스택이 정화 → <b>가루다 4스택 = 각성</b>. 피해가 커서 생존기 사용.']},
+ {h:'각성 가루다 마무리',en:'Wicked Wheel → Wicked Tornado / Aerial Blast',
+  d:[{b:'가루다',at:[0,0],up:1},{z:'c',at:[0,0],r:30},{z:'donut',at:[0,0],r1:42,r2:100,k:'bad'},pp('D1',180,36),pp('D2',200,36),pp('H1',160,36),{t:'① 밖(틈)으로',at:[236,72],fs:8},{t:'② 바로 안으로',at:[124,72],fs:8},pp('T1',60,24)],
+  cap:'수레바퀴(원) → 회오리(도넛) 연속',
+  steps:['마녀의 수레바퀴(가루다 주변 원형) 직후 시전 없이 마녀의 회오리(도넛). <b>밖으로 피했다가 바로 안으로</b>.','각성 하강 기류는 쉐어. 공대 방침에 따라 파티 전원 쉐어 또는 탱커 둘이 나눠 받기.','반동 기류를 한 번 더 바깥으로 유도한 뒤 대기 폭발(시간 초과 전멸) 전에 처치.','처치 자리에 생기는 빛 장판(한계 돌파 버프)은 <b>힐러</b>가 밟아요.']}
+ ]},
+{id:'ifrit',name:'P2 이프리트',color:'#d2552b',
+ wake:'각성 조건: 염옥의 말뚝 4개 모두 용암 분출을 2번씩 맞혀서 키운 뒤 파괴.',
+ cards:[
+ {h:'등장 · 진홍 회오리 + 광휘의 불기둥',en:'Crimson Cyclone / Radiant Plume',
+  d:[{z:'band',a:pol(0,100),b:pol(180,100),w:44},{z:'c',at:[45,55],r:22},{z:'c',at:[135,55],r:22},{z:'c',at:[225,55],r:22},{z:'c',at:[315,55],r:22},{z:'c',at:[90,30],r:14},{z:'c',at:[270,30],r:14},{z:'c',at:[90,84],r:13,k:'safe'},{z:'c',at:[270,84],r:13,k:'safe'},{b:'이프리트',at:[0,92]},{t:'둘 중 열린 쪽',at:[108,72],fs:8,c:'var(--safeS)'},px('T1',-6,-4),px('H1',6,-4),px('D1',0,8),{ar:[[10,4],[64,4]],c:'var(--safeS)'}],
+  cap:'예시: 북쪽에서 돌진 → 동/서 중 열린 곳',
+  steps:['이프리트가 무작위 정방향에서 돌진, 동시에 맵 전체에 불기둥 장판.','안전지대는 <b>이프리트 기준 90° 옆 정방향</b> 두 곳 중 하나.','중앙에 모여 있다가 열린 쪽을 확인하고 바로 질주(전력 질주 추천). 되돌아오지 말기.']},
+ {h:'지옥의 화염 · 폭렬 난사 · 소각',en:'Hellfire / Vulcan Burst / Incinerate',
+  d:[{b:'이프리트',at:[0,0],up:1},{z:'cone',at:[0,0],dir:180,w:100,len:48},pp('T2',180,34),pp('T1',60,30),pp('H1',340,48),pp('H2',20,48),pp('D1',330,28),pp('D2',30,28),pp('D3',320,62),pp('D4',40,62),{t:'소각 ×3',at:[180,58],fs:8,c:'var(--badS)'}],
+  cap:'T2가 남쪽을 보게 탱킹, 본대 북쪽',
+  steps:['<span class="hl"><b>T2가 먼저 어그로</b>를 잡고</span> 이프리트를 남쪽으로 향하게. 본대는 북쪽.','지옥의 화염(전체 피해) → 폭렬 난사(넉백). <b>힐러 보호막으로 넉백을 막아요</b>. 없으면 벽에 밀려 사망 → 견고한 마법·거리 유지(넉백 방지) 사용.','소각 3회: <b>T2가 무적기로 3번 모두</b> 받기<span class="hl">(또는 탱커 교대 2번: T2→T1→T2)</span>.','<span class="hl">3번째 소각 후 T1이 도발로 인계.</span>']},
+ {h:'염옥의 말뚝 · 역Z 순서',en:'Infernal Nails (Reverse-Z)',
+  d:[{b:'이프리트',xy:[0,-50],up:1},px('T1',0,-80),{b:'4',xy:[-28,-40],r:7,c:'#8a3a1a'},{b:'3',xy:[28,-40],r:7,c:'#8a3a1a'},{b:'2',xy:[-58,46],r:7,c:'#8a3a1a'},{b:'1',xy:[58,46],r:7,c:'#8a3a1a'},{z:'c',xy:[-58,46],r:14,k:'buf'},{z:'c',xy:[58,46],r:14,k:'buf'},px('D3',-70,60),px('D4',70,60),px('H1',0,88),{t:'작열 힐러',xy:[0,76],fs:8},px('T2',-9,-30),px('H2',9,-30),px('D1',-9,-14),px('D2',9,-14),{t:'처치 순서 1→2→3→4',xy:[0,24],fs:9}],
+  cap:'말뚝 기준 회전(실제 방향은 매번 랜덤)',
+  steps:['말뚝 4개가 사다리꼴로 등장(가까운 2개 + 먼 2개). 무작위 힐러에게 작열(Searing Wind).','<b>T1</b>: 가까운 두 말뚝 사이로 이프리트를 끌어 고정. 이 자리를 기억.','<b>D3·D4</b>: 아래쪽 두 말뚝 옆(T1 기준 약 135°)에 서서 용암 분출을 유도. 처음 두 번은 아래 말뚝, 나중 두 번은 위 말뚝에 맞히기.','<b>작열 힐러</b>: T1 반대편 외곽.','두 번 맞은 말뚝부터 처치: <b>오른쪽 아래 → 왼쪽 아래 → 오른쪽 위 → 왼쪽 위</b>. 작을 때 피를 깎되 미리 부수지 않기.','염옥의 사슬: 무작위 딜러가 어그로 2순위와 연결돼요.','4번째 말뚝 위치를 기억(다음 돌진 회피의 기준). 4개 모두 성공하면 이프리트가 <b>파랗게</b> 빛나며 각성.'],
+  tip:'말뚝이 터질 때마다 전체 피해 + 받는 피해 증가 디버프. 동시에 두 개 터뜨리지 않기.'},
+ {h:'분신 돌진 1차 · 작열 두 명 · 화염 작열',en:'Crimson Cyclone #1 / Searing Wind ×2 / Flaming Crush',
+  d:[{z:'band',a:pol(0,100),b:pol(180,100),w:30},{z:'band',a:pol(90,100),b:pol(270,100),w:30},{b:'이프리트',at:[315,84]},pp('T1',330,72),pp('T2',340,62),pp('D1',322,60),pp('D2',334,50),pp('H2',318,48),pp('H1',150,84),{arc:{r:88,a1:182,a2:142},c:'#2e9e55'},pp('D3',95,80),pp('D4',85,70),{arc:{r:74,a1:80,a2:-25},c:'#d24545',dash:1},{t:'분신 돌진(정방향)',at:[135,44],fs:8,c:'var(--badS)'}],
+  cap:'예시: 4번째 말뚝이 북서 → 이프리트 북서',
+  steps:['지옥의 화염 후 작열(1번째 힐러). <b>T1은 4번째 말뚝 근처 대각 방향 외곽</b>으로 이프리트를 끌어요.','작열 힐러: 본대에서 약 135° 왼쪽 아래(예시: 남쪽)로.','<b>D3·D4</b>: 본대에서 약 135° 오른쪽 아래(예시: 동쪽)로 → 용암 분출 2세트를 <b>반시계</b>로 유도하며 본대 합류. 작열 힐러도 반시계로 돌아 본대 맞은편에 서요.','분신 2개가 정방향 축으로 돌진 → 본대는 대각 외곽이라 안전.','두 번째 작열(다른 힐러): 1번 힐러는 시계로 돌아 본대 왼쪽 아래, 2번 힐러는 본대 오른쪽 아래.','화염 작열(딜러 대상 쉐어): 작열 힐러 둘을 뺀 <b>6명 쉐어</b>.'],
+  tip:'딜이 충분하면 여기서 이프리트를 잡아 2차 돌진을 건너뛸 수 있어요.'},
+ {h:'분신 돌진 2차 · 파란 이프리트 찾기',en:'Crimson Cyclone #2 (woken afterburn)',
+  d:[{z:'band',a:pol(90,100),b:pol(270,100),w:30},{z:'band',a:pol(45,100),b:pol(225,100),w:16},{z:'band',a:pol(135,100),b:pol(315,100),w:16},{b:'1',at:[0,95],r:8,c:'#d2552b'},{b:'2 (파랑)',at:[90,95],r:9,c:'#2f6fe4'},{b:'3',at:[180,95],r:8,c:'#d2552b'},{b:'4',at:[270,95],r:8,c:'#d2552b'},{z:'c',at:[0,62],r:12,k:'safe'},{z:'c',at:[180,62],r:12,k:'safe'},{t:'정방향 돌진 → 대각선 X 잔불',at:[0,30],fs:8,c:'var(--badS)'}],
+  cap:'예시: 2번째가 진짜(파란) 이프리트',
+  steps:['외곽에 이프리트 4개(분신 3 + 진짜 1) 등장. <b>말뚝을 부순 순서대로</b> 돌진.','진짜(파란 오라) 이프리트가 지나간 뒤 약 3초 후 X자 잔불(예고 없음): <b>정방향 돌진이면 대각선</b>, <b>대각 돌진이면 정방향</b>에 깔려요.','전원 반시계로 이동해서 <b>파란 이프리트 기준 90° 또는 180°</b> 위치에서 끝내기.','첫 돌진 후 안으로 들어가고, 필요하면 두 번째 돌진 후 한 번 더 이동. 3·4번째에는 움직이지 않아도 돼요.']},
+ {h:'마무리 · 빛 장판 · 타이탄 착지',en:'Incinerate ×3 / Eruption / Flaming Crush / Hellfire',
+  d:[{b:'이프리트',at:[0,0],up:1},{z:'c',at:[180,48],r:22,k:'buf'},pp('T1',0,18),pp('T2',168,40),pp('H1',192,40),pp('H2',180,50),pp('D1',166,58),pp('D2',194,58),pp('D3',135,88),pp('D4',225,88),{t:'화염 작열 8인 쉐어',at:[180,80],fs:8}],
+  cap:'D3·D4가 분출을 바깥에서 유도 후 합류',
+  steps:['소각 3회: <b>T1 무적기</b>.','D3·D4가 용암 분출 1세트를 바깥에서 유도한 뒤 합류 → 화염 작열 <b>8명 전원 쉐어</b>.','지옥의 화염(시간 초과) 전에 처치. 빛 장판은 <b>캐스터</b>가 밟는데, <b>타이탄이 착지한 뒤에</b> 밟아요.','타이탄 대지 붕괴: 중앙에서 멀수록 약해지는 피해. <b>전원 맵 외곽 벽에 딱 붙기</b>.']}
+ ]},
+{id:'titan',name:'P3 타이탄',color:'#a07228',
+ wake:'각성 조건: 화강암 감옥 3개를 연쇄로 터뜨려 생긴 진흙 장판 위에 타이탄이 일정 시간 서 있기.',
+ cards:[
+ {h:'착지 대지 붕괴 · 대지의 무게',en:'Geocrush / Earthen Fury / Weight of the Land',
+  d:[{b:'타이탄',at:[0,0],r:13},{z:'c',at:[0,0],r:88},pp('T1',0,96),pp('T2',45,96),pp('H1',90,96),pp('H2',135,96),pp('D1',180,96),pp('D2',225,96),pp('D3',270,96),pp('D4',315,96)],
+  cap:'첫 착지: 전원 벽에 붙기',
+  steps:['착지 대지 붕괴: <b>벽에 딱 붙기</b>(한 걸음만 안쪽이어도 위험). 끝나면 빛 장판(캐스터)을 밟아요.','대지의 분노: 전원 피 채우고 보호막.','<span class="hl"><b>T1</b>이 어그로를 다시 잡고</span> 남쪽을 보게 탱킹, 본대는 북쪽. 바위 쪼개기 → 산 쪼개기(전방 탱버) 연속.','대지의 무게 1세트는 타이탄 뒤에 모여 유도, 2세트는 좌우로 피해 유도 후 복귀.','타이탄이 정방향 하나를 보고 점프(대지 붕괴) → <b>바라본 방향의 반대편</b>으로 이동. 맵이 좁아져요.']},
+ {h:'대격진 · 바위 던지기',en:'Upheaval / Rock Throw',
+  d:[{b:'타이탄',xy:[0,-34],r:13,up:1},{b:'',xy:[-74,52],r:10,c:'#7a6a55'},{b:'',xy:[-6,52],r:10,c:'#7a6a55'},{b:'',xy:[20,52],r:10,c:'#7a6a55'},{b:'',xy:[46,52],r:10,c:'#7a6a55'},{b:'',xy:[72,52],r:10,c:'#7a6a55'},{z:'c',xy:[-40,60],r:12,k:'safe'},{t:'빈틈',xy:[-40,82],fs:8,c:'var(--safeS)'},px('D1',-8,-14),px('T2',-20,-12),px('H1',-12,-2),{ar:[[-16,8],[-38,46]],c:'var(--safeS)'},{t:'넉백',xy:[-34,20],fs:8}],
+  cap:'예시: 빈틈이 왼쪽',
+  steps:['대격진(3초 정신 집중 → 전원 넉백, 넉백 방지 불가) + 바위 5개가 반대편에 떨어져요. 빈틈은 왼쪽 또는 오른쪽.','<b>타이탄 히트박스 안, 화살표 바로 왼쪽/오른쪽</b>에 서서 빈틈 쪽으로 날아가기.','바위 밑에 깔리면 사망, 이어서 바위 주변 작은 폭발(대폭발). 모여 있기.','이전 안전지대에 바위 하나가 더 떨어지고, 세 명에게 화강암 감옥 징표.']},
+ {h:'화강암 감옥 · 일렬 연쇄',en:'Granite Gaol ×3 / Landslide',
+  d:[{b:'타이탄',xy:[0,-40],r:13,up:1},{b:'바위',xy:[-30,74],r:10,c:'#7a6a55'},{z:'c',xy:[-30,74],r:22,k:'bad'},{b:'',xy:[-26,46],r:8,c:'#8a7f70'},{b:'',xy:[-18,18],r:8,c:'#8a7f70'},{b:'',xy:[-9,-12],r:8,c:'#8a7f70'},{t:'앞(바위 쪽)',xy:[10,48],fs:8},{t:'중간',xy:[8,20],fs:8},{t:'뒤(타이탄 쪽)',xy:[22,-10],fs:8},px('T1',18,-54),px('H1',-40,-44),px('H2',-48,-34),px('D4',-34,-30),px('D3',-44,-22),px('D2',-56,-44),{t:'본대: 타이탄 왼쪽',xy:[-52,-62],fs:8}],
+  cap:'남은 바위 → 감옥 3개 → 타이탄을 일직선으로',
+  steps:['우선순위: <b>D1 &gt; D2 &gt; T2 &gt; D3 &gt; D4 &gt; H1 &gt; H2</b>. 감옥 대상 3명이 이 순서대로 <b>앞(바위 쪽) · 중간 · 뒤(타이탄 쪽)</b>에 서요.','앞 사람은 남은 바위 폭발 범위 바로 바깥, 뒤 사람은 타이탄과 가운데 사람의 중간쯤.','감옥 대상자는 <b>첫 번째 산사태만 피하고</b>, 두 번째 산사태는 맞아도 돼요(갇히는 중).','바위 폭발 → 감옥이 차례로 터지며 진흙 장판이 타이탄 발밑까지 이어지면 각성 스택.','나머지는 타이탄 왼쪽에 모여 첫 산사태를 가운데로 유도. 감옥에서 풀린 사람도 왼쪽으로 합류 → 격진 8회 힐. <span class="hl">격진 중에 T2가 어그로를 가져가요.</span>'],
+  tip:'감옥 대상자 판단 시간이 매우 짧아요. 공대마다 우선순위가 다르니 꼭 미리 맞추세요.'},
+ {h:'각성 산사태 · 힐러 감옥',en:'Awakened Landslide / Healer Gaol',
+  d:[{b:'타이탄',at:[0,0],r:13,up:1},{z:'band',a:pol(0,8),b:pol(0,100),w:22},{z:'band',a:pol(330,8),b:pol(330,100),w:18},{z:'band',a:pol(30,8),b:pol(30,100),w:18},{z:'band',a:pol(345,30),b:pol(345,100),w:12,k:'bad'},{z:'band',a:pol(15,30),b:pol(15,100),w:12,k:'bad'},pp('D1',330,52),pp('D2',332,64),pp('T1',180,24),{t:'① 1세트 피하기 → ② 1세트 자리로 들어가기',at:[180,62],fs:8}],
+  cap:'2차 산사태는 1차 사이를 가르며 예고 없이',
+  steps:['<span class="hl">탱커 교대: <b>T2</b>가 어그로.</span> 타이탄 왼쪽에 모여 대지의 무게 2세트 → 이때 각성.','각성 산사태: 1세트를 피한 뒤 <b>1세트가 지나간 자리로 들어가요</b>(2세트는 그 사이를 가르며 예고 없음).','T2는 타이탄을 중앙으로. 정방향을 보고 점프 → 반대편으로 이동.','무작위 <b>힐러 감옥: 바로 부수기</b>. 산사태 뒤에 부수면 전멸할 수 있어요.']},
+ {h:'마리오 카트 · 대지의 무게 3연속',en:'Weight of the Land ×3 + Landslide',
+  d:[{b:'타이탄',at:[180,72],r:13},{z:'c',at:[0,0],r:10},{z:'c',at:[90,8],r:10},{z:'c',at:[180,8],r:10},{z:'c',at:[270,8],r:10},{t:'중앙에 바위',at:[0,24],fs:8,c:'var(--badS)'},pp('T1',345,88),pp('T2',333,84),pp('D1',342,72),pp('D2',328,70),pp('H1',15,88),pp('H2',27,84),pp('D3',18,72),pp('D4',32,70),{arc:{r:94,a1:-42,a2:-120},c:'#2f6fe4'},{arc:{r:94,a1:42,a2:120},c:'#2e9e55'},{t:'탱커·근딜 반시계',at:[285,62],fs:8,c:'#2f6fe4'},{t:'힐러·원딜 시계',at:[75,62],fs:8,c:'#2e9e55'}],
+  cap:'북쪽에서 출발, 타이탄 반대 방향으로 갈라져 돌기',
+  steps:['격진 8회 → <span class="hl">바위 쪼개기·산 쪼개기(T2) → <b>T1 도발</b>.</span> 전원 중앙을 떠나 T2와 함께 외곽.','중앙에 바위가 시계 방향으로 떨어져 중앙은 못 써요.','대지의 무게 3세트: <b>탱커·근딜은 북쪽에서 반시계</b>, <b>힐러·원딜은 북쪽에서 시계</b>로 외곽을 돌며 피하기.','3세트 때 산사태가 함께 와요. 계속 달리다가 산사태 1세트 자리로 들어가기.','이후 중앙에 모여 대지의 무게 유도 → 격진 8회 → 대지의 분노(시간 초과). 빛 장판은 <b>근딜</b>.']}
+ ]},
+{id:'laha',name:'P4 라하브레아',color:'#6b4bb0',
+ wake:'한계 돌파 버프를 가진 사람이 LB3를 쓰면 게이지가 다시 3단으로 차요. 순서: 캐스터 → 힐러 → 근딜 → 탱커.',
+ cards:[
+ {h:'LB3 네 번 연속',en:'Freefire / Magitek Bits / Blight / Dark IV / Ultima',
+  d:[{z:'c',at:[0,88],r:12},{z:'c',at:[90,88],r:12},{z:'c',at:[180,88],r:12},{z:'c',at:[270,88],r:12},{b:'비트',at:[30,62],r:6,c:'#6b4bb0'},{b:'비트',at:[90,62],r:6,c:'#6b4bb0'},{b:'비트',at:[150,62],r:6,c:'#6b4bb0'},{b:'비트',at:[210,62],r:6,c:'#6b4bb0'},{b:'비트',at:[270,62],r:6,c:'#6b4bb0'},{b:'비트',at:[330,62],r:6,c:'#6b4bb0'},pp('T1',0,8),pp('T2',90,8),pp('H1',180,8),pp('H2',270,8),pp('D1',45,16),pp('D2',135,16),pp('D3',225,16),pp('D4',315,16)],
+  cap:'유폭 기둥은 정방향 외곽, 전원 중앙',
+  steps:['유폭: 정방향 4곳에 기둥 낙하(거리 감쇠) → <b>중앙에 모여 보호막</b>.','마도비트 6개 자폭(12초) → <b>캐스터 LB3</b>로 처리, 남은 비트는 각자 마무리. 유폭 피해가 들어오는 순간 시작.','파멸(Blight): 피 1 + 죽음의 선고 → <b>힐러 LB3</b>로 해제.','라하브레아 다크가(Dark IV) 시전 전에 <b>근딜 LB3</b>로 처치.','알테마 등장 → 알테마(전체 피해) → <b>탱커 LB3</b> + 보호막.']}
+ ]},
+{id:'ultima',name:'P5 알테마 웨폰',color:'#14868c',
+ wake:'알테마 에테르 게이지가 100이 되면 전멸 공격. 사망이나 특정 기믹 처리 때마다 게이지가 올라요.',
+ cards:[
+ {h:'궁극의 추격 환상',en:'Ultimate Predation',
+  d:[{b:'가루다',at:[315,24]},{z:'c',at:[315,24],r:28},{b:'이프리트',at:[135,94]},{z:'band',a:pol(135,100),b:pol(315,100),w:28},{z:'band',a:pol(0,100),b:pol(180,100),w:16},{z:'band',a:pol(90,100),b:pol(270,100),w:16},{b:'타이탄',at:[82,94],r:12},{b:'알테마',at:[45,94],r:12},{z:'c',at:[45,94],r:40},{z:'c',at:[208,84],r:13,k:'safe'},pp('T1',204,84),pp('H1',212,86),pp('D1',208,78),{t:'4번째 룬 근처',at:[208,62],fs:8,c:'var(--safeS)'}],
+  cap:'예시: 가루다 북서, 이프리트 남동, 타이탄 동',
+  steps:['마도 플레어 → 유도 레이저(어그로 2순위) 이후 시작. <span class="hl">T1 어그로 1위, T2 2위 유지.</span>','<b>가루다가 있는 사분면의 대각선 반대편</b>으로 이동.','타이탄과 알테마에서 멀리. 이프리트 돌진 + 산사태 1차를 피하기.','외곽 룬 기준 <b>4번째 룬</b> 자리가 2차(이프리트 잔불 + 산사태 2차)를 피하는 자리. 알테마·타이탄 위치로 후보를 지워요.','끝나면 모여서 깃털비 유도 후 피하기.'],
+  tip:'일부 공대는 일부러 이프리트 잔불을 경감기로 맞아 LB 게이지를 채우기도 해요.'},
+ {h:'2차 활동 페이즈',en:'Active phase after Predation',
+  d:[{b:'알테마',at:[0,12],r:13},pp('T1',90,22),pp('T2',40,40),pp('H1',340,54),pp('H2',20,54),pp('D1',345,38),pp('D2',15,38),pp('D3',170,84),pp('D4',190,84),{b:'이프리트',at:[0,94],r:9},{t:'분출 유도',at:[180,66],fs:8},{arc:{r:58,a1:20,a2:70},c:'#2f6fe4',dash:1},{arc:{r:58,a1:-20,a2:-70},c:'#d24545',dash:1}],
+  cap:'본대 북쪽, D3·D4는 남쪽에서 분출 유도',
+  steps:['알테마를 살짝 북쪽으로. <b>본대 북쪽</b>, <b>D3·D4는 남쪽</b>에서 용암 분출 유도.','깃털비: <b>T1은 시계</b>, <b>본대는 반시계</b>로 피하기.','흡착식 에테르 폭뢰는 현재 탱커에게. <span class="hl">유도 레이저는 <b>T1이 잠깐 교대해서 무적기</b>로.</span>']},
+ {h:'궁극의 파괴 환상 · 구슬과 줄',en:'Ultimate Annihilation (2211 orbs)',
+  d:[{b:'알테마',at:[0,86],r:13,up:1},{b:'가루다',at:[180,88]},{b:'타이탄',at:[225,88],r:12},{b:'이프리트',at:[135,88]},{z:'c',at:[28,60],r:9,k:'buf'},{t:'구슬① T1+T2',at:[40,42],fs:8,c:'var(--bufS)'},pp('T1',34,64),pp('T2',22,64),pp('H1',335,62),pp('D1',345,66),pp('D2',328,72),pp('D4',340,54),pp('H2',190,60),pp('D3',172,60),{te:[pol(180,78),pol(172,62)]},{t:'뇌우고기압 = D3',at:[150,48],fs:8},{ar:[pol(338,58),pol(300,34)],dash:1},{t:'대지의 무게 유도 후 피하기',at:[300,22],fs:8}],
+  cap:'예시: 이프리트 남동·타이탄 남서',
+  steps:['알테마 북쪽, 가루다 남쪽, 이프리트·타이탄은 남동/남서.','알테마 히트박스 남서쪽 근접에서 <b>대지의 무게 유도</b> → 피하고, 화염 작열은 뭉쳐서 쉐어.','구슬 4개(2211): <b>①T1+T2 → ②T1+T2 → ③T1 → ④T1</b>. 구슬에 들어간 사람 수만큼 게이지가 올라요.','뇌우고기압 줄: <b>첫 번째는 D3</b>(저기압 1스택 보유)가 본대를 떠나 받기, 두 번째는 <b>작열 힐러</b>가 남쪽에서.','깃털비, 이프리트 돌진·잔불, 산사태를 피하고 마도 플레어는 보호막으로.']},
+ {h:'3차 활동 페이즈',en:'Eye of the Storm / Homing Lasers / Vulcan Burst / Diffractive Laser',
+  d:[{b:'알테마',at:[0,0],r:13,up:1},{z:'donut',at:[0,0],r1:30,r2:44,k:'bad'},pp('T1',90,58),pp('T2',300,22),px('H1',-7,17),px('H2',7,17),px('D1',-14,25),px('D2',0,26),px('D3',14,25),px('D4',20,16),{t:'유도 레이저 T1',at:[115,76],fs:8}],
+  cap:'폭풍의 눈(도넛) 안쪽에서 처리',
+  steps:['순서: 폭풍의 눈 → 유도 레이저 → 폭풍의 눈 → 광휘의 불기둥 → 회절 레이저 → 폭렬 난사+눈 → 유도 레이저 → 폭렬 난사+눈 → 회절 레이저.','<span class="hl">유도 레이저: <b>T1이 한 번</b>, 다음은 <b>T2가 무적기</b>.</span> 받는 탱커는 어그로 2순위여야 해요.','폭렬 난사 전에 보호막 필수. 실패하면 넉백 방지 스킬.','체력 49.9%에서 억압 환상 시작. 첫 유도 레이저 뒤 딜 집중.']},
+ {h:'궁극의 억압 환상 · 부채꼴 산개',en:'Ultimate Suppression',
+  d:[{b:'가루다',at:[315,90],up:1},{b:'알테마',at:[45,90],r:12,up:1},{b:'타이탄',at:[225,88],r:12},{b:'이프리트',at:[135,88]},{b:'신기루',at:[315,28],r:7,c:'#56a37f'},{b:'신기루',at:[135,28],r:7,c:'#56a37f'},pp('D1',280,62),pp('H1',300,64),pp('D3',320,66),pp('D2',340,66),pp('H2',0,64),pp('D4',20,62),pp('T1',290,42),pp('T2',340,44),{t:'서 → 동: D1 H1 D3 D2 H2 D4',at:[180,58],fs:8}],
+  cap:'북쪽에 부채꼴로 산개',
+  steps:['가루다 북서, 알테마 북동, 타이탄 남서, 이프리트 남동. 자매는 중앙 근처.','<b>북쪽에 서→동 순서로 D1·H1·D3·D2·H2·D4</b> 산개해 용암 분출 대상 확인.','삭풍의 노래 대상자는 탱커 뒤로, <b>탱커가 앞에서 막기</b>.','감옥 대상자는 빠르게 부숴 주기. 이어지는 깃털비 2연속 피하기.','뇌우고기압 = <b>T1</b>(저기압 보유). 산사태는 모여서 유도, 화염 작열 쉐어, 마도 플레어는 보호막.']},
+ {h:'에테르 폭발 · 넉백 구슬',en:'Ultima / Aetheric Boom',
+  d:[{b:'알테마',at:[0,0],r:13},{z:'c',at:[315,70],r:10,k:'buf'},{z:'c',at:[45,70],r:10,k:'buf'},{z:'c',at:[135,70],r:10,k:'buf'},{z:'c',at:[225,70],r:10,k:'buf'},pp('T1',225,58),pp('T2',232,64),pp('H1',135,58),pp('D1',128,64),pp('D3',142,64),{ar:[pol(225,78),pol(312,80)],c:'#2f6fe4'},{ar:[pol(135,78),pol(48,80)],c:'#2e9e55'},{t:'탱커 둘',at:[260,40],fs:8,c:'#2f6fe4'},{t:'본대 6명',at:[100,40],fs:8,c:'#2e9e55'}],
+  cap:'탱커: 남서→북서 / 본대: 남동→북동',
+  steps:['알테마 → <b>탱커 LB</b> + 보호막. 이어서 에테르 폭발 넉백(넉백 방지 가능)과 구슬 4개.','<b>T1·T2</b>: 남서 구슬 → 북서 구슬.','<b>본대</b>: 남동 구슬 → 북동 구슬. 첫 구슬 후 힐 받고 북쪽으로 질주.']},
+ {h:'야만신 룰렛 · 최종 시간 초과',en:'Primal Roulette / Ultimate Fusion',
+  d:[{b:'알테마',at:[0,0],r:13},{m:'N',at:[0,62]},{m:'NW',at:[315,62]},{z:'c',at:[0,62],r:14,k:'safe'},{z:'c',at:[315,62],r:14,k:'safe'},{ar:[pol(352,64),pol(322,64)]},{ar:[pol(310,52),pol(350,52)],dash:1},pp('T1',352,86),pp('H1',8,86),pp('D1',0,94)],
+  cap:'북쪽 → 북서 → 다시 북쪽',
+  steps:['흡착식 에테르 폭뢰 3명 → 야만신 3마리가 정해진 순서로 등장: <b>가루다→이프리트→타이탄</b>, <b>이프리트→가루다→타이탄</b>, <b>타이탄→이프리트→가루다</b> 중 하나. 첫 번째만 보면 나머지를 알 수 있어요.','이동: <b>북쪽 → 북서 → 다시 북쪽</b>.','폭뢰가 하나씩 터질 때 경감: 1번째 T1+H2, 2번째 D3+강한 보호막, 3번째 T2+H2.','가루다: 수레바퀴→회오리→대기 폭발→깃털비 / 이프리트: 분출 2회→정방향 돌진→지옥의 화염 / 타이탄: 대지의 무게 3회→대지의 분노.','이후 알테마가 북쪽으로 가서 게이지를 100까지 채우고 한 명씩 처형(시간 초과). 그 전에 처치! 도트는 마지막까지 갱신.']}
+ ]}
+];
+
+const RL={
+garuda:[
+[['가루다를 중앙에서 탱킹','반동 기류 정면이 본대를 향하지 않게'],['징표 힐러와 가루다 사이에 서서 삭풍 첫 타 받기','생존기 필수. 이후 회오리 생긴 자리에서 빠지기'],['징표 받으면 동쪽 외곽 유지, 아니면 T2 보호막','징표 힐러가 본대 쪽으로 오면 부채꼴이 본대를 쓸어요'],['동쪽에서 T2 힐·보호막','첫 타 전에 T2 보호막'],['가루다 남서쪽 근접 딜','동쪽 부채꼴 밖에 있기'],['가루다 남서쪽 근접 딜','동쪽 부채꼴 밖에 있기'],['남서쪽 원거리 딜','동쪽 부채꼴 밖에 있기'],['남서쪽 원거리 딜','동쪽 부채꼴 밖에 있기']],
+[['가루다를 서쪽으로 끌었다가 하강 기류 위치로 복귀','하강 기류(무시전)가 본대에 가지 않게 방향 유지'],['가시깃털을 제일 먼저 때려 줄 가져오기 → 돌개바람 2회 맞기','3번째 돌개바람 전에 처치. 3스택은 전멸'],['광역 힐, 딜 보조','깃털비 비명 들리면 바로 이동'],['T2 힐, 딜 보조','깃털비 비명 들리면 바로 이동'],['부드러운 깃털 광역 처치','T2가 가시깃털을 잡기 전엔 광역 금지'],['부드러운 깃털 광역 처치','T2가 가시깃털을 잡기 전엔 광역 금지'],['부드러운 깃털 처치(줄 연결된 것 우선)','방치하면 수면'],['부드러운 깃털 처치(줄 연결된 것 우선)','방치하면 수면']],
+[['장판 안에 서기',''],['장판에 들어가 2스택 정화 → 다시 밖으로','정화 후 꼭 밖으로 나가서 D1·D2와 서기'],['장판 안, 돌개바람 전체 피해 대비 보호막',''],['장판 안, 피 채우기',''],['장판 밖에서 바람의 칼날 맞기(1스택)','장판에 들어가면 안 돼요'],['장판 밖에서 바람의 칼날 맞기(1스택)','장판에 들어가면 안 돼요'],['장판 안에 서기','밖으로 나가지 않기'],['장판 안에 서기','밖으로 나가지 않기']],
+[['장판 밖에 모여 맞기(→1스택)',''],['장판 밖, 2스택 유지','장판에 들어가지 않기. 정화는 나중에 뇌우고기압 줄로'],['장판 밖, D1 정화 후 바로 광역 힐',''],['장판 밖, D2 정화 전 피 채우기',''],['먼저 장판에 들어가 정화','정화 후 바로 나오기'],['D1 정화 + 힐 끝난 뒤 들어가 정화','D1과 동시에 들어가지 않기'],['장판 밖(→1스택)','장판에 들어가지 않기'],['장판 밖(→1스택)','장판에 들어가지 않기']],
+[['북→서→남 순서로 처음 만나는 자매 앞에서 삭풍 막기','벽 쪽 말고 자매 바로 앞에'],['동→남→서 순서로 처음 만나는 자매 앞에서 삭풍 막기','벽 쪽 말고 자매 바로 앞에'],['남쪽 깃털비 유도 → 남동 스택','삭풍 대상이어도 그대로 본대에'],['남쪽 깃털비 유도 → 남동 스택','삭풍 대상이어도 그대로 본대에'],['남쪽 유도 → 남동 스택','수레바퀴 원 안에 들어가지 않기'],['남쪽 유도 → 남동 스택','수레바퀴 원 안에 들어가지 않기'],['남쪽 유도 → 남동 스택','수레바퀴 원 안에 들어가지 않기'],['남쪽 유도 → 남동 스택','수레바퀴 원 안에 들어가지 않기']],
+[['반동 기류 바깥 유도 → 하강 기류 받기',''],['서쪽 줄 받기, 본대와 떨어지기','생존기. 이 정화로 가루다가 각성해요'],['본대에서 힐, 줄 터진 T2·D4 회복',''],['본대에서 힐, 줄 터진 T2·D4 회복',''],['깃털 처치 후 본대',''],['깃털 처치 후 본대',''],['깃털 처치 후 본대','줄 받는 사람 근처에 서지 않기'],['동쪽 줄 받기, 본대와 떨어지기','경감기 사용. 줄 받는 사람이 맞는지 미리 확인']],
+[['반동 기류 바깥 유도, 하강 기류 받기',''],['각성 하강 기류 나눠 받기',''],['수레바퀴 밖 → 회오리 안 / 지정됐으면 빛 장판','빛 장판은 지정된 힐러 한 명만'],['수레바퀴 밖 → 회오리 안 / 지정됐으면 빛 장판','빛 장판은 지정된 힐러 한 명만'],['수레바퀴 밖 → 바로 안','회오리는 시전 없이 바로 와요'],['수레바퀴 밖 → 바로 안','회오리는 시전 없이 바로 와요'],['수레바퀴 밖 → 바로 안','빛 장판 밟지 않기'],['수레바퀴 밖 → 바로 안','빛 장판 밟지 않기']]
+],
+ifrit:[
+[['중앙 → 열린 쪽 질주, 어그로 준비','되돌아오지 말기'],['중앙 → 열린 쪽 질주, 먼저 어그로 잡을 준비','되돌아오지 말기'],['열린 쪽 질주','전력 질주 추천'],['열린 쪽 질주','전력 질주 추천'],['열린 쪽 질주','되돌아오지 말기'],['열린 쪽 질주','되돌아오지 말기'],['열린 쪽 질주','되돌아오지 말기'],['열린 쪽 질주','되돌아오지 말기']],
+[['본대 쪽에서 딜, <span class="hl">3번째 소각 후 도발</span>',''],['<span class="hl">어그로 먼저 잡고</span> 남쪽 보게 탱킹, 소각 3회 무적','무적 타이밍이 늦으면 즉사'],['폭렬 난사 전 광역 보호막','보호막이 늦으면 넉백으로 벽 사망'],['폭렬 난사 전 보호막·경감',''],['북쪽 본대','보호막 없으면 견고한 마법·거리 유지'],['북쪽 본대','보호막 없으면 견고한 마법·거리 유지'],['북쪽 본대','보호막 없으면 견고한 마법·거리 유지'],['북쪽 본대','보호막 없으면 견고한 마법·거리 유지']],
+[['가까운 두 말뚝 사이에 이프리트 고정','자리 기억. 이프리트를 움직이지 않기'],['본대, 말뚝 딜','염옥의 사슬이 연결될 수 있어요'],['작열 받으면 T1 반대편 외곽','작열 상태로 본대에 오지 않기'],['작열 받으면 T1 반대편 외곽','작열 상태로 본대에 오지 않기'],['말뚝 순서대로 처치(오른쪽 아래 → 왼쪽 아래 → 오른쪽 위 → 왼쪽 위)','두 개를 동시에 터뜨리지 않기'],['말뚝 순서대로 처치','분출 2회 맞기 전 파괴 금지'],['아래 말뚝 옆에서 분출 유도: 처음 2번 아래, 나중 2번 위','유도 위치가 틀리면 각성 실패'],['아래 말뚝 옆에서 분출 유도: 처음 2번 아래, 나중 2번 위','유도 위치가 틀리면 각성 실패']],
+[['4번째 말뚝 근처 대각 외곽으로 이프리트 끌기',''],['본대, 6인 쉐어',''],['작열 받은 순서대로 본대 135° 왼쪽/오른쪽 아래','두 작열이 잠깐 겹쳐요. 본대와 거리 유지'],['작열 받은 순서대로 본대 135° 왼쪽/오른쪽 아래','두 작열이 잠깐 겹쳐요. 본대와 거리 유지'],['본대, 화염 작열 6인 쉐어',''],['본대, 화염 작열 6인 쉐어',''],['135° 오른쪽 아래에서 분출 2세트 반시계 유도 → 합류','분출을 본대 쪽으로 끌고 오지 않기'],['135° 오른쪽 아래에서 분출 2세트 반시계 유도 → 합류','분출을 본대 쪽으로 끌고 오지 않기']],
+[['반시계로 이동, 파란 이프리트 기준 90°/180°','파란 이프리트가 몇 번째인지 확인'],['반시계로 이동',''],['반시계로 이동','작열 남아 있으면 본대와 거리'],['반시계로 이동','작열 남아 있으면 본대와 거리'],['반시계로 이동','X자 잔불은 예고 없음'],['반시계로 이동','X자 잔불은 예고 없음'],['반시계로 이동','X자 잔불은 예고 없음'],['반시계로 이동','X자 잔불은 예고 없음']],
+[['소각 3회 무적',''],['본대, 8인 쉐어',''],['8인 쉐어 힐, 대지 붕괴 대비 보호막','작열 힐러는 한 번 더 터진 뒤 합류'],['8인 쉐어 힐, 대지 붕괴 대비 보호막',''],['8인 쉐어','타이탄 착지 땐 벽에 붙기'],['8인 쉐어','타이탄 착지 땐 벽에 붙기'],['분출 바깥 유도 → 쉐어 / 캐스터면 빛 장판','빛 장판은 타이탄 착지 후에'],['분출 바깥 유도 → 쉐어 / 캐스터면 빛 장판','빛 장판은 타이탄 착지 후에']]
+],
+titan:[
+[['벽에 붙었다가 <span class="hl">어그로 다시 잡고</span> 남쪽 보게 탱킹, 바위·산 쪼개기 받기','착지 땐 한 걸음도 안쪽에 있으면 위험'],['벽에 붙기, 본대',''],['벽에 붙기 → 대지의 분노 보호막',''],['벽에 붙기 → 대지의 분노 보호막',''],['벽 → 대지의 무게 유도','점프 방향 반대편으로'],['벽 → 대지의 무게 유도','점프 방향 반대편으로'],['벽 → (캐스터면) 빛 장판','점프 방향 반대편으로'],['벽 → (캐스터면) 빛 장판','점프 방향 반대편으로']],
+[['히트박스 안 화살표 옆','넉백 방지 불가'],['히트박스 안 화살표 옆','감옥 우선순위 3번'],['히트박스 안 화살표 옆','바위 밑에 깔리면 즉사'],['히트박스 안 화살표 옆','바위 밑에 깔리면 즉사'],['히트박스 안 화살표 옆','감옥 우선순위 1번'],['히트박스 안 화살표 옆','감옥 우선순위 2번'],['히트박스 안 화살표 옆','감옥 우선순위 4번'],['히트박스 안 화살표 옆','감옥 우선순위 5번']],
+[['감옥 없음. 탱킹하며 첫 산사태 가운데로 유도',''],['감옥이면 우선순위 3번째 자리','감옥 대상이면 첫 산사태만 피하기'],['감옥이면 6번째 우선순위 / 아니면 왼쪽 스택 격진 힐','격진 8회 힐 준비'],['감옥이면 7번째 우선순위 / 아니면 왼쪽 스택 격진 힐','격진 8회 힐 준비'],['감옥이면 최우선(앞)','위치 판단 시간 약 5초'],['감옥이면 2순위','위치 판단 시간 약 5초'],['감옥이면 4순위','위치 판단 시간 약 5초'],['감옥이면 5순위','위치 판단 시간 약 5초']],
+[['<span class="hl">T2에게 넘기고</span> 본대',''],['<span class="hl">어그로 잡고</span> 타이탄을 중앙으로','점프 방향 반대편'],['감옥이면 기다리기 / 아니면 힐러 감옥 부수기','산사태 뒤에 부수면 전멸 위험'],['감옥이면 기다리기 / 아니면 힐러 감옥 부수기','산사태 뒤에 부수면 전멸 위험'],['힐러 감옥 즉시 부수기','1세트 피하고 그 자리로 들어가기'],['힐러 감옥 즉시 부수기','1세트 피하고 그 자리로 들어가기'],['힐러 감옥 즉시 부수기','1세트 피하고 그 자리로 들어가기'],['힐러 감옥 즉시 부수기','1세트 피하고 그 자리로 들어가기']],
+[['<span class="hl">도발로 가져온 뒤</span> 북쪽에서 반시계',''],['북쪽에서 반시계',''],['북쪽에서 시계',''],['북쪽에서 시계',''],['북쪽에서 반시계 / 근딜이면 빛 장판','중앙엔 바위. 들어가지 않기'],['북쪽에서 반시계','중앙엔 바위. 들어가지 않기'],['북쪽에서 시계','멈추지 말고 계속 달리기'],['북쪽에서 시계','멈추지 말고 계속 달리기']]
+],
+laha:[
+[['중앙 스택 → 마지막에 탱커 LB3',''],['중앙 스택, 비트 마무리',''],['중앙, 보호막 / 빛 장판 힐러면 LB3(파멸 해제)','힐러 LB는 두 번째'],['중앙, 보호막 / 빛 장판 힐러면 LB3(파멸 해제)','힐러 LB는 두 번째'],['비트 마무리 / 빛 장판 근딜이면 LB3(다크가 전)','근딜 LB는 세 번째'],['비트 마무리 / 빛 장판 근딜이면 LB3','근딜 LB는 세 번째'],['빛 장판 캐스터면 유폭 피해 순간 LB3','캐스터 LB가 첫 번째'],['빛 장판 캐스터면 유폭 피해 순간 LB3','캐스터 LB가 첫 번째']]
+],
+ultima:[
+[['<span class="hl">어그로 1위 유지</span>',''],['<span class="hl">어그로 2위 유지</span>(유도 레이저)',''],['가루다 대각 반대편','4번째 룬 자리'],['가루다 대각 반대편','4번째 룬 자리'],['가루다 대각 반대편','타이탄·알테마에서 멀리'],['가루다 대각 반대편','타이탄·알테마에서 멀리'],['가루다 대각 반대편','타이탄·알테마에서 멀리'],['가루다 대각 반대편','타이탄·알테마에서 멀리']],
+[['깃털비 때 시계로, <span class="hl">유도 레이저는 잠깐 교대 후 무적</span>',''],['폭뢰 받을 수 있음',''],['본대 북쪽','깃털비 반시계'],['본대 북쪽','깃털비 반시계'],['본대 북쪽','깃털비 반시계'],['본대 북쪽','깃털비 반시계'],['남쪽에서 분출 유도','이프리트가 북쪽이에요'],['남쪽에서 분출 유도','이프리트가 북쪽이에요']],
+[['구슬 ①②③④ 모두','생존기 분배'],['구슬 ①②',''],['작열이면 남쪽 두 번째 줄 / 마도 플레어 보호막',''],['작열이면 남쪽 두 번째 줄 / 마도 플레어 보호막',''],['대지의 무게 유도, 화염 작열 쉐어',''],['대지의 무게 유도, 화염 작열 쉐어',''],['첫 번째 뇌우고기압 줄 받기','저기압 1스택 있는지 확인'],['대지의 무게 유도, 화염 작열 쉐어','저기압 없으니 줄 받지 않기']],
+[['<span class="hl">유도 레이저 1회째</span>','어그로 2위여야 해요'],['<span class="hl">유도 레이저 2회째 무적</span>',''],['폭렬 난사 전 보호막','실패하면 넉백 방지 스킬'],['폭렬 난사 전 보호막',''],['도넛 안, 딜 집중','49.9%부터 억압 환상'],['도넛 안, 딜 집중',''],['도넛 안, 딜 집중',''],['도넛 안, 딜 집중','']],
+[['삭풍 막기, 뇌우고기압 줄','줄은 본대와 떨어져서'],['삭풍 막기','감옥 부수기 보조'],['서쪽에서 2번째 자리','감옥 대상 빨리 부수기'],['서쪽에서 5번째 자리',''],['서쪽 끝 자리',''],['서쪽에서 4번째 자리',''],['서쪽에서 3번째 자리',''],['동쪽 끝 자리','']],
+[['탱커 LB → 남서 → 북서 구슬','생존기'],['남서 → 북서 구슬',''],['남동 → 북동, 힐 후 질주',''],['남동 → 북동, 힐 후 질주',''],['남동 → 북동',''],['남동 → 북동',''],['남동 → 북동',''],['남동 → 북동','']],
+[['첫 번째 폭뢰 경감',''],['세 번째 폭뢰 경감',''],['폭발마다 힐',''],['첫·세 번째 폭뢰 경감',''],['북 → 북서 → 북, 딜','도트 마지막까지 갱신'],['북 → 북서 → 북, 딜','도트 마지막까지 갱신'],['두 번째 폭뢰 경감 + 강한 보호막',''],['북 → 북서 → 북, 딜','']]
+]};
+
+const RN=['T1','T2','H1','H2','D1','D2','D3','D4'];
+const roleHtml=r=>r?`<div class="roles"><p class="rh">역할별로 할 일 · 주의사항</p>${r.map((x,i)=>`<div class="role"><i class="dot" style="background:${RC[RN[i][0]]}">${RN[i]}</i><div>${x[0]}${x[1]?`<em>${x[1]}</em>`:''}</div></div>`).join('')}</div>`:'';
+document.getElementById('main').innerHTML=PH.map(ph=>`
+<section class="phase band" id="${ph.id}" style="--ph:${ph.color}">
+<div class="wrap">
+<h2>${ph.name}</h2>
+<div class="wake">${ph.wake}</div>
+<div class="cards">${ph.cards.map(c=>`
+<article class="card">
+<div>${draw(c.d)}<div class="cap">${c.cap}</div></div>
+<div><h3>${c.h} <span class="en">${c.en}</span></h3>
+<ol>${c.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+${c.tip?`<p class="tip">${c.tip}</p>`:''}</div>
+${roleHtml((RL[ph.id]||[])[ph.cards.indexOf(c)])}
+</article>`).join('')}</div>
+</div>
+</section>`).join('');
+const GL=[
+['저기압 2스택','왜 2스택?','각성 스택(에테르 공급)은 저기압 <b>2스택을 정화할 때만</b> 쌓여요. 1스택 정화는 피해만 받고 진도가 없어요. 그래서 일부러 2스택까지 모았다가 터뜨려요.'],
+['2스택 정화','왜 2스택?','2스택을 정화해야 대형 돌개바람이 터지면서 가루다에게 각성 스택이 1개 쌓여요. 이걸 4번 하면 각성.'],
+['3스택','3스택은 왜 전멸?','정화할 때 터지는 대형 돌개바람은 스택이 많을수록 강해져요. 3스택은 파티 전체가 버티지 못하는 피해예요.'],
+['고기압 장판','고기압 장판이란','가시깃털이 죽은 자리에 생기는 초록 거품. 들어가면 고기압이 붙으면서 저기압이 지워지고, 그때 스택만큼의 돌개바람이 터져요.'],
+['장판 밖','왜 밖에 서요?','바람의 칼날은 맞은 사람 모두에게 저기압을 1스택 줘요. 장판 밖에 있어야 스택이 남아서 2스택을 만들 수 있어요.'],
+['장판 안','왜 안에 서요?','장판 안에 있으면 바람의 칼날로 받은 저기압이 바로 지워져요. 2스택을 만들 필요가 없는 사람은 안에서 스택을 안 쌓아요.'],
+['동시에','왜 한 명씩?','정화할 때마다 파티 전체에 큰 피해가 들어가요. 두 명이 같이 들어가면 피해가 겹쳐서 전멸할 수 있어서, 한 명 정화 → 힐 → 다음 사람 순서예요.'],
+['가시깃털','가시깃털','처음 때린 사람에게 줄이 붙고, 그 사람에게 돌개바람을 쏴서 저기압을 쌓아요. 그래서 2스택 담당(T2)이 제일 먼저 때려야 해요.'],
+['부드러운 깃털','부드러운 깃털','오래 두면 파티 전체를 재워요(수면). 광역기로 빨리 정리해야 해요.'],
+['삭풍의 노래','삭풍의 노래','대상자 방향으로 큰 부채꼴. 처음 맞은 사람이 제일 큰 피해를 받아서, 탱커가 앞에서 대신 맞아요. 맞은 자리에 회오리가 생겨요.'],
+['뇌우고기압','뇌우고기압 줄','줄을 받은 사람 주변에 광역 피해를 주면서 저기압을 지워요. 저기압 2스택 보유자가 받으면 각성 스택. 주변 사람도 맞으니 본대와 떨어져서 받아요.'],
+['하강 기류','하강 기류','예고·시전바 없이 보스 정면으로 나가는 공격. 탱커가 정면을 바깥으로 돌려서 받아요. 각성하면 쉐어(나눠 받기)가 돼요.'],
+['반동 기류','반동 기류','정면 부채꼴 + 기절. 탱커는 정면을 피하고, 본대가 정면에 없게 방향을 잡아요.'],
+['수레바퀴','마녀의 수레바퀴','보스 주변 원형 공격. 각성 후엔 바로 도넛형 회오리가 이어져서 밖으로 피했다가 곧장 안으로 들어가요.'],
+['빛 장판','빛 장판','각성한 야만신을 잡으면 생겨요. 밟으면 한계 돌파 버프 → P4에서 LB3를 쓰고 게이지가 다시 차요. 정해진 직군이 밟아야 LB 릴레이가 이어져요.'],
+['한계 돌파','한계 돌파','이 버프를 가진 사람이 LB3를 쓰면 LB 게이지가 다시 3단까지 차요. P4에서 LB3를 4번 이어 쓰는 이유.'],
+['폭렬 난사','폭렬 난사','강한 넉백. 보호막이 피해를 전부 흡수하면 넉백도 막혀요. 보호막이 모자라면 벽까지 밀려 즉사.'],
+['소각','소각','탱커 대상 전방 공격 + 화염 저항 감소. 3번 연속이라 무적기로 버티거나 탱커가 번갈아 받아요.'],
+['용암 분출','용암 분출','작열 힐러를 뺀 가장 먼 2명 발밑에 장판. 이걸 말뚝에 2번씩 맞혀야 말뚝이 각성 조건을 채워요.'],
+['말뚝','염옥의 말뚝','분출을 2번 맞은 상태로 부숴야 각성 스택. 부술 때 파티 전체 피해 + 받는 피해 증가가 붙어서 하나씩 부숴요. 부순 순서가 나중 돌진 순서가 돼요.'],
+['작열','작열','힐러 주변에 주기적으로 광역 피해. 본대 근처에 있으면 모두 맞아서 떨어져 있어요.'],
+['화염 작열','화염 작열','대상자에게 모여 나눠 받는 쉐어. 인원이 적으면 피해가 커서 지정 인원이 다 모여야 해요.'],
+['파란 이프리트','파란 이프리트','돌진하는 넷 중 각성한 진짜. 지나간 뒤 예고 없이 X자 잔불이 깔려서 위치를 보고 안전한 곳을 미리 골라요.'],
+['대지 붕괴','대지 붕괴','타이탄이 내려찍는 자리에서 멀수록 피해가 줄어요. 첫 착지는 중앙이라 벽에 붙어야 살아요.'],
+['대격진','대격진','넉백 방지 스킬로 못 막는 넉백. 바위 사이 빈틈으로 날아가야 해서 서는 위치가 중요해요.'],
+['감옥','화강암 감옥','바위 폭발에 맞으면 감옥이 깨지며 터지고, 그 폭발이 옆 감옥을 또 깨요. 일렬로 서야 연쇄가 타이탄까지 이어지고, 마지막 진흙 장판을 타이탄이 밟아 각성해요.'],
+['첫 번째 산사태','왜 첫 번째만?','감옥에 갇히기 전이라 첫 산사태는 피해야 해요. 두 번째는 이미 갇혀 있어서 안 맞아요.'],
+['산사태','산사태','타이탄 정면 직선 공격 + 넉백. 각성 후엔 두 세트가 연달아 와서 1세트를 피한 뒤 그 자리로 들어가요.'],
+['대지의 무게','대지의 무게','서 있는 사람 발밑에 원형 장판이 깔리는 유도형 공격. 모여서 유도하고 한 번에 빠져나가요.'],
+['격진','격진','연속 전체 피해(여러 번). 모여서 광역 힐을 받아요.'],
+['유도 레이저','유도 레이저','어그로 2순위에게 가는 강한 탱버스터. 그래서 받을 탱커가 2위가 돼야 해요.'],
+['어그로 2위','왜 2위?','유도 레이저가 어그로 2순위를 노리기 때문이에요. 1·2위가 섞이면 엉뚱한 사람이 맞아요.'],
+['구슬','구슬','들어간 사람 수만큼 피해를 나눠요. 대신 한 명당 알테마 에테르 게이지가 1씩 올라서 인원을 최소로 정해 둬요.'],
+['에테르 게이지','알테마 에테르 게이지','100이 되면 전멸. 사망할 때마다, 구슬 인원만큼 올라요. 그래서 죽지 않는 게 가장 중요해요.'],
+['4번째 룬','4번째 룬','맵 외곽 무늬를 세어서 안전 위치를 정하는 기준. 이 자리가 이프리트 잔불과 산사태를 함께 피해요.'],
+['폭뢰','흡착식 에테르 폭뢰','시간이 끝나면 터지는 디버프. 근처 사람도 같이 맞아서 혼자 떨어지거나, 공략에 따라 모여서 나눠 받아요.'],
+['무적','무적기','일정 시간 거의 모든 피해를 막는 탱커 스킬. 소각이나 유도 레이저처럼 연속·고피해 공격에 써요.'],
+['보호막','왜 보호막?','절테마는 전체 피해가 크고, 폭렬 난사처럼 보호막이 있어야 넉백까지 막히는 기믹이 있어요. 맞기 전에 미리 씌워야 해요.']
+];
+
+const GLs=[...GL].sort((a,b)=>b[0].length-a[0].length);
+const esc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const RE=new RegExp(GLs.map(x=>esc(x[0])).join('|'),'g');
+const MAP=Object.fromEntries(GL.map((x,i)=>[x[0],i]));
+for(const scope of document.querySelectorAll('article.card, #home .box')){
+  const used=new Set();
+  const w=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('svg,h3,.cap,.why,th,dt,.node')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  const nodes=[];while(w.nextNode())nodes.push(w.currentNode);
+  for(const n of nodes){
+    const t=n.nodeValue;RE.lastIndex=0;let m,last=0,frag=null;
+    while((m=RE.exec(t))){
+      if(used.has(m[0]))continue;used.add(m[0]);
+      frag=frag||document.createDocumentFragment();
+      frag.append(t.slice(last,m.index));
+      const b=document.createElement('button');b.type='button';b.className='why';b.dataset.k=MAP[m[0]];b.textContent=m[0];b.setAttribute('aria-expanded','false');
+      frag.append(b);last=m.index+m[0].length;
+    }
+    if(frag){frag.append(t.slice(last));n.replaceWith(frag)}
+  }
+}
+const pop=document.getElementById('pop');let cur=null;
+const show=b=>{const g=GL[b.dataset.k];pop.innerHTML=`<span class="pt">${g[1]}</span>${g[2]}`;pop.style.display='block';
+  const r=b.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
+  let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8);let y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
+  pop.style.left=x+'px';pop.style.top=Math.max(8,y)+'px';if(cur)cur.setAttribute('aria-expanded','false');cur=b;b.setAttribute('aria-expanded','true')};
+const hide=()=>{pop.style.display='none';if(cur)cur.setAttribute('aria-expanded','false');cur=null};
+document.addEventListener('mouseover',e=>{const b=e.target.closest('.why');if(b&&matchMedia('(hover:hover)').matches)show(b)});
+document.addEventListener('mouseout',e=>{const b=e.target.closest('.why');if(b&&matchMedia('(hover:hover)').matches)hide()});
+document.addEventListener('focusin',e=>{const b=e.target.closest('.why');if(b)show(b)});
+document.addEventListener('focusout',e=>{if(e.target.closest('.why'))hide()});
+document.addEventListener('click',e=>{const b=e.target.closest('.why');if(b){if(cur===b&&pop.style.display==='block')hide();else show(b);e.stopPropagation()}else hide()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+addEventListener('scroll',hide,{passive:true});
+}
+</script>
+<script src="./arena3d.js"></script>
+</body>
+</html>
