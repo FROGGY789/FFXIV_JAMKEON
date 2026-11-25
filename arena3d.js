@@ -391,18 +391,20 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 .a3d-bar{display:flex;flex-wrap:wrap;gap:10px 18px;padding:10px 16px 12px;border-top:1px solid var(--a3d-line);font-size:13px}
 .a3d-grp{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .a3d-grp>span{color:var(--a3d-sub);font-weight:700;margin-right:2px}
-.a3d-bar button{font:inherit;font-size:13px;font-weight:700;min-height:34px;padding:4px 11px;border-radius:999px;border:1px solid var(--a3d-line);background:transparent;color:inherit;cursor:pointer}
+.a3d-bar button{white-space:nowrap;flex:none;font:inherit;font-size:13px;font-weight:700;min-height:34px;padding:4px 11px;border-radius:999px;border:1px solid var(--a3d-line);background:transparent;color:inherit;cursor:pointer}
 .a3d-bar button[aria-pressed=true]{background:var(--a3d-ink);color:var(--a3d-bg);border-color:var(--a3d-ink)}
 .a3d-bar button.role{color:#fff;border-color:transparent;min-width:42px}
 .a3d-bar button.role[aria-pressed=true]{box-shadow:0 0 0 2px var(--a3d-bg),0 0 0 4px var(--a3d-ink)}
 .a3d-bar button.warn{border-color:#c0392b;color:#c0392b}
 .a3d-bar button:focus-visible,.a3d-x:focus-visible,.a3d-hb:focus-visible{outline:3px solid var(--a3d-sub);outline-offset:2px}
 .a3d-dirty{color:#c0392b;font-weight:800}
-.a3d-bar button.sw{display:inline-flex;align-items:center;gap:8px;border-color:transparent;padding-left:4px}
-.a3d-bar button.sw .tr{position:relative;width:38px;height:22px;border-radius:999px;background:var(--a3d-line);transition:background .2s}
-.a3d-bar button.sw .tr::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
-.a3d-bar button.sw[aria-checked=true] .tr{background:#2e9e55}
-.a3d-bar button.sw[aria-checked=true] .tr::after{transform:translateX(16px)}
+.a3d-ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.a3d-stage.pen canvas:not(.a3d-ink){cursor:crosshair}
+.a3d-bar button.a3d-sw{display:inline-flex;align-items:center;gap:8px;border-color:transparent;padding-left:4px}
+.a3d-bar button.a3d-sw .tr{flex:none;position:relative;width:38px;height:22px;border-radius:999px;background:var(--a3d-line);transition:background .2s}
+.a3d-bar button.a3d-sw .tr::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.a3d-bar button.a3d-sw[aria-checked=true] .tr{background:#2e9e55}
+.a3d-bar button.a3d-sw[aria-checked=true] .tr::after{transform:translateX(16px)}
 @media(max-width:640px){dialog.a3d{width:100vw;height:100dvh;border-radius:0}.a3d-hint{display:none}.a3d-bar{display:grid;gap:8px;padding:8px 12px 10px}.a3d-grp{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.a3d-grp>*{flex:none}.a3d-hd .a3d-hb.nav{display:none}}
 `;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
@@ -483,6 +485,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let EDIT = false;        // 편집 모드
   let camState = null;     // 카드 넘길 때 카메라 유지
   let POP3D = true;        // 3D 안 설명 팝오버
+  let PEN = false;         // 강조펜 버튼 (터치 기기용). Ctrl/⌘ 누른 채 끌어도 됨
   try { POP3D = localStorage.getItem('jamkeon.pop3d') !== '0'; } catch (e) {}
   const dirty = () => JSON.stringify(EDITS) !== JSON.stringify(SAVED);
 
@@ -1166,10 +1169,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       gr.addEventListener('pointerout', e => { if (e.target.closest('button.role')) showPop(null); });
     }
     const gl = grp('표시');
-    const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'sw'; sw.setAttribute('role', 'switch');
+    const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'a3d-sw'; sw.setAttribute('role', 'switch');
     sw.setAttribute('aria-checked', String(POP3D)); sw.innerHTML = '<span class="tr" aria-hidden="true"></span>설명 팝오버';
     sw.addEventListener('click', () => { POP3D = !POP3D; sw.setAttribute('aria-checked', String(POP3D)); try { localStorage.setItem('jamkeon.pop3d', POP3D ? '1' : '0'); } catch (e) {} if (!POP3D) { showPop(null); pageHide(); } });
     gl.appendChild(sw);
+    const penBtn = btn('✎ 강조펜', PEN, b => { PEN = !PEN; b.setAttribute('aria-pressed', String(PEN)); stage.classList.toggle('pen', PEN); controls.enableRotate = !PEN; });
+    penBtn.title = '켜면 끌어서 그리기 (Ctrl/⌘ 누른 채 끌어도 됨). 떼면 사라짐';
+    gl.appendChild(penBtn); stage.classList.toggle('pen', PEN);
     [['장판', 'zones'], ['롤·보스', 'units'], ['화살표·줄', 'guides'], ['글자', 'labels']].forEach(([t, k]) => {
       if (!G[k].children.length) return;
       gl.appendChild(btn(t, true, b => { G[k].visible = !G[k].visible; b.setAttribute('aria-pressed', String(G[k].visible)); }));
@@ -1252,11 +1258,48 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       sideEl.appendChild(reset);
     }
 
+    /* --- 강조펜: Ctrl(⌘)+끌기 또는 펜 버튼. 떼면 서서히 사라짐 --- */
+    const ink = document.createElement('canvas'); ink.className = 'a3d-ink'; stage.appendChild(ink);
+    const ictx = ink.getContext('2d');
+    const strokes = []; let curStroke = null;
+    const FADE_MS = 700;
+    function sizeInk() { const d = Math.min(devicePixelRatio || 1, 2); ink.width = W() * d; ink.height = H() * d; ictx.setTransform(d, 0, 0, d, 0, 0); }
+    sizeInk();
+    const inkPt = e => { const r = renderer.domElement.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const penDown = e => {
+      if (!(e.ctrlKey || e.metaKey || PEN) || e.button > 0) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      controls.enabled = false; showPop(null);
+      curStroke = { pts: [inkPt(e)], end: 0 }; strokes.push(curStroke);
+      renderer.domElement.setPointerCapture(e.pointerId);
+    };
+    const penMove = e => { if (!curStroke) return; e.stopImmediatePropagation(); const p = inkPt(e), l = curStroke.pts[curStroke.pts.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 1.5) curStroke.pts.push(p); };
+    const penUp = e => { if (!curStroke) return; e.stopImmediatePropagation(); curStroke.end = performance.now(); curStroke = null; controls.enabled = true; down = null; };
+    const noMenu = e => { if (e.ctrlKey) e.preventDefault(); };
+    renderer.domElement.addEventListener('pointerdown', penDown, true);
+    renderer.domElement.addEventListener('pointermove', penMove, true);
+    renderer.domElement.addEventListener('pointerup', penUp, true);
+    renderer.domElement.addEventListener('pointercancel', penUp, true);
+    renderer.domElement.addEventListener('contextmenu', noMenu);
+    function drawInk(now) {
+      ictx.clearRect(0, 0, W(), H());
+      for (let i = strokes.length - 1; i >= 0; i--) {
+        const st = strokes[i], a = st.end ? 1 - (now - st.end) / FADE_MS : 1;
+        if (a <= 0) { strokes.splice(i, 1); continue; }
+        if (st.pts.length < 2) { const [x, y] = st.pts[0]; ictx.globalAlpha = a; ictx.fillStyle = '#ff3b30'; ictx.beginPath(); ictx.arc(x, y, 4, 0, Math.PI * 2); ictx.fill(); continue; }
+        const path = () => { ictx.beginPath(); ictx.moveTo(st.pts[0][0], st.pts[0][1]); for (let k = 1; k < st.pts.length - 1; k++) { const mx = (st.pts[k][0] + st.pts[k + 1][0]) / 2, my = (st.pts[k][1] + st.pts[k + 1][1]) / 2; ictx.quadraticCurveTo(st.pts[k][0], st.pts[k][1], mx, my); } const l = st.pts[st.pts.length - 1]; ictx.lineTo(l[0], l[1]); };
+        ictx.lineCap = ictx.lineJoin = 'round';
+        ictx.globalAlpha = a * 0.9; ictx.shadowColor = 'rgba(255,59,48,.9)'; ictx.shadowBlur = 14; ictx.strokeStyle = '#ff3b30'; ictx.lineWidth = 6; path(); ictx.stroke();
+        ictx.shadowBlur = 0; ictx.globalAlpha = a; ictx.strokeStyle = 'rgba(255,255,255,.85)'; ictx.lineWidth = 2; path(); ictx.stroke();
+      }
+      ictx.globalAlpha = 1; ictx.shadowBlur = 0;
+    }
+
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
     const hintEl = stage.querySelector('.a3d-hint');
     const HINT = EDIT
       ? '편집 중: 끌어서 옮김 · 보스를 옮기면 보스에서 시작하는 장판도 같이 감(Shift: 보스만) · 부채꼴은 끌면 회전(Shift: 이동) · 직선 장판은 Shift+끌기로 회전'
-      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말에 마우스: 왜 그렇게? · 말 클릭: 강조';
+      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · Ctrl+끌기: 강조펜 · 말 클릭: 강조';
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
     const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
@@ -1386,7 +1429,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     hintEl.textContent = HINT;
 
-    const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); });
+    const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); sizeInk(); });
     ro.observe(stage);
 
     let raf = 0, viewOff = 0;
@@ -1407,6 +1450,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (viewOff > 0.5) camera.setViewOffset(W(), H(), viewOff, 0, W(), H()); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
       castEl.style.marginLeft = viewOff ? (-viewOff) + 'px' : '';
       tickPlay(performance.now());
+      if (strokes.length) drawInk(performance.now()); else if (ink._dirty !== 0) { ictx.clearRect(0, 0, W(), H()); ink._dirty = 0; }
+      if (strokes.length) ink._dirty = 1;
       if (!REDUCED) animators.forEach(f => f(t));
       if (FOCUS && pawns[FOCUS]) { const s = 1 + 0.15 * Math.sin(t * 4); pawns[FOCUS].ring.scale.set(s, s, s); }
       controls.update();
@@ -1425,6 +1470,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         renderer.domElement.removeEventListener('pointermove', onMove);
         renderer.domElement.removeEventListener('pointerup', onUp);
         renderer.domElement.removeEventListener('pointerleave', onLeave);
+        ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach((t, i) => renderer.domElement.removeEventListener(t, [penDown, penMove, penUp, penUp][i], true));
+        renderer.domElement.removeEventListener('contextmenu', noMenu); ink.remove(); stage.classList.remove('pen');
         popEl.style.display = 'none'; popEl.dataset.role = '';
         disposables.forEach(d => d.dispose && d.dispose());
         renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss();
