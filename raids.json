@@ -20,45 +20,5 @@
   "en": "The Weapon's Refrain",
   "ph": "절 알테마 사진",
   "n": 5
- },
- {
-  "id": "tea",
-  "kind": "ult",
-  "no": "03",
-  "code": "TEA",
-  "name": "절 알렉산더",
-  "en": "The Epic of Alexander",
-  "ph": "절 알렉산더 사진",
-  "n": 4
- },
- {
-  "id": "dsr",
-  "kind": "ult",
-  "no": "04",
-  "code": "DSR",
-  "name": "절 용시전쟁",
-  "en": "Dragonsong's Reprise",
-  "ph": "절 용시전쟁 사진",
-  "n": 7
- },
- {
-  "id": "top",
-  "kind": "ult",
-  "no": "05",
-  "code": "TOP",
-  "name": "절 오메가",
-  "en": "The Omega Protocol",
-  "ph": "절 오메가 사진",
-  "n": 6
- },
- {
-  "id": "fru",
-  "kind": "ult",
-  "no": "06",
-  "code": "FRU",
-  "name": "절 에덴",
-  "en": "Futures Rewritten",
-  "ph": "절 에덴 사진",
-  "n": 5
  }
 ]
