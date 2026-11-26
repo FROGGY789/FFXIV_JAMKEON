@@ -1152,9 +1152,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       });
       bar.querySelectorAll('button.role').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === FOCUS)));
       roleEl.innerHTML = '';
-      roleEl.classList.toggle('on', !!FOCUS);
-      stage.querySelector('.a3d-hint').style.visibility = FOCUS ? 'hidden' : '';
-      if (!FOCUS) return;
+      // 왼쪽 아래 설명 칸은 노트 편집 중에만 ("왜?" 고치는 곳). 평소엔 팝오버·오른쪽 설명으로 충분
+      const card = !!FOCUS && EDIT && !!meta;
+      roleEl.classList.toggle('on', card);
+      stage.querySelector('.a3d-hint').style.visibility = card ? 'hidden' : '';
+      if (!card) return;
       roleEl.appendChild(roleInfo(FOCUS, { editable: EDIT && !!meta }));
     }
     // 마우스를 올리면 팝오버
