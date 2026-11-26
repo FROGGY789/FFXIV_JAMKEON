@@ -90,6 +90,7 @@
 .sim .board{cursor:default}.sim .board.over{cursor:grab}
 .sim .board .h{cursor:grab}.sim .board .h:hover{stroke-width:2.4}
 .sim .pal{display:grid;gap:8px}
+.sim.sim-in3d{display:block;margin:0}.sim.sim-in3d .card{background:transparent;padding:0}
 .sim .pal .g{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .sim .pal .g>span{font-size:11.5px;color:var(--sub,#6f6c78);width:100%}
 .sim .pal .role{color:#fff;border-color:transparent;min-width:40px}
@@ -122,7 +123,7 @@
       if (!cur.id) return;
       clearTimeout(autoT); autoT = setTimeout(() => save(false, true), A().on ? 1800 : 400);
     }
-    function status(t, cls) { const e = root.querySelector('.plans .st'); if (e) { e.textContent = t; e.className = 'st ' + (cls || ''); } }
+    function status(t, cls) { const e = root.querySelector('.plans .st'); if (e) { e.textContent = t; e.className = 'st ' + (cls || ''); } const e3 = pal && pal.querySelector('.st3'); if (e3) { e3.textContent = t; e3.style.color = cls === 'ok' ? '#2e9e55' : 'var(--sub,#6f6c78)'; } }
     // 되돌리기 / 다시 하기 (Ctrl+Z, Ctrl+Shift+Z 또는 Ctrl+Y)
     const hist = [], fut = [];
     const snap = () => JSON.stringify(cur.items);
@@ -154,7 +155,9 @@
   <div class="card pal"></div>
 </div>`;
     const $ = s => root.querySelector(s);
-    const board = $('.board'), pal = $('.pal'), loadSel = $('.load'), nm = $('.nm'), memo = $('.memo');
+    const board = $('.board'), loadSel = $('.load'), nm = $('.nm'), memo = $('.memo');
+    let pal = $('.pal');      // 편집 도구가 그려지는 곳: 평소엔 오른쪽 칸, 3D 편집 중엔 3D 창 오른쪽 패널
+    let bridge3d = null;      // 3D 창과 연결 (판이 바뀌면 3D도 다시 그림)
 
     /* --- 불러오기 목록 --- */
     function fillLoad() {
@@ -239,13 +242,21 @@
         // 3D 창 안에서 되돌리기·저장
         onUndo: () => { if (!hist.length) return null; undo(); return clone(cur.items); },
         onRedo: () => { if (!fut.length) return null; redo(); return clone(cur.items); },
-        onSave: async () => {
-          if (!(nm.value || '').trim()) { const d = new Date(); nm.value = `새 전략 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; cur.name = nm.value; }
-          await save(false, true);
-        }
+        onSave: saveFrom3D,
+        // 3D 편집 도구를 3D 창 오른쪽 패널에 그림 (평면도 편집과 같은 도구)
+        tools: (container, api) => {
+          container.innerHTML = '<div class="sim sim-in3d"><div class="card pal"></div></div>';
+          pal = container.querySelector('.pal'); bridge3d = api; sel = -1; buildPalette(); props();
+        },
+        toolsClose: () => { bridge3d = null; pal = $('.pal'); buildPalette(); props(); },
+        onSelect: i => { sel = i; render(); props(); }
       });
     });
 
+    async function saveFrom3D() {
+      if (!(nm.value || '').trim()) { const d = new Date(); nm.value = `새 전략 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; cur.name = nm.value; }
+      await save(false, true);
+    }
     /* --- 팔레트 --- */
     // 놓고 나서 이름·글자 칸에 바로 커서 (따로 묻는 창 없이 오른쪽에서 고침)
     const add = (o, focusKey) => {
@@ -256,6 +267,16 @@
     const off = () => { const a = Math.random() * 360, d = 25 + Math.random() * 45; return P(a, d).map(r1); };
     function buildPalette() {
       pal.innerHTML = '';
+      if (bridge3d) {
+        // 3D 패널 맨 위: 되돌리기·다시 하기·저장·상태
+        const top = document.createElement('div'); top.className = 'g';
+        top.innerHTML = '<span>3D 편집 · 3D에서 끌어서 옮김 · 기물을 누르면 여기서 고침</span>';
+        const mk = (t, f, cls, title) => { const x = document.createElement('button'); x.type = 'button'; x.textContent = t; if (cls) x.className = cls; if (title) { x.title = title; x.setAttribute('aria-label', title); } x.addEventListener('click', f); top.appendChild(x); return x; };
+        mk('↶', undo, '', '되돌리기 (Ctrl+Z)'); mk('↷', redo, '', '다시 하기 (Ctrl+Shift+Z)');
+        mk('저장', () => saveFrom3D(), 'pri');
+        const st3 = document.createElement('span'); st3.className = 'st3'; st3.style.cssText = 'width:auto;margin-left:auto;font-size:12px'; top.appendChild(st3);
+        pal.appendChild(top);
+      }
       const g = (label) => { const d = document.createElement('div'); d.className = 'g'; d.innerHTML = `<span>${label}</span>`; pal.appendChild(d); return d; };
       const b = (parent, t, fn, cls, style) => { const x = document.createElement('button'); x.type = 'button'; x.textContent = t; if (cls) x.className = cls; if (style) x.style.cssText = style; x.addEventListener('click', fn); parent.appendChild(x); return x; };
       const gr = g('롤 (누르면 판에 놓임)');
@@ -355,6 +376,7 @@
         g.appendChild(c);
       }));
       svg.appendChild(g);
+      if (bridge3d) bridge3d.refresh(clone(cur.items));
       if (root.querySelector('.plans .pl')) syncPlans();
     }
     let drag = null;

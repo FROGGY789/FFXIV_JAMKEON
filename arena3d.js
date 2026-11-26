@@ -491,7 +491,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
-    dlg.addEventListener('close', () => { if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
+    dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
   function toggleFull() {
@@ -557,7 +557,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const steps = meta ? (meta.c.steps || []).map(htmlText) : (opts.steps || []);
     sideBtn.hidden = !steps.length;
     if (sideEl.classList.contains('on') && sideEl.dataset.mode === 'steps') showSteps();
-    else if (sideEl.dataset.mode !== 'hist') { sideEl.classList.remove('on'); sideBtn.setAttribute('aria-pressed', 'false'); }
+    else if (sideEl.dataset.mode !== 'hist' && sideEl.dataset.mode !== 'tools') { sideEl.classList.remove('on'); sideBtn.setAttribute('aria-pressed', 'false'); }
     capEl.innerHTML = ''; castEl.style.display = 'none';
     if (!dlg.open) dlg.showModal();
     let L;
@@ -1310,8 +1310,24 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       // 시뮬레이터에서 연 3D: 로그인 없이 편집, 바뀐 내용은 시뮬레이터 판에 바로 반영
       const ge = grp('편집');
       const b = btn(EDIT ? '편집 끝내기' : '✎ 3D에서 편집', EDIT, () => { EDIT = !EDIT; rebuild(); });
-      b.title = '끌어서 옮기기 · ＋추가로 기물 놓기 · Ctrl+Z 되돌리기'; ge.appendChild(b);
-      if (EDIT) {
+      b.title = '끌어서 옮기기 · 오른쪽 도구로 추가·수정 · Ctrl+Z 되돌리기'; ge.appendChild(b);
+      if (OPTS.tools) {
+        // 오른쪽 패널에 평면도와 같은 편집 도구
+        if (EDIT && sideEl.dataset.mode !== 'tools') {
+          sideEl.dataset.mode = 'tools'; sideEl.innerHTML = ''; sideEl.classList.add('on'); sideBtn.setAttribute('aria-pressed', 'false');
+          OPTS.tools(sideEl, {
+            refresh: its => {
+              if (!CUR || JSON.stringify(its) === JSON.stringify(CUR)) return;
+              CUR.length = 0; its.forEach(o => CUR.push(o));
+              open(CUR, Object.assign({}, OPTS, { keepCam: true, autoplay: false }));
+            }
+          });
+        } else if (!EDIT && sideEl.dataset.mode === 'tools') {
+          sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose();
+        }
+        if (sideEl.dataset.mode === 'tools') sideBtn.hidden = true;
+      }
+      if (EDIT && !OPTS.tools) {
         // ＋ 추가: 고르면 판 가장자리 쪽에 놓임 (이름은 시뮬레이터 판 오른쪽 칸에서 바꿈)
         const sel = document.createElement('select'); sel.setAttribute('aria-label', '기물 추가');
         sel.style.cssText = 'font:inherit;font-size:13px;font-weight:700;min-height:34px;padding:4px 8px;border-radius:999px;border:1px solid var(--a3d-line);background:transparent;color:inherit';
@@ -1331,7 +1347,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         });
         ge.appendChild(sel);
       }
-      if (OPTS.onSave) {
+      if (OPTS.onSave && !OPTS.tools) {
         const sv = btn('저장', null, async b2 => { b2.disabled = true; b2.textContent = '저장 중…'; try { await OPTS.onSave(); b2.textContent = '저장됨 ✓'; } catch (e) { b2.textContent = '저장 실패'; } setTimeout(() => { b2.textContent = '저장'; b2.disabled = false; }, 1500); });
         sv.title = '시뮬레이터 전략으로 저장 (이름이 없으면 자동으로 붙음)'; ge.appendChild(sv);
       }
@@ -1520,8 +1536,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         const ent = drag.ent, dx = r1(ent.g.position.x - drag.home.x), dz = r1(ent.g.position.z - drag.home.z);
         const dd = drag;
         drag = null; controls.enabled = true; stage.style.cursor = ''; hintEl.textContent = HINT;
-        if (dd.mode === 'rot') { if (dd.delta) commitRotate(ent, dd.delta, dd.piv); }
-        else if (Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz, dd.followers.map(f => f.ent));
+        if (dd.mode === 'rot' && dd.delta) commitRotate(ent, dd.delta, dd.piv);
+        else if (dd.mode !== 'rot' && Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz, dd.followers.map(f => f.ent));
+        else { ent.g.position.copy(dd.home); ent.g.rotation.y = 0; if (OPTS.onSelect) OPTS.onSelect(ent.idx); } // 그냥 누름 = 선택
         return;
       }
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
