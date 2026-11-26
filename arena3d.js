@@ -839,16 +839,26 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       G.units.add(g);
       return g;
     }
+    // 필드 마커: 게임과 같은 색·모양 (A·1 빨강, B·2 노랑, C·3 파랑, D·4 보라 / 글자는 원, 숫자는 사각)
+    const WM = { A: '#e8474d', B: '#f0b92c', C: '#3d8fe0', D: '#a65ee0', 1: '#e8474d', 2: '#f0b92c', 3: '#3d8fe0', 4: '#a65ee0' };
     function waymark(ch, p) {
+      const m = strip(ch), col = WM[m] || '#f0b92c', sq = /^[1-4]$/.test(m), S = 7.5;
       const g = new T.Group();
       const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
-      x.fillStyle = '#f2c230'; x.strokeStyle = '#7a5a00'; x.lineWidth = 6; x.beginPath(); x.roundRect(6, 6, 116, 116, 22); x.fill(); x.stroke();
-      x.fillStyle = '#3a2a00'; x.font = '900 72px system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(strip(ch), 64, 70);
+      x.fillStyle = col; x.globalAlpha = .32; x.strokeStyle = col; x.lineWidth = 10;
+      x.beginPath(); if (sq) x.roundRect(8, 8, 112, 112, 10); else x.arc(64, 64, 56, 0, Math.PI * 2); x.fill();
+      x.globalAlpha = 1; x.stroke();
+      x.font = '900 70px system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.lineWidth = 10; x.strokeStyle = col; x.strokeText(m, 64, 70); x.fillStyle = '#fff'; x.fillText(m, 64, 70);
       const tex = track(new T.CanvasTexture(c)); tex.colorSpace = T.SRGBColorSpace;
-      const tile = new T.Mesh(track(new T.PlaneGeometry(14, 14)), track(new T.MeshBasicMaterial({ map: tex, transparent: true })));
+      const tile = new T.Mesh(track(new T.PlaneGeometry(S * 2, S * 2)), track(new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })));
       tile.rotation.x = -Math.PI / 2; tile.position.y = 0.5; g.add(tile);
-      const beam = new T.Mesh(wallGeo([[{ x: -6, y: -6 }, { x: 6, y: -6 }, { x: 6, y: 6 }, { x: -6, y: 6 }]], 22), wallMat(parseRGBA('rgb(242,194,48)'), 0.45));
+      // 빛 기둥: 원 마커는 원통, 숫자 마커는 사각
+      const loop = sq ? [{ x: -S, y: -S }, { x: S, y: -S }, { x: S, y: S }, { x: -S, y: S }]
+        : Array.from({ length: 32 }, (_, i) => ({ x: Math.cos(i / 32 * Math.PI * 2) * S, y: Math.sin(i / 32 * Math.PI * 2) * S }));
+      const beam = new T.Mesh(wallGeo([loop], 26), wallMat(parseRGBA(col), 0.55));
       g.add(beam);
+      const tag = label(m, { color: '#fff', bg: col, size: 4.5 }); tag.position.y = 30; g.add(tag);
       g.position.copy(W3(p));
       G.units.add(g);
       return g;

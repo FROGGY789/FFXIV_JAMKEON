@@ -88,7 +88,8 @@
         if (!r.ok) throw new Error('읽기 실패 (' + r.status + ')');
         return r.text();
       },
-      async save(name, content, message) { await put(name, content, message); toast('저장됨 · 사이트 반영까지 1~2분', 4000); },
+      async save(name, content, message, okMsg) { await put(name, content, message); toast(okMsg || '저장됨 · 사이트 반영까지 1~2분', 3000); },
+      read: name => readFresh(name),
       // 그 파일의 커밋 목록 (최신순)
       async history(name) {
         const r = await gh(`/commits?path=${encodeURIComponent(name)}&sha=${BRANCH}&per_page=40`);
@@ -97,9 +98,20 @@
       }
     };
   } else {
-    window.JamAdmin = { on: false, login: () => openLogin() };
+    window.JamAdmin = { on: false, login: () => openLogin(), read: name => readFresh(name) };
   }
 
+  // 누구나: 저장소(gh-pages)에서 최신 파일을 바로 읽음. Pages 반영(1~2분)을 안 기다려도 됨. 실패하면 Pages 파일
+  async function readFresh(name) {
+    try {
+      const h = { Accept: 'application/vnd.github.raw+json' };
+      if (token) h.Authorization = 'Bearer ' + token;
+      const r = await fetch(`${API}/contents/${encodeURIComponent(name)}?ref=${BRANCH}&t=${Date.now()}`, { headers: h, cache: 'no-store' });
+      if (r.status === 404) return null;
+      if (r.ok) return await r.text();
+    } catch (e) {}
+    try { const r = await fetch(name, { cache: 'no-cache' }); return r.ok ? await r.text() : null; } catch (e) { return null; }
+  }
   function b64(str) {
     const bytes = new TextEncoder().encode(str); let bin = '';
     for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));

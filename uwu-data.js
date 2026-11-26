@@ -25,7 +25,7 @@ function draw(items){
     else if(o.b){const [x,y]=at(o);const c=o.c||BC[o.b]||'#555';const r=o.r||11;top.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${o.up?y-r-4:y+r+10}" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--ink)" paint-order="stroke" stroke="var(--floor)" stroke-width="3">${o.b}</text>`)}
     else if(o.p){const [x,y]=at(o);top.push(`<circle cx="${x}" cy="${y}" r="8" fill="${RC[o.p[0]]}" stroke="#fff" stroke-width="1.4"/><text x="${x}" y="${y+3.3}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff">${o.p}</text>`)}
     else if(o.t){const [x,y]=at(o);top.push(`<text x="${x}" y="${y}" text-anchor="middle" font-size="${o.fs||9}" font-weight="700" fill="${o.c||'var(--ink)'}" paint-order="stroke" stroke="var(--floor)" stroke-width="3">${o.t}</text>`)}
-    else if(o.m){const [x,y]=at(o);top.push(`<rect x="${x-7}" y="${y-7}" width="14" height="14" rx="3" fill="#f2c230" stroke="#7a5a00"/><text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="9" font-weight="900" fill="#3a2a00">${o.m}</text>`)}
+    else if(o.m){const [x,y]=at(o);const WM={A:'#e8474d',B:'#f0b92c',C:'#3d8fe0',D:'#a65ee0','1':'#e8474d','2':'#f0b92c','3':'#3d8fe0','4':'#a65ee0'};const m=String(o.m),c=WM[m]||'#f0b92c',sq=/^[1-4]$/.test(m);top.push((sq?`<rect x="${x-8}" y="${y-8}" width="16" height="16" rx="2" fill="${c}" fill-opacity=".3" stroke="${c}" stroke-width="2.2"/>`:`<circle cx="${x}" cy="${y}" r="8.5" fill="${c}" fill-opacity=".3" stroke="${c}" stroke-width="2.2"/>`)+`<text x="${x}" y="${y+3.6}" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" paint-order="stroke" stroke="${c}" stroke-width="2.5">${m}</text>`)}
   }
   return s+top.join('')+'</svg>';
 }

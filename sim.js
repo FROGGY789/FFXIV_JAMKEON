@@ -17,6 +17,10 @@
   const r1 = v => Math.round(v * 2) / 2;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const clone = o => JSON.parse(JSON.stringify(o));
+  let CLIP = null; // 복사한 안(plan) 또는 항목. 전략·안을 바꿔도 유지
+  const blankPlans = () => [0, 1, 2].map(() => ({ items: [], memo: '' }));
+  // 예전 형식(items/memo 하나) → 1안
+  function upgrade(s) { if (!Array.isArray(s.plans)) { s.plans = blankPlans(); s.plans[0] = { items: s.items || [], memo: s.memo || '' }; } while (s.plans.length < 3) s.plans.push({ items: [], memo: '' }); delete s.items; delete s.memo; return s; }
 
   // 기믹 데이터 → 편집용(모든 좌표를 xy 로)
   function normalize(items) {
@@ -39,19 +43,22 @@
     if (STORE) return STORE;
     let j = null;
     try {
-      if (A().on && A().get) { const t = await A().get(FILE); j = t ? JSON.parse(t) : {}; }
-      else { const r = await fetch(FILE, { cache: 'no-cache' }); j = r.ok ? await r.json() : {}; }
+      // 저장소에서 바로 읽음 (Pages 반영 1~2분을 안 기다림)
+      const t = A().read ? await A().read(FILE) : await fetch(FILE, { cache: 'no-cache' }).then(r => r.ok ? r.text() : null);
+      j = t ? JSON.parse(t) : {};
     } catch (e) { j = {}; }
     STORE = j && typeof j === 'object' ? j : {};
     if (!A().on) { try { const l = JSON.parse(localStorage.getItem(LKEY) || '{}'); for (const k in l) STORE[k] = (STORE[k] || []).concat(l[k].map(s => Object.assign(s, { local: 1 }))); } catch (e) {} }
     return STORE;
   }
-  async function persist(raid, list, msg) {
+  let saving = Promise.resolve();
+  function persist(raid, list, msg) { const run = () => persistNow(raid, list, msg); saving = saving.then(run, run); return saving; }
+  async function persistNow(raid, list, msg) {
     if (A().on) {
       let latest = {};
       try { const t = await A().get(FILE); latest = t ? JSON.parse(t) : {}; } catch (e) {}
       latest[raid] = list.filter(s => !s.local);
-      await A().save(FILE, JSON.stringify(latest, null, 1), msg);
+      await A().save(FILE, JSON.stringify(latest, null, 1), msg, '전략 저장됨 ✓');
     } else {
       const l = (() => { try { return JSON.parse(localStorage.getItem(LKEY) || '{}'); } catch (e) { return {}; } })();
       l[raid] = list.filter(s => s.local);
@@ -67,6 +74,13 @@
 .sim .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
 .sim .bar select,.sim .bar input{font:inherit;font-size:13px;padding:7px 9px;border-radius:9px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);min-width:0}
 .sim .bar input.nm{flex:1 1 160px}
+.sim .plans{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 10px}
+.sim .plans .pl{min-width:64px}
+.sim .plans .pl[aria-pressed=true]{background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-color:transparent;outline:none}
+.sim .plans .st{font-size:12px;color:var(--sub,#6f6c78);margin-left:auto}
+.sim .plans .st.ok{color:#2e9e55}
+.sim .pal .wm{color:#fff;border-color:transparent;min-width:34px;font-weight:900}
+.sim .pal .wm.sq{border-radius:4px}.sim .pal .wm.ci{border-radius:999px}
 .sim button{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:inherit;border-radius:9px;padding:7px 10px;cursor:pointer;min-height:34px}
 .sim button.pri{background:var(--ink,#16151a);color:var(--bg,#f6f5f8);border-color:transparent}
 .sim button.del{color:#c0392b}
@@ -98,14 +112,22 @@
     root.setAttribute('data-on', raid);
     const store = await loadStore();
     let list = store[raid] = store[raid] || [];
-    let cur = { id: null, name: '', memo: '', items: [], from: '' };
-    let sel = -1, kind = 'bad', dirty = false;
+    const fresh = () => ({ id: null, name: '', memo: '', items: [], from: '', plans: blankPlans() });
+    let cur = fresh(), pi = 0;
+    let sel = -1, kind = 'bad', dirty = false, autoT = 0;
+    // 바뀌면 자동 저장 (이름 붙여 한 번 저장한 전략만)
+    function touch() {
+      dirty = true; status(cur.id ? '저장 대기…' : '저장 안 됨 · 이름 적고 저장', '');
+      if (!cur.id) return;
+      clearTimeout(autoT); autoT = setTimeout(() => save(false, true), A().on ? 1800 : 400);
+    }
+    function status(t, cls) { const e = root.querySelector('.plans .st'); if (e) { e.textContent = t; e.className = 'st ' + (cls || ''); } }
     // 되돌리기 / 다시 하기 (Ctrl+Z, Ctrl+Shift+Z 또는 Ctrl+Y)
     const hist = [], fut = [];
     const snap = () => JSON.stringify(cur.items);
     const record = pre => { hist.push(pre != null ? pre : snap()); if (hist.length > 150) hist.shift(); fut.length = 0; syncUndo(); };
-    function undo() { if (!hist.length) return; fut.push(snap()); cur.items = JSON.parse(hist.pop()); sel = -1; dirty = true; render(); props(); syncUndo(); }
-    function redo() { if (!fut.length) return; hist.push(snap()); cur.items = JSON.parse(fut.pop()); sel = -1; dirty = true; render(); props(); syncUndo(); }
+    function undo() { if (!hist.length) return; fut.push(snap()); cur.items = JSON.parse(hist.pop()); sel = -1; touch(); render(); props(); syncUndo(); }
+    function redo() { if (!fut.length) return; hist.push(snap()); cur.items = JSON.parse(fut.pop()); sel = -1; touch(); render(); props(); syncUndo(); }
     function syncUndo() { const u = root.querySelector('.undo'), r = root.querySelector('.redo'); if (u) u.disabled = !hist.length; if (r) r.disabled = !fut.length; }
 
     root.innerHTML = `<div class="sim">
@@ -119,8 +141,13 @@
       <button type="button" class="v3d">3D로 보기</button>
       <button type="button" class="undo" title="되돌리기 (Ctrl+Z)" aria-label="되돌리기">↶</button><button type="button" class="redo" title="다시 하기 (Ctrl+Shift+Z)" aria-label="다시 하기">↷</button>
     </div>
+    <div class="plans" role="group" aria-label="처리 방식 1~3안">
+      <button type="button" class="pl" data-p="0">1안</button><button type="button" class="pl" data-p="1">2안</button><button type="button" class="pl" data-p="2">3안</button>
+      <button type="button" class="cp" title="지금 안을 통째로 복사">이 안 복사</button><button type="button" class="ps" title="복사한 안(또는 항목)을 붙여넣기">붙여넣기</button>
+      <span class="st" aria-live="polite"></span>
+    </div>
     <div class="board" aria-label="전략 판. 손잡이를 끌어서 옮김"></div>
-    <p class="note">원·점 손잡이를 끌어서 옮김 · 부채꼴은 바깥 점으로 방향·길이 · 원은 테두리 점으로 크기 · 선택하고 Delete 키로 지움</p>
+    <p class="note">손잡이를 끌어서 옮김 · 부채꼴은 바깥 점으로 방향·길이 · 원은 테두리 점으로 크기 · Delete 지우기 · Ctrl+Z 되돌리기 · Ctrl+C/V 고른 항목 복사·붙여넣기</p>
     <textarea class="memo" placeholder="메모 (이 전략 설명, 콜 순서 등)" aria-label="메모"></textarea>
   </div>
   <div class="card pal"></div>
@@ -140,46 +167,81 @@
     loadSel.addEventListener('change', () => {
       if (dirty && !confirm('저장 안 한 변경이 있음. 버리고 불러올까?')) { fillLoad(); return; }
       const v = loadSel.value;
-      if (!v) cur = { id: null, name: '', memo: '', items: [], from: '' };
-      else if (v[0] === 's') { const s = list[+v.slice(2)]; cur = clone(s); }
+      clearTimeout(autoT);
+      if (!v) cur = fresh();
+      else if (v[0] === 's') { cur = upgrade(clone(list[+v.slice(2)])); }
       else { const [, pid, ci] = v.split(':'); const ph = window.UWU.PH.find(p => p.id === pid), c = ph.cards[+ci];
-        cur = { id: null, name: String(c.h).replace(/<[^>]+>/g, '') + ' (편집본)', memo: '', items: normalize(c.d), from: `${ph.name} · ${String(c.h).replace(/<[^>]+>/g, '')}` }; }
-      sel = -1; dirty = false; hist.length = 0; fut.length = 0; syncUndo(); nm.value = cur.name; memo.value = cur.memo || ''; render(); props();
+        cur = fresh(); cur.name = String(c.h).replace(/<[^>]+>/g, '') + ' (편집본)'; cur.from = `${ph.name} · ${String(c.h).replace(/<[^>]+>/g, '')}`; cur.plans[0].items = normalize(c.d); }
+      dirty = false; nm.value = cur.name; loadPlan(0); status(cur.id ? '저장된 전략 · 바꾸면 자동 저장' : '', '');
     });
-    nm.addEventListener('input', () => { cur.name = nm.value; dirty = true; });
-    memo.addEventListener('input', () => { cur.memo = memo.value; dirty = true; });
+    nm.addEventListener('input', () => { cur.name = nm.value; touch(); });
+    /* --- 1~3안 --- */
+    function storePlan() { cur.plans[pi] = { items: clone(cur.items), memo: cur.memo || '' }; }
+    function loadPlan(i) {
+      pi = i; cur.items = clone((cur.plans[i] || {}).items || []); cur.memo = (cur.plans[i] || {}).memo || ''; memo.value = cur.memo;
+      sel = -1; hist.length = 0; fut.length = 0; syncUndo(); render(); props(); syncPlans();
+    }
+    function syncPlans() {
+      root.querySelectorAll('.plans .pl').forEach(b => {
+        const i = +b.dataset.p, n = i === pi ? cur.items.length : ((cur.plans[i] || {}).items || []).length;
+        b.setAttribute('aria-pressed', String(i === pi)); b.textContent = `${i + 1}안${n ? ' · ' + n : ''}`;
+      });
+      const ps = root.querySelector('.plans .ps'); ps.disabled = !CLIP;
+      ps.textContent = CLIP ? (CLIP.type === 'plan' ? `붙여넣기 (${CLIP.label})` : '붙여넣기 (항목)') : '붙여넣기';
+    }
+    root.querySelectorAll('.plans .pl').forEach(b => b.addEventListener('click', () => { if (+b.dataset.p === pi) return; storePlan(); loadPlan(+b.dataset.p); }));
+    root.querySelector('.plans .cp').addEventListener('click', () => { CLIP = { type: 'plan', items: clone(cur.items), memo: cur.memo || '', label: `${pi + 1}안` }; syncPlans(); status(`${pi + 1}안 복사함 · 다른 안에서 붙여넣기`, 'ok'); });
+    root.querySelector('.plans .ps').addEventListener('click', paste);
+    function paste() {
+      if (!CLIP) return;
+      if (CLIP.type === 'item') { record(); const o = clone(CLIP.item); nudge(o); cur.items.push(o); sel = cur.items.length - 1; touch(); render(); props(); syncPlans(); return; }
+      if (cur.items.length && !confirm(`${pi + 1}안을 ${CLIP.label} 내용으로 바꿀까? (Ctrl+Z로 되돌릴 수 있음)`)) return;
+      record(); cur.items = clone(CLIP.items); if (CLIP.memo && !cur.memo) { cur.memo = CLIP.memo; memo.value = cur.memo; }
+      sel = -1; touch(); render(); props(); syncPlans();
+    }
+    // 붙여넣은 항목은 살짝 옆으로
+    function nudge(o) { const m = q => [r1(q[0] + 6), r1(q[1] + 6)]; if (o.xy) o.xy = m(o.xy); if (o.a && o.z === 'band') { o.a = m(o.a); o.b = m(o.b); } if (o.ar) o.ar = o.ar.map(m); if (o.te) o.te = o.te.map(m); }
+    memo.addEventListener('input', () => { cur.memo = memo.value; touch(); });
 
     /* --- 저장 --- */
-    async function save(asNew) {
-      const name = (nm.value || '').trim(); if (!name) { nm.focus(); alert('전략 이름을 적을 것'); return; }
+    let warnedLocal = false;
+    async function save(asNew, silent) {
+      const name = (nm.value || '').trim(); if (!name) { if (!silent) { nm.focus(); alert('전략 이름을 적을 것'); } return; }
+      clearTimeout(autoT);
+      storePlan();
       cur.name = name; cur.updated = new Date().toISOString();
-      if (asNew || !cur.id) { cur = Object.assign(clone(cur), { id: 's' + Date.now().toString(36), local: A().on ? undefined : 1 }); list.push(clone(cur)); }
-      else { const i = list.findIndex(s => s.id === cur.id); if (i >= 0) list[i] = clone(cur); else list.push(clone(cur)); }
-      try { await persist(raid, list, `전략 저장: ${name}`); dirty = false; fillLoad(); if (!A().on) alert('이 브라우저에만 저장됨. 관리자로 로그인하면 부대 공유로 저장됨.'); }
-      catch (e) { alert('저장 실패: ' + e.message); }
+      const out = () => ({ id: cur.id, name: cur.name, from: cur.from, updated: cur.updated, plans: clone(cur.plans), local: cur.local });
+      if (asNew || !cur.id) { cur.id = 's' + Date.now().toString(36); cur.local = A().on ? undefined : 1; list.push(out()); }
+      else { const i = list.findIndex(s => s.id === cur.id); if (i >= 0) list[i] = out(); else list.push(out()); }
+      status('저장 중…', '');
+      try {
+        await persist(raid, list, `전략 저장: ${name}`); dirty = false; fillLoad();
+        status(A().on ? '저장됨 ✓ · 부대원에게 바로 보임' : '이 브라우저에 저장됨 ✓', 'ok');
+        if (!A().on && !silent && !warnedLocal) { warnedLocal = true; alert('이 브라우저에만 저장됨. 관리자로 로그인하면 부대 공유로 저장됨.'); }
+      } catch (e) { status('저장 실패', ''); if (!silent) alert('저장 실패: ' + e.message); }
     }
     $('.save').addEventListener('click', () => save(false));
     $('.saveas').addEventListener('click', () => save(true));
     $('.rm').addEventListener('click', async () => {
-      if (!cur.id) { cur = { id: null, name: '', memo: '', items: [], from: '' }; nm.value = ''; memo.value = ''; render(); return; }
+      if (!cur.id) { cur = fresh(); nm.value = ''; loadPlan(0); return; }
       if (!confirm(`"${cur.name}" 전략을 삭제할까?`)) return;
       list = store[raid] = list.filter(s => s.id !== cur.id);
       try { await persist(raid, list, `전략 삭제: ${cur.name}`); } catch (e) { alert('삭제 실패: ' + e.message); }
-      cur = { id: null, name: '', memo: '', items: [], from: '' }; nm.value = ''; memo.value = ''; sel = -1; fillLoad(); render(); props();
+      cur = fresh(); nm.value = ''; fillLoad(); loadPlan(0); status('삭제함', '');
     });
     $('.v3d').addEventListener('click', () => {
       if (!window.Arena3D) return;
       window.Arena3D.open(clone(cur.items), {
-        title: cur.name || '전략 시뮬레이션', steps: cur.memo ? cur.memo.split('\n').filter(Boolean) : [],
+        title: `${cur.name || '전략 시뮬레이션'} · ${pi + 1}안`, steps: cur.memo ? cur.memo.split('\n').filter(Boolean) : [],
         // 3D에서 편집하면 판에도 바로 반영 (Ctrl+Z 로 되돌리기 가능)
-        onEdit: its => { record(); cur.items = clone(its); sel = -1; dirty = true; render(); props(); }
+        onEdit: its => { record(); cur.items = clone(its); sel = -1; touch(); render(); props(); }
       });
     });
 
     /* --- 팔레트 --- */
     // 놓고 나서 이름·글자 칸에 바로 커서 (따로 묻는 창 없이 오른쪽에서 고침)
     const add = (o, focusKey) => {
-      record(); cur.items.push(o); sel = cur.items.length - 1; dirty = true; render(); props();
+      record(); cur.items.push(o); sel = cur.items.length - 1; touch(); render(); props();
       if (focusKey) { const i = pal.querySelector(`.props [data-key="${focusKey}"]`); if (i) { i.focus(); i.select && i.select(); } }
     };
     // 새로 놓는 위치: 가운데를 피해 고리 모양으로 흩어 놓음
@@ -192,7 +254,7 @@
       ROLES.forEach(r => b(gr, r, () => { const ex = cur.items.findIndex(o => o.p === r); if (ex >= 0) { sel = ex; render(); props(); return; } add({ p: r, xy: off() }); }, 'role', `background:${RC[r[0]]}`));
       const gk = g('장판 종류');
       const kinds = [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']];
-      const kb = kinds.map(([k, t]) => b(gk, t, () => { kind = k; kb.forEach((x, i) => x.setAttribute('aria-pressed', String(kinds[i][0] === k))); if (sel >= 0 && cur.items[sel].z) { record(); cur.items[sel].k = k; dirty = true; render(); } }));
+      const kb = kinds.map(([k, t]) => b(gk, t, () => { kind = k; kb.forEach((x, i) => x.setAttribute('aria-pressed', String(kinds[i][0] === k))); if (sel >= 0 && cur.items[sel].z) { record(); cur.items[sel].k = k; touch(); render(); } }));
       kb[0].setAttribute('aria-pressed', 'true');
       const gz = g('장판');
       b(gz, '● 원형', () => add({ z: 'c', xy: off(), r: 20, k: kind }));
@@ -210,11 +272,14 @@
       b(go, '글자', () => add({ t: '글자', xy: off() }, 't'));
       b(go, '징표', () => add({ t: '징표', xy: off(), c: '#2e9e55' }));
       const gm = g('필드 마커');
-      ['A', 'B', 'C', 'D', '1', '2', '3', '4'].forEach(m => b(gm, m, () => add({ m, xy: P('ABCD1234'.indexOf(m) * 45 % 360 + (m > '9' ? 0 : 45), 85) })));
+      // 게임과 같은 색: A·1 빨강, B·2 노랑, C·3 파랑, D·4 보라 / 글자는 원, 숫자는 사각. 기본 자리: A북 B동 C남 D서, 1북동 2남동 3남서 4북서
+      const WMC = { A: '#e8474d', B: '#f0b92c', C: '#3d8fe0', D: '#a65ee0', 1: '#e8474d', 2: '#f0b92c', 3: '#3d8fe0', 4: '#a65ee0' };
+      const WMA = { A: 0, B: 90, C: 180, D: 270, 1: 45, 2: 135, 3: 225, 4: 315 };
+      ['A', 'B', 'C', 'D', '1', '2', '3', '4'].forEach(m => b(gm, m, () => { const ex = cur.items.findIndex(o => o.m === m); if (ex >= 0) { sel = ex; render(); props(); return; } add({ m, xy: P(WMA[m], 82) }); }, 'wm ' + (/\d/.test(m) ? 'sq' : 'ci'), `background:${WMC[m]}`));
       const h = document.createElement('h4'); h.textContent = '선택한 항목'; pal.appendChild(h);
       const pp = document.createElement('div'); pp.className = 'props'; pal.appendChild(pp);
       const cl = document.createElement('div'); cl.className = 'g';
-      b(cl, '전체 지우기', () => { if (cur.items.length && confirm('판을 모두 지울까? (Ctrl+Z로 되돌릴 수 있음)')) { record(); cur.items = []; sel = -1; dirty = true; render(); props(); } }, 'del');
+      b(cl, '전체 지우기', () => { if (cur.items.length && confirm('판을 모두 지울까? (Ctrl+Z로 되돌릴 수 있음)')) { record(); cur.items = []; sel = -1; touch(); render(); props(); } }, 'del');
       pal.appendChild(cl);
     }
 
@@ -230,7 +295,7 @@
         if (type === 'select') { i = document.createElement('select'); opts.forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; i.appendChild(op); }); i.value = o[key] || opts[0][0]; }
         else { i = document.createElement('input'); i.type = type; if (type === 'number') { i.step = 1; Object.assign(i, opts || {}); } i.value = o[key] == null ? '' : o[key]; }
         let rec = false; i.addEventListener('focus', () => { rec = false; });
-        i.addEventListener('input', () => { if (!rec) { record(); rec = true; } o[key] = type === 'number' ? +i.value : i.value; if (key === 'dash') o.dash = i.value === '1' ? 1 : undefined; dirty = true; render(); });
+        i.addEventListener('input', () => { if (!rec) { record(); rec = true; } o[key] = type === 'number' ? +i.value : i.value; if (key === 'dash') o.dash = i.value === '1' ? 1 : undefined; touch(); render(); });
         i.dataset.key = key;
         l.appendChild(i); pp.appendChild(l);
       };
@@ -246,7 +311,7 @@
       if (o.ar) field('모양', 'dash', 'select', [['', '실선'], ['1', '점선']]);
       if (o.p) field('롤', 'p', 'select', ROLES.map(r => [r, r]));
       const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '이 항목 삭제';
-      del.addEventListener('click', () => { record(); cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); });
+      del.addEventListener('click', () => { record(); cur.items.splice(sel, 1); sel = -1; touch(); render(); props(); });
       pp.appendChild(del);
     }
 
@@ -282,6 +347,7 @@
         g.appendChild(c);
       }));
       svg.appendChild(g);
+      if (root.querySelector('.plans .pl')) syncPlans();
     }
     let drag = null;
     const svgPt = e => { const svg = board.querySelector('svg'); const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y]; };
@@ -310,12 +376,12 @@
         case 'te0': o.te = [mv(o0.te[0]), o0.te[1]]; break;
         case 'te1': o.te = [o0.te[0], mv(o0.te[1])]; break;
       }
-      dirty = true; render();
+      touch(); render();
     });
     const end = () => { if (drag) { if (snap() !== drag.pre) record(drag.pre); drag = null; props(); } };
     board.addEventListener('pointerup', end); board.addEventListener('pointercancel', end);
     root.addEventListener('keydown', e => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && sel >= 0 && !e.target.closest('input,textarea,select')) { e.preventDefault(); record(); cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && sel >= 0 && !e.target.closest('input,textarea,select')) { e.preventDefault(); record(); cur.items.splice(sel, 1); sel = -1; touch(); render(); props(); }
     });
     board.tabIndex = 0;
     root.querySelector('.undo').addEventListener('click', undo);
@@ -325,7 +391,9 @@
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       if (e.target.closest && e.target.closest('input, textarea, select, dialog')) return; // 글자 칸은 브라우저 기본 되돌리기
       const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (k === 'c' && sel >= 0) { e.preventDefault(); CLIP = { type: 'item', item: clone(cur.items[sel]) }; syncPlans(); status('항목 복사함 · Ctrl+V 로 붙여넣기', 'ok'); }
+      else if (k === 'v' && CLIP) { e.preventDefault(); paste(); }
+      else if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
     };
     if (root._simKey) document.removeEventListener('keydown', root._simKey); // 같은 자리에 다시 붙을 때 이전 것 제거
@@ -333,6 +401,6 @@
     document.addEventListener('keydown', onKey);
     syncUndo();
 
-    buildPalette(); fillLoad(); render(); props();
+    buildPalette(); fillLoad(); loadPlan(0);
   }
 })();
