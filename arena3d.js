@@ -1330,7 +1330,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const roles = RN0.filter(r => pawns[r]).concat(Object.keys(pawns).filter(r => !RN0.includes(r)));
     if (roles.length) {
       const gr = grp('롤');
-      roles.forEach(r => { const b = btn(r + (meta && hasWhy(meta.key, r) ? '*' : ''), false, () => setFocus(r), 'role'); b.dataset.role = r; b.style.background = RC[r[0]] || '#666'; gr.appendChild(b); });
+      roles.forEach(r => { const b = btn(r + (meta && hasWhy(meta.key, r) ? '*' : ''), false, () => setFocus(r), 'role'); b.dataset.role = r; b.style.background = RC[r[0]] || '#666'; if (meta && hasWhy(meta.key, r)) b.title = `${r}: 이 기믹에서 '왜 이렇게 하는지' 설명이 있음 (* 표시). 말에 마우스를 올리면 보임`; gr.appendChild(b); });
       // 롤 버튼에 마우스를 올려도 팝오버 (버튼 위쪽에 표시)
       gr.addEventListener('pointerover', e => { const b = e.target.closest('button.role'); if (!b || e.pointerType !== 'mouse') return; const rr = b.getBoundingClientRect(), sr = stage.getBoundingClientRect(); showPop(b.dataset.role, rr.left, sr.bottom - 10); popEl.style.top = Math.max(8, sr.height - popEl.offsetHeight - 12) + 'px'; });
       gr.addEventListener('pointerout', e => { if (e.target.closest('button.role')) showPop(null); });
