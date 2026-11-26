@@ -811,11 +811,18 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       return g;
     }
     function boss(name, p, o) {
-      const col = o.c || BC[name] || '#555';
-      const r = o.r || 11;
+      const col = o.c || BC[name] || (o.sh === 'd' ? '#9bbf6a' : '#555');
+      const r = o.r || (o.sh === 'd' ? 5 : 11);
       const g = new T.Group();
       const mat = track(new T.MeshStandardMaterial({ color: col, roughness: 0.35, metalness: 0.15 }));
-      if (!name && r < 8) {
+      if (o.sh === 'd') {
+        // 오브젝트: 받침 위에 떠 있는 마름모(보스·몬스터·애드의 기둥 모양과 구별)
+        const d = new T.Mesh(track(new T.OctahedronGeometry(r * 0.95)), track(new T.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.25, roughness: 0.3, metalness: 0.2 })));
+        d.scale.set(1, 1.45, 1); d.position.y = r * 1.6 + 2; d.castShadow = true; g.add(d);
+        const base = new T.Mesh(track(new T.CylinderGeometry(r * 0.9, r * 1.05, 1.2, 4)), mat); base.rotation.y = Math.PI / 4; base.position.y = 0.6; g.add(base);
+        animators.push(t => { d.rotation.y = t * 1.2; d.position.y = r * 1.6 + 2 + Math.sin(t * 2 + p[0]) * 0.6; });
+        if (name) { const l = label(name, { size: 5 }); l.position.y = r * 3.4 + 6; g.add(l); }
+      } else if (!name && r < 8) {
         const s = new T.Mesh(track(new T.IcosahedronGeometry(r * 0.9, 1)), mat); s.position.y = r + 2; s.castShadow = true; g.add(s);
         animators.push(t => { s.position.y = r + 2 + Math.sin(t * 2 + p[0]) * 0.8; s.rotation.y = t * 0.6; });
       } else {
@@ -1282,6 +1289,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     /* --- 편집 (관리자) --- */
     const A = window.JamAdmin;
+    if (!meta && OPTS.onEdit) {
+      // 시뮬레이터에서 연 3D: 로그인 없이 편집, 바뀐 내용은 시뮬레이터 판에 바로 반영
+      const ge = grp('편집');
+      const b = btn(EDIT ? '편집 끝내기' : '✎ 3D에서 편집', EDIT, () => { EDIT = !EDIT; rebuild(); });
+      b.title = '말·보스·장판을 끌어서 옮김. 시뮬레이터 판에 바로 반영 (되돌리기는 시뮬레이터에서 Ctrl+Z)'; ge.appendChild(b);
+    }
     if (A && !A.on && meta) {
       // 로그인 안 된 상태: 버튼은 보이고, 누르면 관리자 로그인
       const ge = grp('편집');
@@ -1317,7 +1330,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         ge.appendChild(btn('편집 이력', null, () => showHistory()));
       }
     }
-    function rebuild() { open(items, { keepCam: true }); }
+    function rebuild() { open(items, Object.assign({}, OPTS, { keepCam: true, autoplay: false })); }
 
     async function showHistory() {
       sideEl.dataset.mode = 'hist'; sideEl.classList.add('on'); sideBtn.setAttribute('aria-pressed', 'false');
@@ -1486,8 +1499,26 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         return Math.hypot(c[0] - b[0], c[1] - b[1]) < 4;
       });
     }
+    // 편집 반영: 기믹 노트(meta)는 EDITS 에, 시뮬레이터 등에서 연 장면은 items 를 직접 고치고 onEdit 로 알려줌
+    function applyPatches(patches) {
+      if (meta) {
+        const cur = Object.assign({}, EDITS[meta.key]);
+        for (const k in patches) cur[k] = Object.assign({}, cur[k], patches[k]);
+        EDITS[meta.key] = cur; applyCard(meta.ph, meta.ci); refresh2D();
+      } else {
+        for (const k in patches) {
+          const o = items[k], p = patches[k]; if (!o) continue;
+          if (p.xy) { delete o.at; o.xy = p.xy; }
+          if (p.a) { o.a = p.a; o.b = p.b; }
+          if (p.ar) o.ar = p.ar;
+          if (p.dir != null) o.dir = p.dir;
+        }
+        if (OPTS.onEdit) OPTS.onEdit(items);
+      }
+      rebuild();
+    }
     function commitMove(ent, dx, dz, followers = []) {
-      const cur = Object.assign({}, EDITS[meta.key]);
+      const cur = {};
       const one = e2 => {
         const o = items[e2.idx]; if (!o) return;
         const patch = Object.assign({}, cur[e2.idx]);
@@ -1499,12 +1530,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         cur[e2.idx] = patch;
       };
       one(ent); followers.forEach(one);
-      EDITS[meta.key] = cur;
-      applyCard(meta.ph, meta.ci); refresh2D(); rebuild();
+      applyPatches(cur);
     }
     function commitRotate(ent, deg, piv) {
       const o = items[ent.idx]; if (!o) return;
-      const patch = Object.assign({}, (EDITS[meta.key] || {})[ent.idx]);
+      const patch = {};
       if (o.z === 'cone') patch.dir = ((o.dir + deg) % 360 + 360) % 360;
       else if (o.z === 'band') {
         const th = deg * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
@@ -1512,8 +1542,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         const rot = q => { const v = xy(q), x = v[0] - piv[0], y = v[1] - piv[1]; return [r1(piv[0] + x * c - y * sn), r1(piv[1] + x * sn + y * c)]; };
         patch.a = rot(o.a); patch.b = rot(o.b);
       } else return;
-      EDITS[meta.key] = Object.assign({}, EDITS[meta.key], { [ent.idx]: patch });
-      applyCard(meta.ph, meta.ci); refresh2D(); rebuild();
+      applyPatches({ [ent.idx]: patch });
     }
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointermove', onMove);

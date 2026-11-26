@@ -169,7 +169,11 @@
     });
     $('.v3d').addEventListener('click', () => {
       if (!window.Arena3D) return;
-      window.Arena3D.open(clone(cur.items), { title: cur.name || '전략 시뮬레이션', steps: cur.memo ? cur.memo.split('\n').filter(Boolean) : [] });
+      window.Arena3D.open(clone(cur.items), {
+        title: cur.name || '전략 시뮬레이션', steps: cur.memo ? cur.memo.split('\n').filter(Boolean) : [],
+        // 3D에서 편집하면 판에도 바로 반영 (Ctrl+Z 로 되돌리기 가능)
+        onEdit: its => { record(); cur.items = clone(its); sel = -1; dirty = true; render(); props(); }
+      });
     });
 
     /* --- 팔레트 --- */
@@ -199,7 +203,7 @@
       b(go, '보스', () => add({ b: '보스', xy: off() }, 'b'));
       b(go, '몬스터', () => add({ b: '몬스터', xy: off(), r: 8, c: '#b0662a' }, 'b'));
       b(go, '애드', () => add({ b: '애드', xy: off(), r: 5.5, c: '#7a5fb0' }, 'b'));
-      b(go, '작은 오브젝트', () => add({ b: '', xy: off(), r: 4, c: '#9bbf6a' }));
+      b(go, '◆ 오브젝트', () => add({ b: '오브젝트', xy: off(), r: 5, c: '#9bbf6a', sh: 'd' }, 'b'));
       b(go, '→ 화살표', () => { const [x, y] = off(); add({ ar: [[x - 20, y], [x + 20, y]] }); });
       b(go, '⇢ 점선 화살표', () => { const [x, y] = off(); add({ ar: [[x - 20, y], [x + 20, y]], dash: 1 }); });
       b(go, '줄(테더)', () => { const [x, y] = off(); add({ te: [[x - 20, y], [x + 20, y]] }); });
@@ -230,14 +234,14 @@
         i.dataset.key = key;
         l.appendChild(i); pp.appendChild(l);
       };
-      const name = o.p ? `롤 ${o.p}` : o.b != null ? (o.r && o.r < 7 ? '애드 · 오브젝트' : o.r && o.r < 10 ? '몬스터' : '보스') : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
+      const name = o.p ? `롤 ${o.p}` : o.b != null ? (o.sh === 'd' ? '오브젝트' : o.r && o.r < 7 ? '애드' : o.r && o.r < 10 ? '몬스터' : '보스') : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
       const t = document.createElement('div'); t.style.cssText = 'font-weight:800;color:var(--ink,#16151a)'; t.textContent = name; pp.appendChild(t);
       if (o.z) field('종류', 'k', 'select', [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']]);
       if (o.z === 'c') field('반지름', 'r', 'number', { min: 2, max: 120 });
       if (o.z === 'donut') { field('안쪽', 'r1', 'number', { min: 0, max: 120 }); field('바깥', 'r2', 'number', { min: 2, max: 140 }); }
       if (o.z === 'cone') { field('방향(°)', 'dir', 'number', { min: 0, max: 359 }); field('각도(°)', 'w', 'number', { min: 5, max: 360 }); field('길이', 'len', 'number', { min: 5, max: 200 }); }
       if (o.z === 'band') field('폭', 'w', 'number', { min: 2, max: 200 });
-      if (o.b != null) { field('이름', 'b', 'text'); field('크기', 'r', 'number', { min: 3, max: 30 }); field('색', 'c', 'color'); }
+      if (o.b != null) { field('이름', 'b', 'text'); field('모양', 'sh', 'select', [['', '● 원 (보스·몬스터·애드)'], ['d', '◆ 마름모 (오브젝트)']]); field('크기', 'r', 'number', { min: 3, max: 30 }); field('색', 'c', 'color'); }
       if (o.t != null) { field('글자', 't', 'text'); field('크기', 'fs', 'number', { min: 6, max: 20 }); }
       if (o.ar) field('모양', 'dash', 'select', [['', '실선'], ['1', '점선']]);
       if (o.p) field('롤', 'p', 'select', ROLES.map(r => [r, r]));
