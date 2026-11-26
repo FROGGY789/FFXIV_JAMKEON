@@ -327,8 +327,8 @@
 dialog.a3d{border:0;padding:0;margin:auto;width:min(1200px,100vw - 24px);height:min(860px,100dvh - 24px);max-width:none;max-height:none;border-radius:18px;
   background:var(--a3d-bg);color:var(--a3d-ink);box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:inherit}
 dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
-dialog.a3d:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;margin:0}
-dialog.a3d:fullscreen::backdrop{background:#000}
+.a3d-in:fullscreen{width:100vw;height:100vh;background:var(--a3d-bg);color:var(--a3d-ink)}
+.a3d-in:-webkit-full-screen{width:100vw;height:100vh;background:var(--a3d-bg)}
 .a3d-in{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
 .a3d-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--a3d-line)}
 .a3d-hd h2{font-size:17px;line-height:1.3;margin:0;font-weight:800;flex:1;min-width:0}
@@ -484,13 +484,18 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
-    dlg.addEventListener('close', () => { if (document.fullscreenElement === dlg) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
+    dlg.addEventListener('close', () => { if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
   function toggleFull() {
     const fe = document.fullscreenElement || document.webkitFullscreenElement;
     if (fe) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    else { const rq = dlg.requestFullscreen || dlg.webkitRequestFullscreen; if (rq) { const r = rq.call(dlg); if (r && r.catch) r.catch(() => alert('이 브라우저는 전체화면을 지원하지 않음')); } }
+    else {
+      // dialog 는 전체화면이 안 돼서 안쪽 내용(.a3d-in)을 전체화면으로
+      const el = dlg.querySelector('.a3d-in'), rq = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!rq) { alert('이 브라우저는 전체화면을 지원하지 않음'); return; }
+      const r = rq.call(el); if (r && r.catch) r.catch(() => alert('전체화면으로 바꾸지 못함'));
+    }
   }
   let libs, libsReady = false;
   function loadLibs() {
