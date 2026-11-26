@@ -493,7 +493,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
-    dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
+    dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; VIEWOFF = 0; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
   function toggleFull() {
@@ -520,6 +520,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let CONT = false;        // 연속 재생 중
   let CONT_PHASE = null;   // 연속 재생 범위: 페이즈 id (null 이면 전체)
   let CARRY = null;        // 연속 재생 때 이전 기믹 끝 위치 (말·보스가 이어서 걸어감)
+  let VIEWOFF = 0;         // 옆 패널 때문에 화면을 민 정도 (다시 그려도 유지)
   let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
   let SPEED = 1;           // 재생 배속
   let EDIT = false;        // 편집 모드
@@ -617,7 +618,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       RENDERER.domElement.setAttribute('aria-label', '기믹 3D 필드. 드래그해서 회전');
     }
     const renderer = RENDERER;
-    renderer.setSize(W(), H(), false);
+    { const sz = renderer.getSize(new T.Vector2()); if (sz.x !== W() || sz.y !== H()) renderer.setSize(W(), H(), false); } // 같은 크기면 캔버스를 비우지 않음
     if (renderer.domElement.parentElement !== stage) stage.prepend(renderer.domElement);
     // 연속 재생으로 넘어온 경우: 이전 기믹 끝 위치에서 이어서 움직임
     const carry = autoplay ? CARRY : null; CARRY = null;
@@ -1679,7 +1680,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); sizeInk(); });
     ro.observe(stage);
 
-    let raf = 0, viewOff = 0;
+    let raf = 0, viewOff = dlg.open ? VIEWOFF : 0; // 편집으로 다시 그릴 때 화면이 옆으로 튀지 않게 이전 값 유지
     const clock = new T.Clock();
     (function loop() {
       raf = requestAnimationFrame(loop);
@@ -1694,6 +1695,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const wantOff = sideEl.classList.contains('on') && W() > 640 ? (sideEl.offsetWidth + 24) / 2 : 0;
       viewOff += (wantOff - viewOff) * (REDUCED ? 1 : 0.15);
       if (Math.abs(wantOff - viewOff) < 0.5) viewOff = wantOff;
+      VIEWOFF = viewOff;
       if (viewOff > 0.5) camera.setViewOffset(W(), H(), viewOff, 0, W(), H()); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
       castEl.style.marginLeft = viewOff ? (-viewOff) + 'px' : '';
       tickPlay(performance.now());
