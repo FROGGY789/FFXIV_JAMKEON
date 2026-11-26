@@ -412,6 +412,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 .a3d-dirty{color:#c0392b;font-weight:800}
 .a3d-ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
 .a3d-stage.pen canvas:not(.a3d-ink){cursor:crosshair}
+.a3d-speed{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:0 6px;white-space:nowrap}
+.a3d-speed span{min-width:62px;font-variant-numeric:tabular-nums}
+.a3d-speed input{width:150px;accent-color:#7b61ff;cursor:pointer}
 .a3d-bar button.a3d-sw{display:inline-flex;align-items:center;gap:8px;border-color:transparent;padding-left:4px}
 .a3d-bar button.a3d-sw .tr{flex:none;position:relative;width:38px;height:22px;border-radius:999px;background:var(--a3d-line);transition:background .2s}
 .a3d-bar button.a3d-sw .tr::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
@@ -530,7 +533,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let LOWQ = false;        // 느린 PC 감지되면 화질 낮춤 (해상도 1배, 그림자 끔). 이 탭에서 계속 유지
   let VIEWOFF = 0;         // 옆 패널 때문에 화면을 민 정도 (다시 그려도 유지)
   let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
-  let SPEED = 1;           // 재생 배속
+  let SPEED = 1;           // 재생 배속 (0.1x ~ 2x, 슬라이더)
+  try { const v = parseFloat(localStorage.getItem('jamkeon.speed')); if (v >= 0.1 && v <= 2) SPEED = v; } catch (e) {}
   let EDIT = false;        // 편집 모드
   let camState = null;     // 카드 넘길 때 카메라 유지
   let POP3D = true;        // 3D 안 설명 팝오버
@@ -1202,10 +1206,24 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const b = btn(`${i + 1} ${stp.name === String(i + 1) ? '' : stp.name}`.trim(), i === cur, () => { playing = false; paused = 0; exiting = null; CONT = false; startStep(i); });
       b.title = stp.cap; gp.appendChild(b); return b;
     });
-    const SPEEDS = [0.5, 0.75, 1, 1.5, 2];
-    const speedBtn = btn(`속도 ${SPEED}x`, null, b => { SPEED = SPEEDS[(SPEEDS.indexOf(SPEED) + 1) % SPEEDS.length]; b.textContent = `속도 ${SPEED}x`; if (anim) anim.s = performance.now() - anim.el / SPEED; });
-    speedBtn.title = '재생 속도 (0.5x ~ 2x)';
-    gp.appendChild(speedBtn);
+    // 재생 속도 슬라이더: 로그 눈금이라 느린 쪽(0.1x~1x)이 절반 넘게 차지함 → 천천히 볼 때 세밀하게 조절
+    const LMIN = Math.log10(0.1), LMAX = Math.log10(2);
+    const spWrap = document.createElement('label'); spWrap.className = 'a3d-speed'; spWrap.title = '재생 속도 (0.1x ~ 2x) · 두 번 누르면 1x';
+    const spLab = document.createElement('span'), sp = document.createElement('input');
+    sp.type = 'range'; sp.min = '0'; sp.max = '1000'; sp.step = '1'; sp.setAttribute('aria-label', '재생 속도');
+    const fmt = v => (v < 1 ? v.toFixed(2).replace(/0$/, '') : v.toFixed(1).replace(/\.0$/, '')) + 'x';
+    const toPos = v => Math.round((Math.log10(v) - LMIN) / (LMAX - LMIN) * 1000);
+    const setSpeed = v => {
+      v = Math.max(0.1, Math.min(2, v)); if (Math.abs(v - 1) < 0.04) v = 1; // 1x 근처는 1x 에 붙음
+      SPEED = +v.toFixed(3); if (anim) anim.s = performance.now() - anim.el / SPEED;
+      spLab.textContent = '속도 ' + fmt(SPEED); sp.value = toPos(SPEED); sp.setAttribute('aria-valuetext', fmt(SPEED));
+      try { localStorage.setItem('jamkeon.speed', String(SPEED)); } catch (e) {}
+    };
+    sp.addEventListener('input', () => { const old = anim ? anim.el : 0; if (anim) anim.el = old; setSpeed(Math.pow(10, LMIN + sp.value / 1000 * (LMAX - LMIN))); });
+    sp.addEventListener('dblclick', () => setSpeed(1));
+    sp.addEventListener('keydown', e => e.stopPropagation()); // 화살표 키는 슬라이더 조절 (기믹 넘기기 X)
+    spWrap.append(spLab, sp); setSpeed(SPEED);
+    gp.appendChild(spWrap);
     let contBtn = null, phBtn = null;
     if (allCards(items).length && meta) {
       const startCont = pid => {
