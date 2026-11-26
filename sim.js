@@ -87,6 +87,7 @@
 .sim button[aria-pressed=true]{outline:2px solid var(--accent,#a597e3);outline-offset:1px}
 .sim .board{position:relative;max-width:640px;margin:0 auto;touch-action:none;user-select:none}
 .sim .board svg{width:100%;height:auto;display:block;color:var(--ink,#16151a)}
+.sim .board{cursor:default}.sim .board.over{cursor:grab}
 .sim .board .h{cursor:grab}.sim .board .h:hover{stroke-width:2.4}
 .sim .pal{display:grid;gap:8px}
 .sim .pal .g{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
@@ -306,14 +307,14 @@
         i.dataset.key = key;
         l.appendChild(i); pp.appendChild(l);
       };
-      const name = o.p ? `롤 ${o.p}` : o.b != null ? (o.sh === 'd' ? '오브젝트' : o.r && o.r < 7 ? '애드' : o.r && o.r < 10 ? '몬스터' : '보스') : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
+      const name = o.p ? `롤 ${o.p}` : o.b != null && !o.z ? (o.sh === 'd' ? '오브젝트' : o.r && o.r < 7 ? '애드' : o.r && o.r < 10 ? '몬스터' : '보스') : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
       const t = document.createElement('div'); t.style.cssText = 'font-weight:800;color:var(--ink,#16151a)'; t.textContent = name; pp.appendChild(t);
       if (o.z) field('종류', 'k', 'select', [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']]);
       if (o.z === 'c') field('반지름', 'r', 'number', { min: 2, max: 120 });
       if (o.z === 'donut') { field('안쪽', 'r1', 'number', { min: 0, max: 120 }); field('바깥', 'r2', 'number', { min: 2, max: 140 }); }
       if (o.z === 'cone') { field('방향(°)', 'dir', 'number', { min: 0, max: 359 }); field('각도(°)', 'w', 'number', { min: 5, max: 360 }); field('길이', 'len', 'number', { min: 5, max: 200 }); }
       if (o.z === 'band') field('폭', 'w', 'number', { min: 2, max: 200 });
-      if (o.b != null) { field('이름', 'b', 'text'); field('모양', 'sh', 'select', [['', '● 원 (보스·몬스터·애드)'], ['d', '◆ 마름모 (오브젝트)']]); field('크기', 'r', 'number', { min: 3, max: 30 }); field('색', 'c', 'color'); }
+      if (o.b != null && !o.z) { field('이름', 'b', 'text'); field('모양', 'sh', 'select', [['', '● 원 (보스·몬스터·애드)'], ['d', '◆ 마름모 (오브젝트)']]); field('크기', 'r', 'number', { min: 3, max: 30 }); field('색', 'c', 'color'); }
       if (o.t != null) { field('글자', 't', 'text'); field('크기', 'fs', 'number', { min: 6, max: 20 }); }
       if (o.ar) field('모양', 'dash', 'select', [['', '실선'], ['1', '점선']]);
       if (o.p) field('롤', 'p', 'select', ROLES.map(r => [r, r]));
@@ -358,19 +359,51 @@
     }
     let drag = null;
     const svgPt = e => { const svg = board.querySelector('svg'); const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y]; };
+    // 도형 안쪽 아무 데나 눌러도 선택·이동: 작은 것(롤·보스·마커·글자·화살표)을 먼저, 그다음 장판(위에 있는 것부터)
+    const segDist = (p, a, b) => { const vx = b[0] - a[0], vy = b[1] - a[1], L2 = vx * vx + vy * vy || 1; const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / L2)); return Math.hypot(p[0] - a[0] - vx * t, p[1] - a[1] - vy * t); };
+    function hitTest(p) {
+      const hit = (o) => {
+        const d = q => Math.hypot(p[0] - q[0], p[1] - q[1]);
+        if (o.z === 'c') return d(o.xy) <= o.r;
+        if (o.z === 'donut') { const r = d(o.xy); return r >= (o.r1 || 0) && r <= o.r2; }
+        if (o.z === 'cone') { const vx = p[0] - o.xy[0], vy = p[1] - o.xy[1], r = Math.hypot(vx, vy); if (r > o.len) return false; const ang = ((Math.atan2(vx, -vy) * 180 / Math.PI) + 360) % 360; let df = Math.abs(((ang - o.dir) + 540) % 360 - 180); return df <= o.w / 2 || r < 4; }
+        if (o.z === 'band') return segDist(p, o.a, o.b) <= Math.max(4, o.w / 2);
+        if (o.ar) return segDist(p, o.ar[0], o.ar[1]) <= 5;
+        if (o.te) return segDist(p, o.te[0], o.te[1]) <= 5;
+        if (o.arc) { const r = Math.hypot(p[0], p[1]); if (Math.abs(r - o.arc.r) > 5) return false; const ang = ((Math.atan2(p[0], -p[1]) * 180 / Math.PI) + 360) % 360, lo = Math.min(o.arc.a1, o.arc.a2), hi = Math.max(o.arc.a1, o.arc.a2); return [ang, ang + 360, ang - 360].some(a => a >= lo && a <= hi); }
+        if (o.p) return d(o.xy) <= 10;
+        if (o.b != null) return d(o.xy) <= (o.r || 11) * (o.sh === 'd' ? 1.4 : 1) + 2;
+        if (o.m) return d(o.xy) <= 10;
+        if (o.t != null) return Math.abs(p[0] - o.xy[0]) <= Math.max(10, String(o.t).length * 4.5) && Math.abs(p[1] + 3 - o.xy[1]) <= 7;
+        return false;
+      };
+      const idx = cur.items.map((o, i) => i).reverse();
+      const small = idx.filter(i => !cur.items[i].z), zones = idx.filter(i => cur.items[i].z);
+      for (const i of small.concat(zones)) if (cur.items[i] && hit(cur.items[i])) return i;
+      return -1;
+    }
     board.addEventListener('pointerdown', e => {
       const h = e.target.closest && e.target.closest('.h');
-      if (!h) { if (sel >= 0) { sel = -1; render(); props(); } return; }
+      const p0 = svgPt(e);
+      let i, k;
+      if (h) { i = +h.dataset.i; k = h.dataset.k; }
+      else { i = hitTest(p0); k = 'body'; if (i < 0) { if (sel >= 0) { sel = -1; render(); props(); } return; } }
       e.preventDefault();
-      sel = +h.dataset.i; drag = { k: h.dataset.k, p0: svgPt(e), o0: clone(cur.items[sel]), pre: snap() };
+      sel = i; drag = { k, p0, o0: clone(cur.items[sel]), pre: snap() };
       board.setPointerCapture(e.pointerId); render(); props();
     });
     board.addEventListener('pointermove', e => {
-      if (!drag) return;
+      if (!drag) { if (e.pointerType === 'mouse') board.classList.toggle('over', !!(e.target.closest && e.target.closest('.h')) || hitTest(svgPt(e)) >= 0); return; }
       const p = svgPt(e), dx = p[0] - drag.p0[0], dy = p[1] - drag.p0[1], o = cur.items[sel], o0 = drag.o0;
       const mv = q => [r1(q[0] + dx), r1(q[1] + dy)];
       switch (drag.k) {
         case 'xy': o.xy = mv(o0.xy); break;
+        case 'body': // 통째로 옮기기
+          if (o0.xy) o.xy = mv(o0.xy);
+          if (o0.z === 'band') { o.a = mv(o0.a); o.b = mv(o0.b); }
+          if (o0.ar) o.ar = o0.ar.map(mv);
+          if (o0.te) o.te = o0.te.map(mv);
+          break;
         case 'r': o.r = Math.max(2, r1(Math.hypot(p[0] - o.xy[0], p[1] - o.xy[1]))); break;
         case 'r1': o.r1 = Math.max(0, r1(Math.hypot(p[0] - o.xy[0], p[1] - o.xy[1]))); break;
         case 'r2': o.r2 = Math.max(2, r1(Math.hypot(p[0] - o.xy[0], p[1] - o.xy[1]))); break;
