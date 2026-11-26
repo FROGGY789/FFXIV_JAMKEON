@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./admin.js?v=20261126b"></script>
-<script src="./raids.js?v=20261126b"></script>
+<script src="./admin.js?v=20261126d"></script>
+<script src="./raids.js?v=20261126d"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,9 +12,9 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261126b"></script>
-<script src="./uwu-data.js?v=20261126b"></script>
-<script src="./arena3d.js?v=20261126b"></script>
+<script src="./image-slot.js?v=20261126d"></script>
+<script src="./uwu-data.js?v=20261126d"></script>
+<script src="./arena3d.js?v=20261126d"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -31,12 +31,20 @@ input,select,textarea,button{font:inherit;color:inherit}
 .log-photo image-slot{display:block;width:100%;height:100%}
 html:not(.adm-on) .log-photo:not(:has(image-slot[data-filled])){display:none}
 html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
+/* 랜딩 배경: 은은한 오로라 */
+.landing{position:relative;isolation:isolate}
+.landing::before,.landing::after{content:'';position:fixed;inset:-25%;z-index:-1;pointer-events:none;filter:blur(70px)}
+.landing::before{opacity:.5;background:radial-gradient(38% 30% at 22% 28%,color-mix(in srgb,var(--accent,#a597e3) 60%,transparent),transparent 70%),radial-gradient(32% 26% at 78% 22%,rgba(80,200,185,.32),transparent 70%);animation:aur1 20s ease-in-out infinite alternate}
+.landing::after{opacity:.42;background:radial-gradient(42% 32% at 62% 78%,rgba(110,150,255,.3),transparent 70%),radial-gradient(28% 26% at 28% 82%,rgba(255,165,210,.24),transparent 70%);animation:aur2 26s ease-in-out infinite alternate}
+@keyframes aur1{from{transform:translate3d(-5%,-3%,0) rotate(0deg)}to{transform:translate3d(6%,4%,0) rotate(9deg)}}
+@keyframes aur2{from{transform:translate3d(5%,3%,0) rotate(0deg)}to{transform:translate3d(-6%,-4%,0) rotate(-7deg)}}
+@media (prefers-reduced-motion:reduce){.landing::before,.landing::after{animation:none}}
 </style>
 </helmet>
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
 
 <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
-<div style="padding:36px clamp(16px,4vw,56px) 28px;max-width:1720px;margin:0 auto;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center" data-screen-label="Landing">
+<div style="padding:36px clamp(16px,4vw,56px) 28px;max-width:1720px;margin:0 auto;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center" class="landing" data-screen-label="Landing">
   <div style="display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start">
     <div>
       <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)">
@@ -66,14 +74,14 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
                 <div style="width:7px;height:7px;border-radius:50%;background:var(--rim,#b5b0c2);margin:-3px auto 0"></div>
                 <div style="{{ c.threadStyle }}"></div>
                 <div style="width:20px;height:14px;margin:0 auto -6px;border-radius:6px 6px 3px 3px;background:var(--rim,#b5b0c2);position:relative;z-index:2;display:grid;place-items:center"><div style="width:6px;height:6px;border-radius:50%;border:1.5px solid var(--bg,#f6f5f8)"></div></div>
-                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:560px;perspective:1400px;cursor:pointer">
+                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:480px;perspective:1400px;cursor:pointer">
                   <div style="{{ c.flipStyle }}">
                     <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card,#ececef);border-radius:18px;padding:12px 12px 14px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
                       <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span>Ultimate · {{ c.code }}</span><span>#{{ c.no }}</span></div>
-                      <div style="height:380px;margin-top:12px;border-radius:14px;overflow:hidden">
+                      <div style="height:310px;margin-top:12px;border-radius:14px;overflow:hidden">
                         <image-slot id="raid-{{ c.id }}" shape="rounded" radius="14" placeholder="{{ c.ph }}"></image-slot>
                       </div>
-                      <div style="margin-top:14px;font-size:28px;font-weight:600;letter-spacing:-.03em">{{ c.name }}</div>
+                      <div style="margin-top:14px;font-size:25px;font-weight:600;letter-spacing:-.03em">{{ c.name }}</div>
                       <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:2px">{{ c.en }}</div>
                       <div style="flex:1"></div>
                       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line,#dddbe2);padding-top:10px">
@@ -177,7 +185,7 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
                 <div style="{{ it.barStyle }}"></div>
                 <div style="min-width:0">
                   <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">{{ it.count }}</div>
-                  <div style="font-size:26px;font-weight:600;letter-spacing:-.03em;margin-top:2px">{{ it.name }}</div>
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px"><div style="font-size:26px;font-weight:600;letter-spacing:-.03em">{{ it.name }}</div><button onClick="{{ it.playPhase }}" title="이 페이즈 기믹을 3D로 이어서 재생" style="{{ it.playStyle }}">▶ 연속 재생</button></div>
                   <p style="margin:6px 0 0;font-size:14px;color:var(--sub,#6f6c78);line-height:1.6;text-wrap:pretty">{{ it.wake }}</p>
                 </div>
               </div>
@@ -373,10 +381,10 @@ class Component extends DCLogic {
     const {view,flip,filter,form}=this.state;
     const grand=RAIDS.reduce((a,r)=>a+this.statsOf(r.id).tries,0);
     const NC=Math.max(1,RAIDS.length);
-    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=170+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
+    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=150+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
       return {...r,tries:st.tries,status:st.status,
         rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
-        swayStyle:{position:'absolute',left:22,right:22,top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
+        swayStyle:{position:'absolute',left:'clamp(18px,2.4vw,44px)',right:'clamp(18px,2.4vw,44px)',top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
         hangStyle:{transformOrigin:'50% 0',transform:`rotate(${fl?0:ROTS[i%6]}deg)`,transition:'transform .7s cubic-bezier(.2,.9,.25,1.15)'},
         threadStyle:{width:1,margin:'0 auto',background:'var(--sub)',opacity:.55,height:top-tt-10},
         flipStyle:{position:'absolute',inset:0,transformStyle:'preserve-3d',transition:'transform .75s cubic-bezier(.2,.8,.2,1)',transform:fl?'rotateY(180deg)':'rotateY(0deg)'},
@@ -392,7 +400,7 @@ class Component extends DCLogic {
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
     const base={...strip,isLanding:!view,isDetail:!!view,cards,
-      stripStyle:{position:'relative',height:860,width:`max(${Math.max(100,NC/3.2*100)}%, ${NC*300}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(NC).padStart(2,"0")} Ultimates · 누적 ${grand}릴`,
+      stripStyle:{position:'relative',height:760,width:`max(${Math.max(100,NC/4*100)}%, ${NC*290}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(NC).padStart(2,"0")} Ultimates · 누적 ${grand}릴`,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
@@ -404,7 +412,7 @@ class Component extends DCLogic {
     if(isU)U.PH.forEach(ph=>{const n=ph.cards.length;
       ph.cards.forEach((c,ci)=>{total++;if(this.state.learned[ph.id+'-'+ci])learnedN++});
       if(filter!=='all'&&filter!==ph.id)return;
-      feed.push({isPhase:true,isPost:false,name:ph.name,wake:ph.wake,count:`${String(n).padStart(2,'0')} gimmicks`,barStyle:{width:4,borderRadius:4,background:ph.color,flex:'none'}});
+      feed.push({isPhase:true,isPost:false,name:ph.name,wake:ph.wake,playPhase:()=>window.Arena3D&&window.Arena3D.playPhase&&window.Arena3D.playPhase(ph.id),playStyle:{border:'none',borderRadius:999,padding:'7px 14px',fontSize:13,fontWeight:700,cursor:'pointer',background:ph.color,color:'#fff',boxShadow:'0 4px 14px -6px '+ph.color},count:`${String(n).padStart(2,'0')} gimmicks`,barStyle:{width:4,borderRadius:4,background:ph.color,flex:'none'}});
       ph.cards.forEach((c,ci)=>{const k=ph.id+'-'+ci,lr=!!this.state.learned[k],op=!!this.state.open[k],R=(U.RL[ph.id]||[])[ci];
         feed.push({isPhase:false,isPost:true,phase:ph.name,initial:ph.name.split(' ')[1][0],meta:`기믹 ${String(ci+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}`,
           avatarStyle:{width:36,height:36,borderRadius:'50%',background:ph.color,color:'#fff',display:'grid',placeItems:'center',fontSize:14,fontWeight:700,flex:'none'},

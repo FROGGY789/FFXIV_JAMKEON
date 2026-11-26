@@ -101,7 +101,11 @@
 
   /* ---------- 레지스트리: draw() 에서 호출 ---------- */
   const REG = (window.__arena = window.__arena || []);
-  window.Arena3D = { open: (items, opts) => open(items, opts), register: items => REG.push(items) - 1 };
+  window.Arena3D = {
+    open: (items, opts) => open(items, opts), register: items => REG.push(items) - 1,
+    // 페이즈 연속 재생: 그 페이즈 첫 기믹부터 끝까지 이어서
+    playPhase: pid => { const u = U(); const ph = u && u.PH.find(p => p.id === pid); if (!ph || !ph.cards.length) return; CONT = true; CONT_PHASE = pid; CARRY = null; open(ph.cards[0].d, { autoplay: true }); }
+  };
 
   /* ---------- 카드 정보 (window.UWU) ---------- */
   const U = () => window.UWU && window.UWU.PH ? window.UWU : null;
@@ -323,6 +327,8 @@
 dialog.a3d{border:0;padding:0;margin:auto;width:min(1200px,100vw - 24px);height:min(860px,100dvh - 24px);max-width:none;max-height:none;border-radius:18px;
   background:var(--a3d-bg);color:var(--a3d-ink);box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:inherit}
 dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
+dialog.a3d:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;margin:0}
+dialog.a3d:fullscreen::backdrop{background:#000}
 .a3d-in{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
 .a3d-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--a3d-line)}
 .a3d-hd h2{font-size:17px;line-height:1.3;margin:0;font-weight:800;flex:1;min-width:0}
@@ -450,7 +456,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     dlg.innerHTML = `<div class="a3d-in">
   <div class="a3d-hd"><h2 id="a3d-title"><span></span><small></small></h2>
     <button class="a3d-hb nav" type="button" data-nav="-1" aria-label="이전 기믹">◀</button><button class="a3d-hb nav" type="button" data-nav="1" aria-label="다음 기믹">▶</button>
-    <button class="a3d-hb side" type="button" aria-pressed="false" hidden>공략 순서</button><button class="a3d-x" type="button" aria-label="닫기">✕</button></div>
+    <button class="a3d-hb side" type="button" aria-pressed="false" hidden>공략 순서</button><button class="a3d-hb fs" type="button" aria-label="전체화면" title="전체화면 (F)">⛶</button><button class="a3d-x" type="button" aria-label="닫기">✕</button></div>
   <div class="a3d-stage"><div class="a3d-load"></div><div class="a3d-cap" aria-live="polite"></div>
     <div class="a3d-cast" aria-live="polite"><small></small><div class="nm"></div><div class="bar"><i></i></div></div>
     <div class="a3d-hint">드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · 말 클릭: 강조 + 할 일</div>
@@ -465,11 +471,27 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     sideBtn.addEventListener('click', () => { if (sideEl.dataset.mode !== 'steps') showSteps(); const on = !sideEl.classList.contains('on'); sideEl.classList.toggle('on', on); sideBtn.setAttribute('aria-pressed', String(on)); });
     [prevBtn, nextBtn].forEach(b => b.addEventListener('click', () => { CONT = false; go(+b.dataset.nav, false); }));
     q('.a3d-x').addEventListener('click', () => dlg.close());
+    q('.a3d-hb.fs').addEventListener('click', toggleFull);
+    // 단축키: 스페이스 재생/멈춤 · F 전체화면 · ←/→ 이전/다음 기믹
+    document.addEventListener('keydown', e => {
+      if (!dlg.open || e.defaultPrevented) return;
+      if (e.target.closest && e.target.closest('input, textarea, select, dialog.adm, dialog.rm')) return;
+      if (e.key === ' ' && e.target.closest && e.target.closest('button, [tabindex]:not(canvas)')) return; // 버튼에 포커스가 있으면 그 버튼이 눌림
+      if (e.key === ' ' && R && R.togglePlay) { e.preventDefault(); R.togglePlay(); }
+      else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFull(); }
+      else if (e.key === 'ArrowRight' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(1, false); }
+      else if (e.key === 'ArrowLeft' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(-1, false); }
+    });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
-    dlg.addEventListener('close', () => { CONT = false; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); });
+    dlg.addEventListener('close', () => { if (document.fullscreenElement === dlg) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
+  function toggleFull() {
+    const fe = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fe) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else { const rq = dlg.requestFullscreen || dlg.webkitRequestFullscreen; if (rq) { const r = rq.call(dlg); if (r && r.catch) r.catch(() => alert('이 브라우저는 전체화면을 지원하지 않음')); } }
+  }
   let libs, libsReady = false;
   function loadLibs() {
     if (!libs) libs = Promise.all([import(THREE_URL), import(ORBIT_URL)]).then(([T, O]) => { libsReady = true; return { T, OrbitControls: O.OrbitControls }; });
@@ -481,7 +503,10 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let CUR = null;          // 현재 카드 items
   let OPTS = {};           // 메타 없을 때 넘겨받은 제목 등
   let FOCUS = null;        // 강조 중인 롤
-  let CONT = false;        // 전체 연속 재생 중
+  let CONT = false;        // 연속 재생 중
+  let CONT_PHASE = null;   // 연속 재생 범위: 페이즈 id (null 이면 전체)
+  let CARRY = null;        // 연속 재생 때 이전 기믹 끝 위치 (말·보스가 이어서 걸어감)
+  let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
   let SPEED = 1;           // 재생 배속
   let EDIT = false;        // 편집 모드
   let camState = null;     // 카드 넘길 때 카메라 유지
@@ -493,6 +518,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   function go(delta, autoplay) {
     const list = allCards(), i = list.indexOf(CUR);
     if (i < 0 || !list[i + delta]) return false;
+    if (autoplay && CONT && CONT_PHASE) { const m = metaOf(list[i + delta]); if (!m || m.ph.id !== CONT_PHASE) return false; }
     open(list[i + delta], { autoplay, keepCam: true });
     return true;
   }
@@ -567,14 +593,19 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   /* ---------- 장면 만들기 ---------- */
   function build({ T, OrbitControls }, items, pal, { meta, autoplay }) {
     const W = () => stage.clientWidth || 800, H = () => stage.clientHeight || 600;
-    const renderer = new T.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    if (!RENDERER) {
+      RENDERER = new T.WebGLRenderer({ antialias: true, alpha: false });
+      RENDERER.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+      RENDERER.shadowMap.enabled = true;
+      RENDERER.shadowMap.type = T.PCFSoftShadowMap;
+      RENDERER.domElement.tabIndex = 0;
+      RENDERER.domElement.setAttribute('aria-label', '기믹 3D 필드. 드래그해서 회전');
+    }
+    const renderer = RENDERER;
     renderer.setSize(W(), H(), false);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = T.PCFSoftShadowMap;
-    renderer.domElement.tabIndex = 0;
-    renderer.domElement.setAttribute('aria-label', '기믹 3D 필드. 드래그해서 회전');
-    stage.prepend(renderer.domElement);
+    if (renderer.domElement.parentElement !== stage) stage.prepend(renderer.domElement);
+    // 연속 재생으로 넘어온 경우: 이전 기믹 끝 위치에서 이어서 움직임
+    const carry = autoplay ? CARRY : null; CARRY = null;
     stage.classList.toggle('editing', EDIT);
 
     const dark = (pal.card.r + pal.card.g + pal.card.b) / 3 < 110;
@@ -910,6 +941,18 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     ];
     const pawnsE = ENT.filter(e => e.kind === 'pawn');
     pawnsE.forEach(e => { e.pos = [e.p0, e.p0]; e.paths = []; });
+    if (carry) {
+      pawnsE.forEach(e => { if (carry.pawns[e.role]) e.carry = carry.pawns[e.role]; });
+      const used = new Set();
+      ENT.forEach(e => {
+        if (e.kind !== 'unit') return;
+        const o = items[e.idx]; e.home = [e.g.position.x, e.g.position.z];
+        const key = o.b ? 'b:' + o.b : o.m ? 'm:' + o.m : '';
+        const k = key ? carry.units.findIndex((c, ci) => !used.has(ci) && c.key === key) : -1;
+        if (k >= 0) { used.add(k); e.carry = carry.units[k].pos; }
+      });
+      STEPS[0].name = '이어서'; STEPS[0].cap = '앞 기믹 자리에서 다음 위치로 이동'; STEPS[0].dur = 1.4;
+    }
     ENT.forEach(e => { e.at = e.kind === 'pawn' || e.kind === 'unit' ? 0 : 1; });
     // 장판 단계: 시전 바가 먼저 차고(0~40%), 장판이 하나씩 이어서 퍼짐
     const CAST_END = STEPS[1].cast ? 0.4 : 0;
@@ -983,15 +1026,20 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       ENT.forEach(e => {
         const v = i > e.at ? 1 : i === e.at ? clamp01((u - e.delay) / e.span) : 0;
         if (e.kind === 'pawn') {
-          e.g.visible = v > 0;
-          e.g.scale.setScalar(Math.max(0.001, i > 0 ? 1 : backO(v)));
+          e.g.visible = v > 0 || !!e.carry;
+          e.g.scale.setScalar(Math.max(0.001, i > 0 || e.carry ? 1 : backO(v)));
           let q;
-          if (i === 0) q = e.pos[0];
+          if (i === 0 && e.carry) { const f = easeIO(u); q = [e.carry[0] + (e.pos[0][0] - e.carry[0]) * f, e.carry[1] + (e.pos[0][1] - e.carry[1]) * f]; }
+          else if (i === 0) q = e.pos[0];
           else if (e.paths[i]) q = alongPath(e.paths[i], easeIO(u));
           else { const a = e.pos[i - 1], b = e.pos[i], f = easeIO(u); q = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; }
           e.g.position.set(q[0], 0, q[1]);
         } else if (e.kind === 'unit') {
-          e.g.visible = v > 0; e.g.scale.setScalar(Math.max(0.001, backO(v)));
+          if (e.carry) {
+            e.g.visible = true; e.g.scale.setScalar(1);
+            const f = i > 0 ? 1 : easeIO(u);
+            e.g.position.set(e.carry[0] + (e.home[0] - e.carry[0]) * f, 0, e.carry[1] + (e.home[1] - e.carry[1]) * f);
+          } else { e.g.visible = v > 0; e.g.scale.setScalar(Math.max(0.001, backO(v))); }
         } else if (e.kind === 'zone') {
           // 장판: 테두리가 먼저 번쩍 → 바닥이 중심에서 퍼지며 차오름 → 벽이 솟음
           const z = e.g.userData.z, w = easeO(v);
@@ -1082,28 +1130,41 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     let cur = LAST, anim = null, playing = false;
     const stepMs = i => BASE_MS * (STEPS[i].dur || 1) / SPEED;
     const gp = grp('재생');
-    const playBtn = btn('▶ 재생', null, () => {
-      if (playing) { playing = false; CONT = false; if (anim) { renderStep(anim.i, 1); anim = null; renderCast(0, 0, false); } syncUI(); return; }
+    let paused = 0, exiting = null;
+    function togglePlay() {
+      if (playing && !paused) {
+        // 멈춤: 그 자리에서 정지. 연속 재생 중이면 공략 순서를 펼쳐서 지금 기믹 설명을 보여줌
+        paused = performance.now();
+        if (CONT && lineCount) { showSteps(); sideEl.classList.add('on'); sideBtn.setAttribute('aria-pressed', 'true'); }
+        syncUI(); return;
+      }
+      if (paused) { const d = performance.now() - paused; if (anim) anim.s += d; if (exiting) exiting.s += d; paused = 0; syncUI(); return; }
       playing = true; startStep(cur >= LAST ? 0 : cur + 1);
-    }, 'play');
+    }
+    const playBtn = btn('▶ 재생', null, togglePlay, 'play');
     gp.appendChild(playBtn);
     const stepBtns = STEPS.map((stp, i) => {
-      const b = btn(`${i + 1} ${stp.name === String(i + 1) ? '' : stp.name}`.trim(), i === cur, () => { playing = false; CONT = false; startStep(i); });
+      const b = btn(`${i + 1} ${stp.name === String(i + 1) ? '' : stp.name}`.trim(), i === cur, () => { playing = false; paused = 0; exiting = null; CONT = false; startStep(i); });
       b.title = stp.cap; gp.appendChild(b); return b;
     });
-    const speedBtn = btn(`속도 ${SPEED}x`, null, b => { SPEED = SPEED === 1 ? 1.5 : SPEED === 1.5 ? 2 : SPEED === 2 ? 0.75 : 1; b.textContent = `속도 ${SPEED}x`; if (anim) anim.s = performance.now() - anim.el / SPEED; });
+    const SPEEDS = [0.5, 0.75, 1, 1.5, 2];
+    const speedBtn = btn(`속도 ${SPEED}x`, null, b => { SPEED = SPEEDS[(SPEEDS.indexOf(SPEED) + 1) % SPEEDS.length]; b.textContent = `속도 ${SPEED}x`; if (anim) anim.s = performance.now() - anim.el / SPEED; });
+    speedBtn.title = '재생 속도 (0.5x ~ 2x)';
     gp.appendChild(speedBtn);
-    let contBtn = null;
+    let contBtn = null, phBtn = null;
     if (allCards().length && meta) {
-      contBtn = btn(CONT ? '■ 연속 재생 중지' : '▶▶ 전체 연속 재생', CONT, () => {
-        if (CONT) { CONT = false; playing = false; anim = null; syncUI(); return; }
-        CONT = true;
-        const first = allCards()[0];
-        if (first === items) { playing = true; startStep(0); syncUI(); }
+      const startCont = pid => {
+        if (CONT && (CONT_PHASE || null) === pid) { CONT = false; CONT_PHASE = null; syncUI(); return; }
+        CONT = true; CONT_PHASE = pid; CARRY = null;
+        const first = pid ? U().PH.find(p => p.id === pid).cards[0].d : allCards()[0];
+        if (first === items) { playing = true; paused = 0; exiting = null; startStep(0); syncUI(); }
         else open(first, { autoplay: true, keepCam: true });
-      });
+      };
+      phBtn = btn('', null, () => startCont(meta.ph.id));
+      phBtn.title = '이 페이즈 첫 기믹부터 끝까지 이어서 재생';
+      contBtn = btn('', null, () => startCont(null));
       contBtn.title = '처음 기믹부터 마지막까지 이어서 재생';
-      gp.appendChild(contBtn);
+      gp.append(phBtn, contBtn);
     }
     // 공략 순서 문장 ↔ 재생 단계: 카드에 stepMap:[단계번호,...] 이 있으면 그걸 쓰고, 없으면 순서대로 고르게 나눔
     const lineCount = meta ? (meta.c.steps || []).length : (OPTS.steps || []).length;
@@ -1127,8 +1188,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       syncUI();
     }
     function syncUI() {
-      playBtn.textContent = playing ? '⏸ 멈춤' : (cur >= LAST && !anim ? '▶ 처음부터' : '▶ 재생');
-      if (contBtn) { contBtn.textContent = CONT ? '■ 연속 재생 중지' : '▶▶ 전체 연속 재생'; contBtn.setAttribute('aria-pressed', String(CONT)); }
+      playBtn.textContent = playing && !paused ? '⏸ 멈춤' : paused ? '▶ 계속' : (cur >= LAST && !anim ? '▶ 처음부터' : '▶ 재생');
+      if (contBtn) {
+        const onPh = CONT && CONT_PHASE === meta.ph.id, onAll = CONT && !CONT_PHASE;
+        phBtn.setAttribute('aria-pressed', String(onPh)); contBtn.setAttribute('aria-pressed', String(onAll));
+        phBtn.textContent = onPh ? '■ 연속 중지' : `▶▶ ${meta.ph.name} 연속`;
+        contBtn.textContent = onAll ? '■ 연속 중지' : '▶▶ 전체';
+      }
       stepBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === cur)));
       const stp = STEPS[cur];
       capEl.innerHTML = '';
@@ -1141,6 +1207,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       capEl.appendChild(box);
     }
     function tickPlay(now) {
+      if (paused) return;
+      if (exiting) { tickExit(now); return; }
       if (!anim) return;
       const ms = stepMs(anim.i);
       anim.el = (now - anim.s) * SPEED;
@@ -1151,10 +1219,33 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (u >= 1 + HOLD_MS / ms) {
         if (playing && anim.i < LAST) startStep(anim.i + 1);
         else {
-          anim = null; playing = false; renderCast(0, 0, false); syncUI();
-          if (CONT && !go(1, true)) { CONT = false; syncUI(); }
+          anim = null; renderCast(0, 0, false);
+          if (CONT) exiting = { s: now }; else playing = false;
+          syncUI();
         }
       }
+    }
+
+    // 연속 재생: 기믹이 끝나면 장판·화살표·글자를 서서히 지우고, 말·보스 위치를 넘겨서 다음 기믹으로
+    const EXIT_MS = 550;
+    function tickExit(now) {
+      const u = clamp01((now - exiting.s) * SPEED / EXIT_MS);
+      ENT.forEach(e => {
+        if (e.kind === 'zone') { const z = e.g.userData.z; z.fill.material.opacity = z.baseOp * (1 - u); z.lineMat.opacity = z.lineOp * (1 - u); z.wall.scale.y = Math.max(0.001, 1 - u); }
+        else if (e.kind === 'arrow' || e.kind === 'tether') e.g.visible = u < 0.5;
+        else if (e.kind === 'label' && e.g.material) e.g.material.opacity = 1 - u;
+      });
+      if (u >= 1) {
+        exiting = null;
+        CARRY = snapshot();
+        if (!go(1, true)) { CARRY = null; CONT = false; CONT_PHASE = null; playing = false; syncUI(); }
+      }
+    }
+    function snapshot() {
+      return {
+        pawns: Object.fromEntries(Object.entries(pawns).map(([r, o]) => [r, [o.g.position.x, o.g.position.z]])),
+        units: ENT.filter(e => e.kind === 'unit' && e.g.visible).map(e => { const o = items[e.idx]; return { key: o.b ? 'b:' + o.b : o.m ? 'm:' + o.m : '', pos: [e.g.position.x, e.g.position.z] }; }).filter(x => x.key)
+      };
     }
 
     const gv = grp('시점');
@@ -1471,7 +1562,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     return {
       cam: () => ({ pos: camera.position.clone(), target: controls.target.clone() }),
-      gotoLine: i => { CONT = false; playing = false; pickLine = i; startStep(lineStep(i)); },
+      gotoLine: i => { CONT = false; playing = false; paused = 0; exiting = null; pickLine = i; startStep(lineStep(i)); },
+      togglePlay,
       syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
@@ -1483,12 +1575,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         renderer.domElement.removeEventListener('contextmenu', noMenu); ink.remove(); stage.classList.remove('pen');
         popEl.style.display = 'none'; popEl.dataset.role = '';
         disposables.forEach(d => d.dispose && d.dispose());
-        renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss();
-        renderer.domElement.remove();
         castEl.style.display = 'none'; castEl.style.marginLeft = '';
       }
     };
   }
 
   function teardown() { if (R) { R.dispose(); R = null; } }
+  function dropRenderer() { if (RENDERER) { RENDERER.dispose(); RENDERER.forceContextLoss && RENDERER.forceContextLoss(); RENDERER.domElement.remove(); RENDERER = null; } }
 })();
