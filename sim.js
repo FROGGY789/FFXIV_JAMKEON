@@ -165,8 +165,13 @@
     });
 
     /* --- 팔레트 --- */
-    const add = o => { cur.items.push(o); sel = cur.items.length - 1; dirty = true; render(); props(); };
-    const off = () => [r1((Math.random() - .5) * 40), r1((Math.random() - .5) * 40)];
+    // 놓고 나서 이름·글자 칸에 바로 커서 (따로 묻는 창 없이 오른쪽에서 고침)
+    const add = (o, focusKey) => {
+      cur.items.push(o); sel = cur.items.length - 1; dirty = true; render(); props();
+      if (focusKey) { const i = pal.querySelector(`.props [data-key="${focusKey}"]`); if (i) { i.focus(); i.select && i.select(); } }
+    };
+    // 새로 놓는 위치: 가운데를 피해 고리 모양으로 흩어 놓음
+    const off = () => { const a = Math.random() * 360, d = 25 + Math.random() * 45; return P(a, d).map(r1); };
     function buildPalette() {
       pal.innerHTML = '';
       const g = (label) => { const d = document.createElement('div'); d.className = 'g'; d.innerHTML = `<span>${label}</span>`; pal.appendChild(d); return d; };
@@ -183,12 +188,14 @@
       b(gz, '◤ 부채꼴', () => add({ z: 'cone', xy: [0, 0], dir: 0, w: 90, len: 90, k: kind }));
       b(gz, '▬ 직선', () => add({ z: 'band', a: [0, -100], b: [0, 100], w: 30, k: kind }));
       const go = g('그 밖');
-      b(go, '보스', () => { const n = prompt('보스 이름', '보스'); if (n != null) add({ b: n, xy: off() }); });
-      b(go, '작은 오브젝트', () => add({ b: '', xy: off(), r: 5, c: '#9bbf6a' }));
+      b(go, '보스', () => add({ b: '보스', xy: off() }, 'b'));
+      b(go, '몬스터', () => add({ b: '몬스터', xy: off(), r: 8, c: '#b0662a' }, 'b'));
+      b(go, '애드', () => add({ b: '애드', xy: off(), r: 5.5, c: '#7a5fb0' }, 'b'));
+      b(go, '작은 오브젝트', () => add({ b: '', xy: off(), r: 4, c: '#9bbf6a' }));
       b(go, '→ 화살표', () => { const [x, y] = off(); add({ ar: [[x - 20, y], [x + 20, y]] }); });
       b(go, '⇢ 점선 화살표', () => { const [x, y] = off(); add({ ar: [[x - 20, y], [x + 20, y]], dash: 1 }); });
       b(go, '줄(테더)', () => { const [x, y] = off(); add({ te: [[x - 20, y], [x + 20, y]] }); });
-      b(go, '글자', () => { const t = prompt('글자', '안전'); if (t) add({ t, xy: off() }); });
+      b(go, '글자', () => add({ t: '글자', xy: off() }, 't'));
       b(go, '징표', () => add({ t: '징표', xy: off(), c: '#2e9e55' }));
       const gm = g('필드 마커');
       ['A', 'B', 'C', 'D', '1', '2', '3', '4'].forEach(m => b(gm, m, () => add({ m, xy: P('ABCD1234'.indexOf(m) * 45 % 360 + (m > '9' ? 0 : 45), 85) })));
@@ -211,16 +218,17 @@
         if (type === 'select') { i = document.createElement('select'); opts.forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; i.appendChild(op); }); i.value = o[key] || opts[0][0]; }
         else { i = document.createElement('input'); i.type = type; if (type === 'number') { i.step = 1; Object.assign(i, opts || {}); } i.value = o[key] == null ? '' : o[key]; }
         i.addEventListener('input', () => { o[key] = type === 'number' ? +i.value : i.value; if (key === 'dash') o.dash = i.value === '1' ? 1 : undefined; dirty = true; render(); });
+        i.dataset.key = key;
         l.appendChild(i); pp.appendChild(l);
       };
-      const name = o.p ? `롤 ${o.p}` : o.b != null ? '보스/오브젝트' : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
+      const name = o.p ? `롤 ${o.p}` : o.b != null ? (o.r && o.r < 7 ? '애드 · 오브젝트' : o.r && o.r < 10 ? '몬스터' : '보스') : o.z === 'c' ? '원형 장판' : o.z === 'donut' ? '도넛 장판' : o.z === 'cone' ? '부채꼴 장판' : o.z === 'band' ? '직선 장판' : o.ar ? '화살표' : o.te ? '줄' : o.t ? '글자' : o.m ? '필드 마커' : o.arc ? '원호 화살표' : '항목';
       const t = document.createElement('div'); t.style.cssText = 'font-weight:800;color:var(--ink,#16151a)'; t.textContent = name; pp.appendChild(t);
       if (o.z) field('종류', 'k', 'select', [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']]);
       if (o.z === 'c') field('반지름', 'r', 'number', { min: 2, max: 120 });
       if (o.z === 'donut') { field('안쪽', 'r1', 'number', { min: 0, max: 120 }); field('바깥', 'r2', 'number', { min: 2, max: 140 }); }
       if (o.z === 'cone') { field('방향(°)', 'dir', 'number', { min: 0, max: 359 }); field('각도(°)', 'w', 'number', { min: 5, max: 360 }); field('길이', 'len', 'number', { min: 5, max: 200 }); }
       if (o.z === 'band') field('폭', 'w', 'number', { min: 2, max: 200 });
-      if (o.b != null) { field('이름', 'b', 'text'); field('크기', 'r', 'number', { min: 3, max: 30 }); }
+      if (o.b != null) { field('이름', 'b', 'text'); field('크기', 'r', 'number', { min: 3, max: 30 }); field('색', 'c', 'color'); }
       if (o.t != null) { field('글자', 't', 'text'); field('크기', 'fs', 'number', { min: 6, max: 20 }); }
       if (o.ar) field('모양', 'dash', 'select', [['', '실선'], ['1', '점선']]);
       if (o.p) field('롤', 'p', 'select', ROLES.map(r => [r, r]));
