@@ -71,8 +71,8 @@
     (m, r, m2) => `${josa(m, '이', '가')} ${m2}에게 ${r} 장판을 넘겨줬습니다!`,
     (m, r, m2) => `${josa(m, '과', '와')} ${josa(m2, '이', '가')} ${r} 앞에서 같은 쪽으로 피했습니다!`
   ];
-  function loadingLine() {
-    const raid = (window.UWU && window.UWU.raid) || '보스';
+  function loadingLine(meta) {
+    const raid = (meta && meta.ph.raid) || (window.UWU && window.UWU.raid) || '보스';
     const m = pick(MEMBERS); let m2 = pick(MEMBERS); while (m2 === m) m2 = pick(MEMBERS);
     return pick(LINES)(m, raid, m2);
   }
@@ -108,7 +108,7 @@
   };
 
   /* ---------- 카드 정보 (window.UWU) ---------- */
-  const U = () => window.UWU && window.UWU.PH ? window.UWU : null;
+  const U = () => (window.JamNotes && window.UWU && window.UWU.PH) ? window.JamNotes.all() : (window.UWU && window.UWU.PH ? window.UWU : null);
   function metaOf(items) {
     const u = U(); if (!u) return null;
     for (const ph of u.PH) {
@@ -117,7 +117,8 @@
     }
     return null;
   }
-  const allCards = () => { const u = U(); return u ? u.PH.flatMap(ph => ph.cards.map(c => c.d)) : []; };
+  // 같은 노트 묶음(절테마 / 극 이프리트 …) 안에서만 이전·다음·연속 재생
+  const allCards = ref => { const u = U(); if (!u) return []; const m = ref && metaOf(ref), set = m ? m.ph.set : null; return u.PH.filter(ph => !set || ph.set === set).flatMap(ph => ph.cards.map(c => c.d)); };
 
   /* ---------- 편집 저장 (gimmick-edits.json) ----------
    * { "garuda:0": { "3": {xy:[x,y]}, "5": {a:[x,y], b:[x,y]}, "7": {ar:[[x,y],[x,y]]} } }
@@ -145,6 +146,7 @@
         if (p.a) { o.a = p.a.slice(); o.b = p.b.slice(); }
         if (p.ar) o.ar = p.ar.map(q => q.slice());
         if (p.dir != null) o.dir = p.dir;
+        ['len', 'r', 'w'].forEach(f => { if (p[f] != null) o[f] = p[f]; });
       }
       d.push(o);
     });
@@ -524,11 +526,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let camState = null;     // 카드 넘길 때 카메라 유지
   let POP3D = true;        // 3D 안 설명 팝오버
   let PEN = false;         // 강조펜 버튼 (터치 기기용). Ctrl/⌘ 누른 채 끌어도 됨
-  try { POP3D = localStorage.getItem('jamkeon.pop3d') !== '0'; } catch (e) {}
+  let LOCKCAM = false;     // 시점 고정: 회전·이동 막음 (확대/축소는 됨)
+  try { POP3D = localStorage.getItem('jamkeon.pop3d') !== '0'; LOCKCAM = localStorage.getItem('jamkeon.lockcam') === '1'; } catch (e) {}
   const dirty = () => JSON.stringify(EDITS) !== JSON.stringify(SAVED);
 
   function go(delta, autoplay) {
-    const list = allCards(), i = list.indexOf(CUR);
+    const list = allCards(CUR), i = list.indexOf(CUR);
     if (i < 0 || !list[i + delta]) return false;
     if (autoplay && CONT && CONT_PHASE) { const m = metaOf(list[i + delta]); if (!m || m.ph.id !== CONT_PHASE) return false; }
     open(list[i + delta], { autoplay, keepCam: true });
@@ -549,7 +552,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     dlg.style.setProperty('--a3d-ink', pal.ink.hex);
     dlg.style.setProperty('--a3d-sub', pal.sub.hex);
     dlg.style.setProperty('--a3d-line', pal.line.css);
-    const list = allCards(), idx = list.indexOf(items);
+    const list = allCards(items), idx = list.indexOf(items);
     titleEl.textContent = meta ? htmlText(meta.c.h) : (opts.title || '기믹 3D 보기');
     subEl.textContent = meta ? `${meta.ph.name} · ${idx + 1}/${list.length}${meta.c.en ? ' · ' + htmlText(meta.c.en) : ''}` : '';
     prevBtn.hidden = nextBtn.hidden = idx < 0;
@@ -563,7 +566,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     let L;
     if (!libsReady) {
       // 첫 로딩: 부대원 멘트를 돌려가며 보여줌 (최소 1.4초)
-      const say = () => { loadEl.innerHTML = ''; const d = document.createElement('div'); d.textContent = loadingLine(); const s = document.createElement('small'); s.textContent = '3D 필드 준비 중…'; loadEl.append(d, s); };
+      const say = () => { loadEl.innerHTML = ''; const d = document.createElement('div'); d.textContent = loadingLine(metaOf(items)); const s = document.createElement('small'); s.textContent = '3D 필드 준비 중…'; loadEl.append(d, s); };
       say(); loadEl.style.display = '';
       const tm = setInterval(say, 1600);
       try { [L] = await Promise.all([loadLibs(), new Promise(r => setTimeout(r, 1400))]); }
@@ -633,6 +636,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     controls.minDistance = 40;
     controls.maxDistance = 900;
     controls.target.set(0, 0, 0);
+    const applyLock = () => { controls.enableRotate = !LOCKCAM && !PEN; controls.enablePan = !LOCKCAM; };
+    applyLock();
 
     /* 조명 */
     scene.add(new T.HemisphereLight(0xffffff, dark ? 0x202530 : 0xb8b0a0, dark ? 1.4 : 1.6));
@@ -1181,11 +1186,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     speedBtn.title = '재생 속도 (0.5x ~ 2x)';
     gp.appendChild(speedBtn);
     let contBtn = null, phBtn = null;
-    if (allCards().length && meta) {
+    if (allCards(items).length && meta) {
       const startCont = pid => {
         if (CONT && (CONT_PHASE || null) === pid) { CONT = false; CONT_PHASE = null; syncUI(); return; }
         CONT = true; CONT_PHASE = pid; CARRY = null;
-        const first = pid ? U().PH.find(p => p.id === pid).cards[0].d : allCards()[0];
+        const first = pid ? U().PH.find(p => p.id === pid).cards[0].d : allCards(items)[0];
         if (first === items) { playing = true; paused = 0; exiting = null; startStep(0); syncUI(); }
         else open(first, { autoplay: true, keepCam: true });
       };
@@ -1296,7 +1301,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     sw.setAttribute('aria-checked', String(POP3D)); sw.innerHTML = '<span class="tr" aria-hidden="true"></span>설명 팝오버';
     sw.addEventListener('click', () => { POP3D = !POP3D; sw.setAttribute('aria-checked', String(POP3D)); try { localStorage.setItem('jamkeon.pop3d', POP3D ? '1' : '0'); } catch (e) {} if (!POP3D) { showPop(null); pageHide(); } });
     gl.appendChild(sw);
-    const penBtn = btn('✎ 강조펜', PEN, b => { PEN = !PEN; b.setAttribute('aria-pressed', String(PEN)); stage.classList.toggle('pen', PEN); controls.enableRotate = !PEN; });
+    const lk = document.createElement('button'); lk.type = 'button'; lk.className = 'a3d-sw'; lk.setAttribute('role', 'switch');
+    lk.setAttribute('aria-checked', String(LOCKCAM)); lk.innerHTML = '<span class="tr" aria-hidden="true"></span>시점 고정';
+    lk.title = '켜면 드래그로 시점이 돌거나 밀리지 않음 (휠·핀치 확대는 됨). 편집할 때 편함';
+    lk.addEventListener('click', () => { LOCKCAM = !LOCKCAM; lk.setAttribute('aria-checked', String(LOCKCAM)); try { localStorage.setItem('jamkeon.lockcam', LOCKCAM ? '1' : '0'); } catch (e) {} applyLock(); });
+    gl.appendChild(lk);
+    const penBtn = btn('✎ 강조펜', PEN, b => { PEN = !PEN; b.setAttribute('aria-pressed', String(PEN)); stage.classList.toggle('pen', PEN); applyLock(); });
     penBtn.title = '켜면 끌어서 그리기 (Ctrl/⌘ 누른 채 끌어도 됨). 떼면 사라짐';
     gl.appendChild(penBtn); stage.classList.toggle('pen', PEN);
     [['장판', 'zones'], ['롤·보스', 'units'], ['화살표·줄', 'guides'], ['글자', 'labels']].forEach(([t, k]) => {
@@ -1473,7 +1483,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
     const hintEl = stage.querySelector('.a3d-hint');
     const HINT = EDIT
-      ? '편집 중: 끌어서 옮김 · 보스를 옮기면 보스에서 시작하는 장판도 같이 감(Shift: 보스만) · 부채꼴은 끌면 회전(Shift: 이동) · 직선 장판은 Shift+끌기로 회전'
+      ? '편집 중: 끌어서 옮김 · 직선 장판 끝을 끌면 길이 · 부채꼴 바깥쪽을 끌면 길이+방향(안쪽은 회전, Shift: 이동) · 원형 장판 테두리를 끌면 크기 · 직선 장판 Shift+끌기: 회전 · 보스를 옮기면 장판도 같이(Shift: 보스만)'
       : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · Ctrl+끌기: 강조펜 · 말 클릭: 강조';
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -1493,14 +1503,28 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         const o = items[ent.idx] || {};
         drag = { ent, p0, home: ent.g.position.clone(), mode: 'move', followers: [] };
         // 보스를 옮기면 보스 자리에서 시작하는 장판(부채꼴 꼭짓점, 원·도넛 중심)도 같이 따라감
-        if (o.b != null && !e.shiftKey) drag.followers = followersOf(o).map(f => ({ ent: f, home: f.g.position.clone() }));
+        if (o.b != null && !o.z && !e.shiftKey) drag.followers = followersOf(o).map(f => ({ ent: f, home: f.g.position.clone() }));
         // 부채꼴: 그냥 끌면 시전 위치(꼭짓점) 기준 회전 / 직선 장판: Shift+끌기로 가운데 기준 회전
-        const rotCone = o.z === 'cone' && !e.shiftKey, rotBand = o.z === 'band' && e.shiftKey;
+        // 크기 조절: 직선 장판 끝 / 부채꼴 바깥쪽 / 원형 장판 테두리
+        if (!e.shiftKey && ent.kind === 'zone') {
+          const q = [p0.x, p0.z];
+          if (o.z === 'band') {
+            const a = xy(o.a), b = xy(o.b), L = Math.hypot(b[0] - a[0], b[1] - a[1]), near = Math.max(12, L * 0.2);
+            const da = Math.hypot(q[0] - a[0], q[1] - a[1]), db = Math.hypot(q[0] - b[0], q[1] - b[1]);
+            if (Math.min(da, db) < near) { drag.mode = 'size'; drag.end = da < db ? 'a' : 'b'; }
+          } else if (o.z === 'cone') {
+            const c = at(o); if (Math.hypot(q[0] - c[0], q[1] - c[1]) > o.len * 0.7) drag.mode = 'size';
+          } else if (o.z === 'c') {
+            const c = at(o); if (Math.hypot(q[0] - c[0], q[1] - c[1]) > o.r * 0.65) drag.mode = 'size';
+          }
+        }
+        const rotCone = drag.mode === 'move' && o.z === 'cone' && !e.shiftKey, rotBand = o.z === 'band' && e.shiftKey;
         if (rotCone || rotBand) {
           const piv = rotCone ? at(o) : (() => { const a = xy(o.a), b = xy(o.b); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })();
           drag.mode = 'rot'; drag.piv = piv; drag.a0 = compass(p0.x - piv[0], p0.z - piv[1]); drag.delta = 0;
         }
         controls.enabled = false; stage.style.cursor = 'grabbing';
+        e.stopImmediatePropagation(); // 시점 회전(OrbitControls)까지 같이 움직이지 않게
         renderer.domElement.setPointerCapture(e.pointerId);
         break;
       }
@@ -1516,6 +1540,16 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         return;
       }
       const p = groundAt(e); if (!p) return;
+      if (drag.mode === 'size') {
+        const o = items[drag.ent.idx], q = [r1(p.x), r1(p.z)], patch = {};
+        if (o.z === 'band') { const a = xy(o.a), b = xy(o.b); patch.a = drag.end === 'a' ? q : [r1(a[0]), r1(a[1])]; patch.b = drag.end === 'b' ? q : [r1(b[0]), r1(b[1])]; }
+        else if (o.z === 'cone') { const c = at(o); patch.len = Math.max(8, Math.round(Math.hypot(q[0] - c[0], q[1] - c[1]))); patch.dir = Math.round(compass(q[0] - c[0], q[1] - c[1]) / 5) * 5 % 360; }
+        else if (o.z === 'c') { const c = at(o); patch.r = Math.max(3, Math.round(Math.hypot(q[0] - c[0], q[1] - c[1]))); }
+        if (o.z === 'band') { const L = Math.hypot(patch.b[0] - patch.a[0], patch.b[1] - patch.a[1]); if (L < 6) return; }
+        drag.patch = patch; showSizePreview(Object.assign({}, o, patch), o.k || 'bad'); drag.ent.g.visible = false;
+        hintEl.textContent = o.z === 'band' ? `길이 ${Math.round(Math.hypot(patch.b[0] - patch.a[0], patch.b[1] - patch.a[1]))}` : o.z === 'cone' ? `길이 ${patch.len} · 방향 ${patch.dir}°` : `반지름 ${patch.r}`;
+        return;
+      }
       if (drag.mode === 'rot') {
         let d = compass(p.x - drag.piv[0], p.z - drag.piv[1]) - drag.a0;
         d = Math.round(((d + 540) % 360 - 180) / 5) * 5; // -180~180, 5도 단위
@@ -1536,6 +1570,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         const ent = drag.ent, dx = r1(ent.g.position.x - drag.home.x), dz = r1(ent.g.position.z - drag.home.z);
         const dd = drag;
         drag = null; controls.enabled = true; stage.style.cursor = ''; hintEl.textContent = HINT;
+        if (dd.mode === 'size') { clearSizePreview(); ent.g.visible = true; if (dd.patch) applyPatches({ [ent.idx]: dd.patch }); else if (OPTS.onSelect) OPTS.onSelect(ent.idx); return; }
         if (dd.mode === 'rot' && dd.delta) commitRotate(ent, dd.delta, dd.piv);
         else if (dd.mode !== 'rot' && Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz, dd.followers.map(f => f.ent));
         else { ent.g.position.copy(dd.home); ent.g.rotation.y = 0; if (OPTS.onSelect) OPTS.onSelect(ent.idx); } // 그냥 누름 = 선택
@@ -1546,6 +1581,25 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const hit = ray.intersectObjects(G.units.children, true).find(h => h.object.userData.role);
       if (hit) setFocus(hit.object.userData.role);
     };
+    // 크기 조절 미리보기 (가벼운 윤곽 + 반투명 면)
+    let sizePrev = null;
+    function shapeOf(o) {
+      const s = new T.Shape();
+      if (o.z === 'c') { const [x, y] = at(o); s.absarc(x, y, o.r, 0, Math.PI * 2, false); }
+      else if (o.z === 'cone') { const [x, y] = at(o); s.moveTo(x, y); const n = Math.max(8, Math.ceil(o.w / 4)); for (let i = 0; i <= n; i++) { const [dx, dy] = P(o.dir - o.w / 2 + o.w * i / n, o.len); s.lineTo(x + dx, y + dy); } s.lineTo(x, y); }
+      else if (o.z === 'band') { const [x1, y1] = xy(o.a), [x2, y2] = xy(o.b); const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, nx = -dy / L * o.w / 2, ny = dx / L * o.w / 2; s.moveTo(x1 + nx, y1 + ny); s.lineTo(x2 + nx, y2 + ny); s.lineTo(x2 - nx, y2 - ny); s.lineTo(x1 - nx, y1 - ny); s.lineTo(x1 + nx, y1 + ny); }
+      return s;
+    }
+    function clearSizePreview() { if (!sizePrev) return; scene.remove(sizePrev.g); sizePrev.g.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }); sizePrev = null; }
+    function showSizePreview(o, kind) {
+      clearSizePreview();
+      const fill = pal[kind] || pal.bad, stroke = pal[kind + 'S'] || pal.badS, sh = shapeOf(o), g = new T.Group();
+      const geo = new T.ShapeGeometry(sh, 48); geo.rotateX(Math.PI / 2);
+      const m = new T.Mesh(geo, new T.MeshBasicMaterial({ color: fill.hex, transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide })); m.position.y = 0.6; g.add(m);
+      const pts = sh.extractPoints(48).shape; const lg = new T.BufferGeometry().setFromPoints(pts.concat([pts[0]]).map(q => V(q.x, 0.7, q.y)));
+      g.add(new T.Line(lg, new T.LineBasicMaterial({ color: stroke.hex })));
+      scene.add(g); sizePrev = { g };
+    }
     // 옮긴 결과를 데이터(EDITS)에 반영하고 다시 그림
     function followersOf(bossItem) {
       const b = at(bossItem);
@@ -1570,6 +1624,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
           if (p.a) { o.a = p.a; o.b = p.b; }
           if (p.ar) o.ar = p.ar;
           if (p.dir != null) o.dir = p.dir;
+          ['len', 'r', 'w'].forEach(f => { if (p[f] != null) o[f] = p[f]; });
         }
         if (OPTS.onEdit) OPTS.onEdit(items);
       }
@@ -1602,7 +1657,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       } else return;
       applyPatches({ [ent.idx]: patch });
     }
-    renderer.domElement.addEventListener('pointerdown', onDown);
+    renderer.domElement.addEventListener('pointerdown', onDown, true);
     renderer.domElement.addEventListener('pointermove', onMove);
     renderer.domElement.addEventListener('pointerup', onUp);
     const onLeave = () => showPop(null);
@@ -1659,7 +1714,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
-        renderer.domElement.removeEventListener('pointerdown', onDown);
+        renderer.domElement.removeEventListener('pointerdown', onDown, true); clearSizePreview();
         renderer.domElement.removeEventListener('pointermove', onMove);
         renderer.domElement.removeEventListener('pointerup', onUp);
         renderer.domElement.removeEventListener('pointerleave', onLeave);

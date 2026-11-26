@@ -161,10 +161,10 @@
 
     /* --- 불러오기 목록 --- */
     function fillLoad() {
-      const u = window.UWU;
+      const u = window.JamNotes ? window.JamNotes.forRaid(raid) : (raid === 'uwu' ? window.UWU : null);
       let h = `<option value="">＋ 새 전략 (백지)</option>`;
       if (list.length) h += `<optgroup label="저장된 전략">${list.map((s, i) => `<option value="s:${i}">${esc(s.name)}${s.local ? ' (이 브라우저)' : ''}</option>`).join('')}</optgroup>`;
-      if (raid === 'uwu' && u && u.PH) u.PH.forEach(ph => { h += `<optgroup label="기믹 불러오기 · ${esc(ph.name)}">${ph.cards.map((c, ci) => `<option value="g:${ph.id}:${ci}">${esc(String(c.h).replace(/<[^>]+>/g, ''))}</option>`).join('')}</optgroup>`; });
+      if (u && u.PH) u.PH.forEach(ph => { h += `<optgroup label="기믹 불러오기 · ${esc(ph.name)}">${ph.cards.map((c, ci) => `<option value="g:${ph.id}:${ci}">${esc(String(c.h).replace(/<[^>]+>/g, ''))}</option>`).join('')}</optgroup>`; });
       loadSel.innerHTML = h;
       loadSel.value = cur.id != null ? 's:' + list.findIndex(s => s.id === cur.id) : '';
     }
@@ -174,7 +174,7 @@
       clearTimeout(autoT);
       if (!v) cur = fresh();
       else if (v[0] === 's') { cur = upgrade(clone(list[+v.slice(2)])); }
-      else { const [, pid, ci] = v.split(':'); const ph = window.UWU.PH.find(p => p.id === pid), c = ph.cards[+ci];
+      else { const [, pid, ci] = v.split(':'); const ns = window.JamNotes ? window.JamNotes.all() : window.UWU; const ph = ns.PH.find(p => p.id === pid), c = ph.cards[+ci];
         cur = fresh(); cur.name = String(c.h).replace(/<[^>]+>/g, '') + ' (편집본)'; cur.from = `${ph.name} · ${String(c.h).replace(/<[^>]+>/g, '')}`; cur.plans[0].items = normalize(c.d); }
       dirty = false; nm.value = cur.name; loadPlan(0); status(cur.id ? '저장된 전략 · 바꾸면 자동 저장' : '', '');
     });

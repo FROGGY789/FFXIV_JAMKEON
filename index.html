@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261126t"></script>
-<script src="./raids.js?v=20261126t"></script>
-<script src="./sim.js?v=20261126t"></script>
+<script src="./admin.js?v=20261126u"></script>
+<script src="./raids.js?v=20261126u"></script>
+<script src="./sim.js?v=20261126u"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,9 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261126t"></script>
-<script src="./uwu-data.js?v=20261126t"></script>
-<script src="./arena3d.js?v=20261126t"></script>
+<script src="./image-slot.js?v=20261126u"></script>
+<script src="./uwu-data.js?v=20261126u"></script>
+<script src="./notes-ex.js?v=20261126u"></script>
+<script src="./arena3d.js?v=20261126u"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -174,8 +175,8 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
               <div style="width:36px;height:36px;border-radius:50%;background:var(--ink,#16151a);color:var(--bg,#f6f5f8);display:grid;place-items:center;font-size:13px;font-weight:700">전</div>
               <div style="flex:1"><div style="font-size:14px;font-weight:600">전멸 연구소</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub,#6f6c78)">Pinned · 한눈에 보기</div></div>
             </div>
-            <h3 style="margin:14px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.02em">한눈에 보는 절테마</h3>
-            <p style="margin:0;font-size:14.5px;line-height:1.65;text-wrap:pretty">야만신 셋을 각성시켜 잡고, 그 보상으로 받은 LB3를 네 번 이어 쓴 다음, 세 야만신의 힘을 흡수한 알테마 웨폰과 싸우는 구조임. 앞 세 페이즈는 반드시 각성시켜서 잡아야 넘어갈 수 있음.</p>
+            <h3 style="margin:14px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.02em">{{ ovTitle }}</h3>
+            <p style="margin:0;font-size:14.5px;line-height:1.65;text-wrap:pretty">{{ ovText }}</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:14px">
               <sc-for list="{{ flow }}" as="f" hint-placeholder-count="5">
                 <div style="{{ f.style }}"><div style="font-size:15px;font-weight:700;line-height:1.25">{{ f.n }}</div><div style="font-size:12px;opacity:.92;margin-top:4px;line-height:1.4">{{ f.s }}</div><div style="display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700">{{ f.lp }}</div></div>
@@ -364,7 +365,7 @@ const logH=l=>l.start&&l.end?spanH(l.start,l.end):(+l.hours||0);
 class Component extends DCLogic {
   state={view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
   blankForm(id){const last=this.state&&((this.state.logs||{})[id]||[])[0];return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],memo:'',members:{...((last&&last.members)||{})},jobs:{...((last&&last.jobs)||{})}}}
-  phasesOf(id){const r=RAIDS.find(x=>x.id===id);if(id==='uwu'&&window.UWU)return [...window.UWU.PH.map(p=>p.name),'클리어'];
+  phasesOf(id){const r=RAIDS.find(x=>x.id===id);const ns=window.JamNotes&&window.JamNotes.forRaid(id);if(ns)return [...ns.PH.map(p=>p.name),'클리어'];
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
     return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
   componentDidMount(){
@@ -407,7 +408,7 @@ class Component extends DCLogic {
     const best=bi<0?'—':ph[bi];const last=L.length?[...L].sort((a,b)=>b.date.localeCompare(a.date))[0].date.replace(/-/g,'.'):'—';
     return {tries,hours,sessions:L.length,best,last,status:best==='클리어'?'Cleared':L.length?'진행 중':'기록 없음'}}
   open(id){this.setState({view:id,flip:null,filter:'all',tab:'gimmick',editId:null,form:this.blankForm(id)})}
-  svgFor(k,d){this._svg=this._svg||{};if(!this._svg[k]){const s=window.UWU.draw(d).replace('<svg ','<svg style="width:100%;height:auto;display:block;color:var(--ink)" ');this._svg[k]=React.createElement('div',{dangerouslySetInnerHTML:{__html:s}})}return this._svg[k]}
+  svgFor(k,d){this._svg=this._svg||{};if(!this._svg[k]&&window.UWU){const s=window.UWU.draw(d).replace('<svg ','<svg style="width:100%;height:auto;display:block;color:var(--ink)" ');this._svg[k]=React.createElement('div',{dangerouslySetInnerHTML:{__html:s}})}return this._svg[k]}
   toggle(key,k){this.setState(s=>{const v={...s[key],[k]:!s[key][k]};if(key==='learned')this.save('jml-learned-v1',v);return {[key]:v}})}
 
   renderVals(){
@@ -438,7 +439,7 @@ class Component extends DCLogic {
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
-    const raid=RAIDS.find(r=>r.id===view),U=window.UWU,isU=view==='uwu'&&!!U;
+    const raid=RAIDS.find(r=>r.id===view),U=window.JamNotes&&window.JamNotes.forRaid(view),isU=!!U;
     const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:this.statsOf(r.id).tries+'릴',go:()=>{if(!a)this.open(r.id)},
       wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
       cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
@@ -460,9 +461,9 @@ class Component extends DCLogic {
     const tabS=a=>({border:'none',borderRadius:999,padding:'9px 18px',fontSize:13.5,fontWeight:600,cursor:'pointer',background:a?'var(--ink)':'transparent',color:a?'var(--bg)':'var(--ink)',transition:'background .25s, color .25s'});
     const st=this.statsOf(view),L=[...(this.state.logs[view]||[])].sort((a,b)=>b.date.localeCompare(a.date));
     const setF=k=>e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,[k]:v}}))};
-    return {...base,raid:{...raid,tag:raid.tag||'기믹 노트',kindLabel:({ult:'Ultimate',ex:'Extreme',raid:'Raid',ally:'Alliance',etc:'Duty'})[raid.kind||'ult']||'Ultimate'},minis,feed,chips,hasNotes:isU,isEmpty:view!=='uwu',tabGimmick:this.state.tab!=='log'&&this.state.tab!=='sim',tabLog:this.state.tab==='log',tabSim:this.state.tab==='sim',logCount:L.length,
+    return {...base,raid:{...raid,tag:raid.tag||'기믹 노트',kindLabel:({ult:'Ultimate',ex:'Extreme',raid:'Raid',ally:'Alliance',etc:'Duty'})[raid.kind||'ult']||'Ultimate'},minis,feed,chips,hasNotes:isU,isEmpty:!isU,tabGimmick:this.state.tab!=='log'&&this.state.tab!=='sim',tabLog:this.state.tab==='log',tabSim:this.state.tab==='sim',logCount:L.length,
       toGimmick:()=>this.setState({tab:'gimmick'}),toLog:()=>this.setState({tab:'log'}),toSim:()=>this.setState({tab:'sim'}),tabGStyle:tabS(this.state.tab!=='log'&&this.state.tab!=='sim'),tabLStyle:tabS(this.state.tab==='log'),tabSStyle:tabS(this.state.tab==='sim'),showOverview:isU&&filter==='all',
-      flow:FLOW.map(f=>({n:f[0],s:f[1],lp:f[2],style:{background:f[3],color:'#fff',borderRadius:14,padding:12}})),
+      ovTitle:isU&&U.ov?U.ov.title:'',ovText:isU&&U.ov?U.ov.text:'',flow:((isU&&U.ov&&U.ov.flow)||FLOW).map(f=>({n:f[0],s:f[1],lp:f[2],style:{background:f[3],color:'#fff',borderRadius:14,padding:12}})),
       progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
       stats:[{l:'트라이',v:st.tries+'릴'},{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best}],
       form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setStart:setF('start'),setEnd:setF('end'),
