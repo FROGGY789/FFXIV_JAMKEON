@@ -486,6 +486,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         if (its) { CUR.length = 0; its.forEach(o => CUR.push(o)); open(CUR, Object.assign({}, OPTS, { keepCam: true, autoplay: false })); }
         return;
       }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && EDIT && SEL >= 0 && CUR && !metaOf(CUR) && OPTS.onEdit) {
+        e.preventDefault(); CUR.splice(SEL, 1); SEL = -1; OPTS.onEdit(CUR); open(CUR, Object.assign({}, OPTS, { keepCam: true, autoplay: false })); return;
+      }
       if (e.key === ' ' && R && R.togglePlay) { e.preventDefault(); R.togglePlay(); }
       else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFull(); }
       else if (e.key === 'ArrowRight' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(1, false); }
@@ -493,7 +496,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
-    dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; VIEWOFF = 0; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
+    dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; VIEWOFF = 0; SEL = -1; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
   function toggleFull() {
@@ -520,6 +523,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let CONT = false;        // 연속 재생 중
   let CONT_PHASE = null;   // 연속 재생 범위: 페이즈 id (null 이면 전체)
   let CARRY = null;        // 연속 재생 때 이전 기믹 끝 위치 (말·보스가 이어서 걸어감)
+  let SEL = -1;            // 3D 편집에서 고른 항목 번호 (items 안의 위치)
   let VIEWOFF = 0;         // 옆 패널 때문에 화면을 민 정도 (다시 그려도 유지)
   let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
   let SPEED = 1;           // 재생 배속
@@ -543,7 +547,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     ensureDialog();
     if (EDIT && dirty() && items !== CUR && !confirm('저장 안 한 편집이 있음. 버리고 넘어갈까?')) return;
     if (items !== CUR && dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); }
-    if (items !== CUR) EDIT = EDIT && !!metaOf(items);
+    if (items !== CUR) { EDIT = EDIT && !!metaOf(items); SEL = -1; }
     if (!opts.keepCam) camState = null;
     else if (R) camState = R.cam();
     CUR = items; OPTS = opts;
@@ -964,6 +968,16 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (starG.parent !== pw.g) { pw.g.add(starG); starG.position.y = pw.topY + 0.5; }
     }
     setAggro(aggroOf());
+    let agLocal = null; // 기믹 노트에서 바꾼 어그로 (저장 안 함, 보는 동안만)
+    function toggleAggro(role) {
+      const now = agLocal || aggroOf(), next = now === role ? 'none' : role;
+      if (!meta && OPTS.onEdit) {
+        for (let i = items.length - 1; i >= 0; i--) { const o = items[i]; if (o && o.aggro && !o.seq && o.xy == null && !o.p) items.splice(i, 1); }
+        items.push({ aggro: next }); OPTS.onEdit(items);
+      } else agLocal = next;
+      setAggro(next);
+      hintEl.textContent = next === 'none' ? '어그로 표시 끔 (탱커 오른쪽 클릭으로 다시 켬)' : `어그로: ${next}`;
+    }
 
     /* --- 재생 타임라인 ---
      * 기본(자동): ① 배치 → ② 장판(시전 바 → 장판 퍼짐) → ③ 이동(실선 화살표) → ④ 이동(점선 화살표)
@@ -1090,7 +1104,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         }
       });
       // 어그로: 그 단계까지 마지막으로 지정된 탱커
-      let ag = aggroOf();
+      let ag = agLocal || aggroOf();
       for (let j = 0; j <= i; j++) if (STEPS[j].aggro) ag = STEPS[j].aggro;
       setAggro(ag);
     }
@@ -1327,7 +1341,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         if (EDIT && sideEl.dataset.mode !== 'tools') {
           sideEl.dataset.mode = 'tools'; sideEl.innerHTML = ''; sideEl.classList.add('on'); sideBtn.setAttribute('aria-pressed', 'false');
           OPTS.tools(sideEl, {
-            refresh: its => {
+            refresh: (its, sel) => {
+              if (sel != null && sel !== SEL) { SEL = sel; if (R && R.select) R.select(sel); }
               if (!CUR || JSON.stringify(its) === JSON.stringify(CUR)) return;
               CUR.length = 0; its.forEach(o => CUR.push(o));
               open(CUR, Object.assign({}, OPTS, { keepCam: true, autoplay: false }));
@@ -1484,8 +1499,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
     const hintEl = stage.querySelector('.a3d-hint');
     const HINT = EDIT
-      ? '편집 중: 끌어서 옮김 · 직선 장판 끝을 끌면 길이 · 부채꼴 바깥쪽을 끌면 길이+방향(안쪽은 회전, Shift: 이동) · 원형 장판 테두리를 끌면 크기 · 직선 장판 Shift+끌기: 회전 · 보스를 옮기면 장판도 같이(Shift: 보스만)'
-      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · Ctrl+끌기: 강조펜 · 말 클릭: 강조';
+      ? '편집 중: 끌어서 옮김 · 직선 장판 끝을 끌면 길이 · 부채꼴: 꼭짓점 쪽을 끌면 이동 · 가운데는 회전 · 바깥쪽은 길이+방향 · 원형 장판 테두리를 끌면 크기 · 직선 장판 Shift+끌기: 회전 · 보스를 옮기면 장판도 같이(Shift: 보스만) · 탱커 우클릭: 어그로 별'
+      : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · Ctrl+끌기: 강조펜 · 말 클릭: 강조 · 탱커 우클릭: 어그로 별 켜기/끄기';
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
     const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
@@ -1494,7 +1509,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     let down = null, drag = null;
     const onDown = e => {
       down = [e.clientX, e.clientY];
-      if (!EDIT) return;
+      if (!EDIT || e.button !== 0) return; // 오른쪽 버튼은 어그로 토글·시점 이동용
       setRay(e);
       const hits = ray.intersectObjects([G.units, G.labels, G.guides, G.zones], true);
       for (const h of hits) {
@@ -1519,7 +1534,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
             const c = at(o); if (Math.hypot(q[0] - c[0], q[1] - c[1]) > o.r * 0.65) drag.mode = 'size';
           }
         }
-        const rotCone = drag.mode === 'move' && o.z === 'cone' && !e.shiftKey, rotBand = o.z === 'band' && e.shiftKey;
+        // 부채꼴: 꼭짓점 근처(안쪽 30%)를 잡으면 통째로 이동, 가운데는 회전, 바깥쪽은 길이+방향
+        const nearApex = o.z === 'cone' && (() => { const c = at(o); return Math.hypot(p0.x - c[0], p0.z - c[1]) < Math.max(10, o.len * 0.3); })();
+        const rotCone = drag.mode === 'move' && o.z === 'cone' && !e.shiftKey && !nearApex, rotBand = o.z === 'band' && e.shiftKey;
         if (rotCone || rotBand) {
           const piv = rotCone ? at(o) : (() => { const a = xy(o.a), b = xy(o.b); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })();
           drag.mode = 'rot'; drag.piv = piv; drag.a0 = compass(p0.x - piv[0], p0.z - piv[1]); drag.delta = 0;
@@ -1571,17 +1588,43 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         const ent = drag.ent, dx = r1(ent.g.position.x - drag.home.x), dz = r1(ent.g.position.z - drag.home.z);
         const dd = drag;
         drag = null; controls.enabled = true; stage.style.cursor = ''; hintEl.textContent = HINT;
-        if (dd.mode === 'size') { clearSizePreview(); ent.g.visible = true; if (dd.patch) applyPatches({ [ent.idx]: dd.patch }); else if (OPTS.onSelect) OPTS.onSelect(ent.idx); return; }
+        if (dd.mode === 'size') { clearSizePreview(); ent.g.visible = true; pick(ent.idx); if (dd.patch) applyPatches({ [ent.idx]: dd.patch }); return; }
+        pick(ent.idx);
         if (dd.mode === 'rot' && dd.delta) commitRotate(ent, dd.delta, dd.piv);
         else if (dd.mode !== 'rot' && Math.abs(dx) + Math.abs(dz) >= 0.5) commitMove(ent, dx, dz, dd.followers.map(f => f.ent));
-        else { ent.g.position.copy(dd.home); ent.g.rotation.y = 0; if (OPTS.onSelect) OPTS.onSelect(ent.idx); } // 그냥 누름 = 선택
+        else { ent.g.position.copy(dd.home); ent.g.rotation.y = 0; } // 그냥 누름 = 선택
         return;
       }
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
       setRay(e);
       const hit = ray.intersectObjects(G.units.children, true).find(h => h.object.userData.role);
+      if (EDIT && e.button === 0 && SEL >= 0) pick(-1); // 빈 곳 누름 = 선택 해제
+      if (e.button === 2) { // 탱커 오른쪽 클릭 = 어그로 별 켜기/끄기
+        const role = hit && hit.object.userData.role;
+        if (role === 'T1' || role === 'T2') toggleAggro(role);
+        return;
+      }
       if (hit) setFocus(hit.object.userData.role);
     };
+    // 고른 항목 표시: 바닥에 점선 테두리 + 살짝 깜빡임
+    let selBox = null;
+    function clearSel() { if (!selBox) return; scene.remove(selBox); selBox.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }); selBox = null; }
+    function showSel() {
+      clearSel();
+      if (!EDIT || SEL < 0) return;
+      const ents = ENT.filter(f => f.idx === SEL && f.g.visible !== false); if (!ents.length) return;
+      const box = new T.Box3(); ents.forEach(f => box.expandByObject(f.g)); if (box.isEmpty()) return;
+      const pad = 3, x0 = box.min.x - pad, x1 = box.max.x + pad, z0 = box.min.z - pad, z1 = box.max.z + pad, y = Math.max(0.9, box.min.y + 0.9);
+      const geo = new T.BufferGeometry().setFromPoints([V(x0, y, z0), V(x1, y, z0), V(x1, y, z1), V(x0, y, z1), V(x0, y, z0)]);
+      const line = new T.Line(geo, new T.LineDashedMaterial({ color: 0x7b61ff, dashSize: 3, gapSize: 2, transparent: true, depthTest: false }));
+      line.computeLineDistances(); line.renderOrder = 10;
+      const pg = new T.PlaneGeometry(x1 - x0, z1 - z0); pg.rotateX(-Math.PI / 2);
+      const fill = new T.Mesh(pg, new T.MeshBasicMaterial({ color: 0x7b61ff, transparent: true, opacity: 0.16, depthWrite: false, depthTest: false }));
+      fill.position.set((x0 + x1) / 2, y - 0.1, (z0 + z1) / 2); fill.renderOrder = 9;
+      selBox = new T.Group(); selBox.add(fill, line); selBox.userData.line = line; scene.add(selBox);
+    }
+    animators.push(t => { if (selBox) selBox.userData.line.material.opacity = 0.6 + 0.4 * Math.sin(t * 5); });
+    function pick(i) { SEL = i; showSel(); if (OPTS.onSelect) OPTS.onSelect(i); }
     // 크기 조절 미리보기 (가벼운 윤곽 + 반투명 면)
     let sizePrev = null;
     function shapeOf(o) {
@@ -1669,6 +1712,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     if (autoplay) { playing = true; startStep(0); renderStep(0, 0); }
     else { renderStep(LAST, 1); progEl.style.width = '100%'; syncUI(); }
     renderCast(0, 0, false);
+    showSel();
     if (camState) { camera.position.copy(camState.pos); controls.target.copy(camState.target); controls.update(); }
     else {
       const [qp, qt] = VIEWS.quarter();
@@ -1711,12 +1755,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     return {
       cam: () => ({ pos: camera.position.clone(), target: controls.target.clone() }),
+      select: i => { SEL = i; showSel(); },
       gotoLine: i => { CONT = false; playing = false; paused = 0; exiting = null; pickLine = i; startStep(lineStep(i)); },
       togglePlay,
       syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
-        renderer.domElement.removeEventListener('pointerdown', onDown, true); clearSizePreview();
+        renderer.domElement.removeEventListener('pointerdown', onDown, true); clearSizePreview(); clearSel();
         renderer.domElement.removeEventListener('pointermove', onMove);
         renderer.domElement.removeEventListener('pointerup', onUp);
         renderer.domElement.removeEventListener('pointerleave', onLeave);

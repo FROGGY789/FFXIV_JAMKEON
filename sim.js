@@ -265,6 +265,20 @@
     };
     // 새로 놓는 위치: 가운데를 피해 고리 모양으로 흩어 놓음
     const off = () => { const a = Math.random() * 360, d = 25 + Math.random() * 45; return P(a, d).map(r1); };
+    // 어그로(별): {aggro:'T1'|'T2'|'none'} 항목 하나로 저장. 없으면 T1 (3D와 같은 규칙)
+    const aggroOf = () => (cur.items.find(o => o && o.aggro) || {}).aggro || 'T1';
+    function toggleAggro(role) {
+      const now = aggroOf(), next = now === role ? 'none' : role;
+      record(); cur.items = cur.items.filter(o => !(o && o.aggro && o.xy == null && !o.p)); cur.items.push({ aggro: next });
+      sel = -1; touch(); render(); props();
+      status(next === 'none' ? '어그로 표시 끔' : `어그로: ${next}`, '');
+    }
+    // T1~D4 한 번에: 없는 롤만 시계 자리(탱 북·동, 힐 남·서, 딜 대각선)에 놓음
+    const SPOTS = { T1: 0, T2: 90, H1: 180, H2: 270, D1: 315, D2: 45, D3: 225, D4: 135 };
+    function addAllRoles() {
+      const miss = ROLES.filter(r => !cur.items.some(o => o && o.p === r)); if (!miss.length) { status('8명 다 있음', ''); return; }
+      record(); miss.forEach(r => cur.items.push({ p: r, xy: P(SPOTS[r], 40).map(r1) })); sel = -1; touch(); render(); props();
+    }
     function buildPalette() {
       pal.innerHTML = '';
       if (bridge3d) {
@@ -280,6 +294,7 @@
       const g = (label) => { const d = document.createElement('div'); d.className = 'g'; d.innerHTML = `<span>${label}</span>`; pal.appendChild(d); return d; };
       const b = (parent, t, fn, cls, style) => { const x = document.createElement('button'); x.type = 'button'; x.textContent = t; if (cls) x.className = cls; if (style) x.style.cssText = style; x.addEventListener('click', fn); parent.appendChild(x); return x; };
       const gr = g('롤 (누르면 판에 놓임)');
+      b(gr, 'T1~D4 전부', () => addAllRoles(), '', 'font-weight:700').title = '빠진 롤을 한 번에 판에 놓음';
       ROLES.forEach(r => b(gr, r, () => { const ex = cur.items.findIndex(o => o.p === r); if (ex >= 0) { sel = ex; render(); props(); return; } add({ p: r, xy: off() }); }, 'role', `background:${RC[r[0]]}`));
       const gk = g('장판 종류');
       const kinds = [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']];
@@ -363,6 +378,9 @@
       board.innerHTML = u.draw(cur.items);
       const svg = board.querySelector('svg'); if (!svg) return;
       svg.setAttribute('data-a3d', '1'); // 자동 "3D로 보기" 버튼 안 붙게
+      { const ag = cur.items.find(o => o && o.p === aggroOf() && o.xy);
+        if (ag) { const [x, y] = ag.xy, r = 4.2, pts = Array.from({ length: 10 }, (_, k) => { const a = Math.PI / 5 * k - Math.PI / 2, rr = k % 2 ? r * 0.45 : r; return `${(x + 7 + Math.cos(a) * rr).toFixed(1)},${(y - 7 + Math.sin(a) * rr).toFixed(1)}`; }).join(' ');
+          svg.insertAdjacentHTML('beforeend', `<polygon class="aggro" points="${pts}" fill="#f5c518" stroke="#8a6d00" stroke-width=".8" pointer-events="none"><title>어그로</title></polygon>`); } }
       const ns = 'http://www.w3.org/2000/svg', g = document.createElementNS(ns, 'g');
       cur.items.forEach((o, i) => handlesOf(o, i).forEach(h => {
         const c = document.createElementNS(ns, 'circle');
@@ -376,7 +394,7 @@
         g.appendChild(c);
       }));
       svg.appendChild(g);
-      if (bridge3d) bridge3d.refresh(clone(cur.items));
+      if (bridge3d) bridge3d.refresh(clone(cur.items), sel);
       if (root.querySelector('.plans .pl')) syncPlans();
     }
     let drag = null;
@@ -404,7 +422,13 @@
       for (const i of small.concat(zones)) if (cur.items[i] && hit(cur.items[i])) return i;
       return -1;
     }
+    // 탱커 말을 오른쪽 클릭: 어그로 별 켜기/끄기
+    board.addEventListener('contextmenu', e => {
+      const i = hitTest(svgPt(e)), o = cur.items[i];
+      if (o && (o.p === 'T1' || o.p === 'T2')) { e.preventDefault(); toggleAggro(o.p); }
+    });
     board.addEventListener('pointerdown', e => {
+      if (e.button === 2) return;
       const h = e.target.closest && e.target.closest('.h');
       const p0 = svgPt(e);
       let i, k;
