@@ -148,7 +148,7 @@
   };
   // 2× a ~600px slot in a 1920-wide deck — retina-sharp without making the
   // sidecar enormous. A 1200px WebP at q=0.85 is ~150-300KB.
-  const MAX_DIM = 1200;
+  const MAX_DIM = 1600; // 우연히 살았네: 작은 칸에서 올려도 랜딩 큰 카드에서 안 깨지게 크게 저장
   // Raster formats only. SVG is excluded (can carry script; createImageBitmap
   // on SVG blobs is inconsistent). GIF is excluded because the canvas
   // re-encode keeps only the first frame, so an animated GIF would silently
@@ -259,14 +259,15 @@
   async function toDataUrl(file, targetW) {
     const bitmap = await createImageBitmap(file);
     try {
-      const cap = Math.min(MAX_DIM, Math.max(1, Math.round(targetW * 2)) || MAX_DIM);
+      // 원래는 올린 칸 크기×2로 줄였지만, 같은 사진이 큰 카드에도 쓰여서 항상 MAX_DIM 기준으로 저장
+      const cap = MAX_DIM; void targetW;
       const scale = Math.min(1, cap / Math.max(bitmap.width, bitmap.height));
       const w = Math.max(1, Math.round(bitmap.width * scale));
       const h = Math.max(1, Math.round(bitmap.height * scale));
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
-      return canvas.toDataURL('image/webp', 0.85);
+      return canvas.toDataURL('image/webp', 0.9);
     } finally {
       bitmap.close && bitmap.close();
     }
