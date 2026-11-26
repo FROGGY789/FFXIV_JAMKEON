@@ -85,13 +85,15 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
 .rm form{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:calc(100dvh - 24px)}
 .rm .hd{padding:16px 18px 10px}.rm h2{margin:0;font-size:18px;font-weight:800}.rm .hd p{margin:4px 0 0;font-size:12.5px;color:var(--sub,#6f6c78)}
 .rm .list{overflow:auto;padding:4px 18px 10px;display:grid;gap:8px}
-.rm .row{display:grid;grid-template-columns:52px minmax(0,1.6fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.4fr) 80px 64px auto;gap:6px;align-items:end;background:var(--card,#ececef);border-radius:12px;padding:8px 10px}
+.rm .row{display:grid;grid-template-columns:52px minmax(0,2.1fr) minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1.3fr) 70px 58px auto;gap:6px;align-items:end;background:var(--card,#ececef);border-radius:12px;padding:8px 10px}
 .rm .row .no{font:700 12px 'JetBrains Mono',monospace;color:var(--sub,#6f6c78);align-self:center;cursor:grab;user-select:none;display:flex;gap:4px;align-items:center}
 .rm .row .no::before{content:'⠿';font-size:16px;line-height:1;color:var(--sub,#6f6c78)}
 .rm .row.drag{opacity:.4}
 .rm .row.over-top{box-shadow:inset 0 3px 0 #a597e3}.rm .row.over-bot{box-shadow:inset 0 -3px 0 #a597e3}
 .rm label{display:grid;gap:2px;font-size:11px;color:var(--sub,#6f6c78)}
-.rm select{min-width:0;flex:1 1 0;padding:7px 6px;border-radius:8px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:inherit;font-size:12.5px}
+.rm .kd,.rm .kw,.rm label{min-width:0}
+.rm .kw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:4px}
+.rm select{min-width:0;width:100%;box-sizing:border-box;text-overflow:ellipsis;padding:7px 6px;border-radius:8px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:inherit;font-size:12.5px}
 .rm input{width:100%;box-sizing:border-box;padding:7px 8px;border-radius:8px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:inherit;font-size:13px}
 .rm .ops{display:flex;gap:4px}
 .rm button{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line,#dddbe2);background:transparent;color:inherit;border-radius:8px;padding:6px 9px;cursor:pointer}
@@ -164,7 +166,7 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
         no.addEventListener('pointerdown', () => { row.draggable = true; });
         // 분류 → 세부 선택 (고르면 이름·영문·코드·페이즈 수가 채워짐)
         const kl = document.createElement('label'); kl.className = 'kd'; kl.textContent = '분류 · 세부';
-        const kw = document.createElement('div'); kw.style.cssText = 'display:flex;gap:4px';
+        const kw = document.createElement('div'); kw.className = 'kw';
         const ks = document.createElement('select'); ks.className = 'kind'; ks.setAttribute('aria-label', '분류');
         KINDS.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; ks.appendChild(o); });
         ks.value = r.kind || 'ult';
