@@ -100,6 +100,13 @@
     let list = store[raid] = store[raid] || [];
     let cur = { id: null, name: '', memo: '', items: [], from: '' };
     let sel = -1, kind = 'bad', dirty = false;
+    // 되돌리기 / 다시 하기 (Ctrl+Z, Ctrl+Shift+Z 또는 Ctrl+Y)
+    const hist = [], fut = [];
+    const snap = () => JSON.stringify(cur.items);
+    const record = pre => { hist.push(pre != null ? pre : snap()); if (hist.length > 150) hist.shift(); fut.length = 0; syncUndo(); };
+    function undo() { if (!hist.length) return; fut.push(snap()); cur.items = JSON.parse(hist.pop()); sel = -1; dirty = true; render(); props(); syncUndo(); }
+    function redo() { if (!fut.length) return; hist.push(snap()); cur.items = JSON.parse(fut.pop()); sel = -1; dirty = true; render(); props(); syncUndo(); }
+    function syncUndo() { const u = root.querySelector('.undo'), r = root.querySelector('.redo'); if (u) u.disabled = !hist.length; if (r) r.disabled = !fut.length; }
 
     root.innerHTML = `<div class="sim">
   <div class="card">
@@ -110,6 +117,7 @@
       <button type="button" class="saveas">다른 이름으로</button>
       <button type="button" class="del rm">삭제</button>
       <button type="button" class="v3d">3D로 보기</button>
+      <button type="button" class="undo" title="되돌리기 (Ctrl+Z)" aria-label="되돌리기">↶</button><button type="button" class="redo" title="다시 하기 (Ctrl+Shift+Z)" aria-label="다시 하기">↷</button>
     </div>
     <div class="board" aria-label="전략 판. 손잡이를 끌어서 옮김"></div>
     <p class="note">원·점 손잡이를 끌어서 옮김 · 부채꼴은 바깥 점으로 방향·길이 · 원은 테두리 점으로 크기 · 선택하고 Delete 키로 지움</p>
@@ -136,7 +144,7 @@
       else if (v[0] === 's') { const s = list[+v.slice(2)]; cur = clone(s); }
       else { const [, pid, ci] = v.split(':'); const ph = window.UWU.PH.find(p => p.id === pid), c = ph.cards[+ci];
         cur = { id: null, name: String(c.h).replace(/<[^>]+>/g, '') + ' (편집본)', memo: '', items: normalize(c.d), from: `${ph.name} · ${String(c.h).replace(/<[^>]+>/g, '')}` }; }
-      sel = -1; dirty = false; nm.value = cur.name; memo.value = cur.memo || ''; render(); props();
+      sel = -1; dirty = false; hist.length = 0; fut.length = 0; syncUndo(); nm.value = cur.name; memo.value = cur.memo || ''; render(); props();
     });
     nm.addEventListener('input', () => { cur.name = nm.value; dirty = true; });
     memo.addEventListener('input', () => { cur.memo = memo.value; dirty = true; });
@@ -167,7 +175,7 @@
     /* --- 팔레트 --- */
     // 놓고 나서 이름·글자 칸에 바로 커서 (따로 묻는 창 없이 오른쪽에서 고침)
     const add = (o, focusKey) => {
-      cur.items.push(o); sel = cur.items.length - 1; dirty = true; render(); props();
+      record(); cur.items.push(o); sel = cur.items.length - 1; dirty = true; render(); props();
       if (focusKey) { const i = pal.querySelector(`.props [data-key="${focusKey}"]`); if (i) { i.focus(); i.select && i.select(); } }
     };
     // 새로 놓는 위치: 가운데를 피해 고리 모양으로 흩어 놓음
@@ -180,7 +188,7 @@
       ROLES.forEach(r => b(gr, r, () => { const ex = cur.items.findIndex(o => o.p === r); if (ex >= 0) { sel = ex; render(); props(); return; } add({ p: r, xy: off() }); }, 'role', `background:${RC[r[0]]}`));
       const gk = g('장판 종류');
       const kinds = [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']];
-      const kb = kinds.map(([k, t]) => b(gk, t, () => { kind = k; kb.forEach((x, i) => x.setAttribute('aria-pressed', String(kinds[i][0] === k))); if (sel >= 0 && cur.items[sel].z) { cur.items[sel].k = k; dirty = true; render(); } }));
+      const kb = kinds.map(([k, t]) => b(gk, t, () => { kind = k; kb.forEach((x, i) => x.setAttribute('aria-pressed', String(kinds[i][0] === k))); if (sel >= 0 && cur.items[sel].z) { record(); cur.items[sel].k = k; dirty = true; render(); } }));
       kb[0].setAttribute('aria-pressed', 'true');
       const gz = g('장판');
       b(gz, '● 원형', () => add({ z: 'c', xy: off(), r: 20, k: kind }));
@@ -202,7 +210,7 @@
       const h = document.createElement('h4'); h.textContent = '선택한 항목'; pal.appendChild(h);
       const pp = document.createElement('div'); pp.className = 'props'; pal.appendChild(pp);
       const cl = document.createElement('div'); cl.className = 'g';
-      b(cl, '전체 지우기', () => { if (cur.items.length && confirm('판을 모두 지울까?')) { cur.items = []; sel = -1; dirty = true; render(); props(); } }, 'del');
+      b(cl, '전체 지우기', () => { if (cur.items.length && confirm('판을 모두 지울까? (Ctrl+Z로 되돌릴 수 있음)')) { record(); cur.items = []; sel = -1; dirty = true; render(); props(); } }, 'del');
       pal.appendChild(cl);
     }
 
@@ -217,7 +225,8 @@
         let i;
         if (type === 'select') { i = document.createElement('select'); opts.forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; i.appendChild(op); }); i.value = o[key] || opts[0][0]; }
         else { i = document.createElement('input'); i.type = type; if (type === 'number') { i.step = 1; Object.assign(i, opts || {}); } i.value = o[key] == null ? '' : o[key]; }
-        i.addEventListener('input', () => { o[key] = type === 'number' ? +i.value : i.value; if (key === 'dash') o.dash = i.value === '1' ? 1 : undefined; dirty = true; render(); });
+        let rec = false; i.addEventListener('focus', () => { rec = false; });
+        i.addEventListener('input', () => { if (!rec) { record(); rec = true; } o[key] = type === 'number' ? +i.value : i.value; if (key === 'dash') o.dash = i.value === '1' ? 1 : undefined; dirty = true; render(); });
         i.dataset.key = key;
         l.appendChild(i); pp.appendChild(l);
       };
@@ -233,7 +242,7 @@
       if (o.ar) field('모양', 'dash', 'select', [['', '실선'], ['1', '점선']]);
       if (o.p) field('롤', 'p', 'select', ROLES.map(r => [r, r]));
       const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '이 항목 삭제';
-      del.addEventListener('click', () => { cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); });
+      del.addEventListener('click', () => { record(); cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); });
       pp.appendChild(del);
     }
 
@@ -276,7 +285,7 @@
       const h = e.target.closest && e.target.closest('.h');
       if (!h) { if (sel >= 0) { sel = -1; render(); props(); } return; }
       e.preventDefault();
-      sel = +h.dataset.i; drag = { k: h.dataset.k, p0: svgPt(e), o0: clone(cur.items[sel]) };
+      sel = +h.dataset.i; drag = { k: h.dataset.k, p0: svgPt(e), o0: clone(cur.items[sel]), pre: snap() };
       board.setPointerCapture(e.pointerId); render(); props();
     });
     board.addEventListener('pointermove', e => {
@@ -299,12 +308,26 @@
       }
       dirty = true; render();
     });
-    const end = () => { if (drag) { drag = null; props(); } };
+    const end = () => { if (drag) { if (snap() !== drag.pre) record(drag.pre); drag = null; props(); } };
     board.addEventListener('pointerup', end); board.addEventListener('pointercancel', end);
     root.addEventListener('keydown', e => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && sel >= 0 && !e.target.closest('input,textarea,select')) { e.preventDefault(); cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && sel >= 0 && !e.target.closest('input,textarea,select')) { e.preventDefault(); record(); cur.items.splice(sel, 1); sel = -1; dirty = true; render(); props(); }
     });
     board.tabIndex = 0;
+    root.querySelector('.undo').addEventListener('click', undo);
+    root.querySelector('.redo').addEventListener('click', redo);
+    const onKey = e => {
+      if (!root.isConnected) { document.removeEventListener('keydown', onKey); return; }
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.target.closest && e.target.closest('input, textarea, select, dialog')) return; // 글자 칸은 브라우저 기본 되돌리기
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    };
+    if (root._simKey) document.removeEventListener('keydown', root._simKey); // 같은 자리에 다시 붙을 때 이전 것 제거
+    root._simKey = onKey;
+    document.addEventListener('keydown', onKey);
+    syncUndo();
 
     buildPalette(); fillLoad(); render(); props();
   }
