@@ -477,6 +477,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (!dlg.open || e.defaultPrevented) return;
       if (e.target.closest && e.target.closest('input, textarea, select, dialog.adm, dialog.rm')) return;
       if (e.key === ' ' && e.target.closest && e.target.closest('button, [tabindex]:not(canvas)')) return; // 버튼에 포커스가 있으면 그 버튼이 눌림
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y') && OPTS.onUndo && CUR) {
+        e.preventDefault();
+        const redo = e.key.toLowerCase() === 'y' || e.shiftKey;
+        const its = redo ? OPTS.onRedo() : OPTS.onUndo();
+        if (its) { CUR.length = 0; its.forEach(o => CUR.push(o)); open(CUR, Object.assign({}, OPTS, { keepCam: true, autoplay: false })); }
+        return;
+      }
       if (e.key === ' ' && R && R.togglePlay) { e.preventDefault(); R.togglePlay(); }
       else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFull(); }
       else if (e.key === 'ArrowRight' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(1, false); }
@@ -1303,7 +1310,31 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       // 시뮬레이터에서 연 3D: 로그인 없이 편집, 바뀐 내용은 시뮬레이터 판에 바로 반영
       const ge = grp('편집');
       const b = btn(EDIT ? '편집 끝내기' : '✎ 3D에서 편집', EDIT, () => { EDIT = !EDIT; rebuild(); });
-      b.title = '말·보스·장판을 끌어서 옮김. 시뮬레이터 판에 바로 반영 (되돌리기는 시뮬레이터에서 Ctrl+Z)'; ge.appendChild(b);
+      b.title = '끌어서 옮기기 · ＋추가로 기물 놓기 · Ctrl+Z 되돌리기'; ge.appendChild(b);
+      if (EDIT) {
+        // ＋ 추가: 고르면 판 가장자리 쪽에 놓임 (이름은 시뮬레이터 판 오른쪽 칸에서 바꿈)
+        const sel = document.createElement('select'); sel.setAttribute('aria-label', '기물 추가');
+        sel.style.cssText = 'font:inherit;font-size:13px;font-weight:700;min-height:34px;padding:4px 8px;border-radius:999px;border:1px solid var(--a3d-line);background:transparent;color:inherit';
+        const ADD = [['', '＋ 추가'], ...RN0.filter(r => !items.some(o => o && o.p === r)).map(r => ['p:' + r, '롤 ' + r]),
+          ['boss', '보스'], ['mon', '몬스터'], ['add', '애드'], ['obj', '◆ 오브젝트'], ['c', '● 원형 장판'], ['donut', '◎ 도넛 장판'], ['cone', '◤ 부채꼴 장판'], ['band', '▬ 직선 장판'],
+          ['safe', '● 안전지대'], ['ar', '→ 화살표'], ['t', '글자'], ...'ABCD1234'.split('').filter(m => !items.some(o => o && o.m === m)).map(m => ['m:' + m, '마커 ' + m])];
+        ADD.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+        sel.addEventListener('change', () => {
+          const v = sel.value; if (!v) return;
+          const a = Math.random() * 360, q = P(a, 25 + Math.random() * 40).map(r1);
+          const WMA = { A: 0, B: 90, C: 180, D: 270, 1: 45, 2: 135, 3: 225, 4: 315 };
+          const o = v.startsWith('p:') ? { p: v.slice(2), xy: q } : v.startsWith('m:') ? { m: v.slice(2), xy: P(WMA[v.slice(2)], 82).map(r1) }
+            : { boss: { b: '보스', xy: q }, mon: { b: '몬스터', xy: q, r: 8, c: '#b0662a' }, add: { b: '애드', xy: q, r: 5.5, c: '#7a5fb0' }, obj: { b: '오브젝트', xy: q, r: 5, c: '#9bbf6a', sh: 'd' },
+                c: { z: 'c', xy: q, r: 20, k: 'bad' }, safe: { z: 'c', xy: q, r: 14, k: 'safe' }, donut: { z: 'donut', xy: [0, 0], r1: 30, r2: 100, k: 'bad' }, cone: { z: 'cone', xy: [0, 0], dir: 0, w: 90, len: 90, k: 'bad' },
+                band: { z: 'band', a: [0, -100], b: [0, 100], w: 30, k: 'bad' }, ar: { ar: [[q[0] - 20, q[1]], [q[0] + 20, q[1]]] }, t: { t: '글자', xy: q } }[v];
+          items.push(o); OPTS.onEdit(items); rebuild();
+        });
+        ge.appendChild(sel);
+      }
+      if (OPTS.onSave) {
+        const sv = btn('저장', null, async b2 => { b2.disabled = true; b2.textContent = '저장 중…'; try { await OPTS.onSave(); b2.textContent = '저장됨 ✓'; } catch (e) { b2.textContent = '저장 실패'; } setTimeout(() => { b2.textContent = '저장'; b2.disabled = false; }, 1500); });
+        sv.title = '시뮬레이터 전략으로 저장 (이름이 없으면 자동으로 붙음)'; ge.appendChild(sv);
+      }
     }
     if (A && !A.on && meta) {
       // 로그인 안 된 상태: 버튼은 보이고, 누르면 관리자 로그인

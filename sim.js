@@ -234,7 +234,14 @@
       window.Arena3D.open(clone(cur.items), {
         title: `${cur.name || '전략 시뮬레이션'} · ${pi + 1}안`, steps: cur.memo ? cur.memo.split('\n').filter(Boolean) : [],
         // 3D에서 편집하면 판에도 바로 반영 (Ctrl+Z 로 되돌리기 가능)
-        onEdit: its => { record(); cur.items = clone(its); sel = -1; touch(); render(); props(); }
+        onEdit: its => { record(); cur.items = clone(its); sel = -1; touch(); render(); props(); },
+        // 3D 창 안에서 되돌리기·저장
+        onUndo: () => { if (!hist.length) return null; undo(); return clone(cur.items); },
+        onRedo: () => { if (!fut.length) return null; redo(); return clone(cur.items); },
+        onSave: async () => {
+          if (!(nm.value || '').trim()) { const d = new Date(); nm.value = `새 전략 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; cur.name = nm.value; }
+          await save(false, true);
+        }
       });
     });
 
@@ -389,6 +396,7 @@
     const onKey = e => {
       if (!root.isConnected) { document.removeEventListener('keydown', onKey); return; }
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (document.querySelector('dialog.a3d[open]')) return; // 3D 창이 열려 있으면 3D 쪽에서 처리
       if (e.target.closest && e.target.closest('input, textarea, select, dialog')) return; // 글자 칸은 브라우저 기본 되돌리기
       const k = e.key.toLowerCase();
       if (k === 'c' && sel >= 0) { e.preventDefault(); CLIP = { type: 'item', item: clone(cur.items[sel]) }; syncPlans(); status('항목 복사함 · Ctrl+V 로 붙여넣기', 'ok'); }
