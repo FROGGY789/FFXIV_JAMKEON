@@ -185,6 +185,13 @@
   })(0);
 
   /* ---------- 롤 정보 (할 일 · 주의 · 왜? · 관련 용어) ---------- */
+  // 용어 풀이는 그 기믹이 속한 노트 묶음 것만 (절테마 용어가 극 토벌전에 섞이지 않게)
+  function glFor(key) {
+    const u = U(); if (!u) return [];
+    const ph = key && u.PH.find(p => p.id === String(key).split(':')[0]);
+    if (ph && ph.set && window.JamNotes && window.JamNotes.bySet) { const st = window.JamNotes.bySet(ph.set); if (st) return st.GL || []; }
+    return key ? [] : (u.GL || []);
+  }
   function whyFor(key, role) {
     const ed = (EDITS[key] || {})._why;
     if (ed && ed[role] != null) return ed[role];
@@ -222,7 +229,7 @@
       const wp = document.createElement('div'); wp.textContent = why || '아직 적힌 이유 없음'; if (!why) wp.className = 'none'; wb.appendChild(wp);
     }
     f.appendChild(wb);
-    const gl = (U() && U().GL) || [];
+    const gl = glFor(key);
     const text = duty + ' ' + warn + ' ' + why, hits = [];
     [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
     if (hits.length) {
@@ -238,11 +245,11 @@
     const why = whyFor(key, role);
     const p = document.createElement('div'); p.innerHTML = '<b class="lb">왜?</b> '; p.append(why || '아직 적힌 이유 없음'); f.appendChild(p);
     const duty = info.row ? htmlText(info.row[0]) + ' ' + htmlText(info.row[1] || '') : '';
-    glossInto(f, duty + ' ' + why);
+    glossInto(f, duty + ' ' + why, key);
     return f;
   }
-  function glossInto(f, text) {
-    const gl = (U() && U().GL) || [], hits = [];
+  function glossInto(f, text, key) {
+    const gl = glFor(key), hits = [];
     [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
     if (!hits.length) return;
     const ul = document.createElement('ul'); ul.className = 'a3d-gl';
@@ -260,7 +267,7 @@
     const roles = [...new Set(text.match(/\b[THD][1-4]\b/g) || [])];
     const byText = new Map();
     roles.forEach(r => { const w = whyFor(key, r); if (w) byText.set(w, (byText.get(w) || []).concat(r)); });
-    const gl = u.GL || [], hits = [];
+    const gl = glFor(key), hits = [];
     [...gl].sort((x, y) => y[0].length - x[0].length).forEach(g => { if (hits.length < 3 && text.includes(g[0]) && !hits.some(h => h[0].includes(g[0]))) hits.push(g); });
     return { ph, own, reasons: [...byText].map(([w, rs]) => [rs, w]), hits };
   }
