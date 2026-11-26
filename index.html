@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./admin.js?v=20261125l"></script>
+<script src="./admin.js?v=20261126b"></script>
+<script src="./raids.js?v=20261126b"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -11,9 +12,9 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261125l"></script>
-<script src="./uwu-data.js?v=20261125l"></script>
-<script src="./arena3d.js?v=20261125l"></script>
+<script src="./image-slot.js?v=20261126b"></script>
+<script src="./uwu-data.js?v=20261126b"></script>
+<script src="./arena3d.js?v=20261126b"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -35,16 +36,15 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
 
 <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
-<div style="padding:44px 56px 36px;max-width:1360px;margin:0 auto" data-screen-label="Landing">
+<div style="padding:36px clamp(16px,4vw,56px) 28px;max-width:1720px;margin:0 auto;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center" data-screen-label="Landing">
   <div style="display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start">
     <div>
       <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#a597e3)"></span>
         <span>&lt;&lt;우연&gt;&gt; 부대 레이드 헤딩일지</span>
       </div>
-      <h1 style="margin:26px 0 0;font-size:64px;line-height:1.04;font-weight:500;letter-spacing:-.045em"><span style="font-weight:800">전멸 연구소</span><br><span style="color:var(--accent,#a597e3)">이걸 사네</span></h1>
     </div>
-    <div style="max-width:290px;padding-top:58px">
+    <div style="max-width:290px">
       <div style="display:flex;align-items:center;gap:8px;margin-top:0;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--dot,#4fcf9a)"></span>
         <span>{{ totalLabel }}</span>
@@ -56,9 +56,9 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
   <button onClick="{{ prev }}" aria-label="이전" style="{{ prevStyle }}">←</button>
   <button onClick="{{ next }}" aria-label="다음" style="{{ nextStyle }}">→</button>
   <div ref="{{ stripRef }}" onPointerDown="{{ pDown }}" onPointerMove="{{ pMove }}" onPointerUp="{{ pUp }}" onPointerCancel="{{ pUp }}" style="overflow-x:auto;margin:30px 0 0;padding:0 0 10px;scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;touch-action:pan-y;user-select:none">
-    <div style="position:relative;height:700px;width:150%">
+    <div style="{{ stripStyle }}">
       <svg style="position:absolute;left:0;top:0;width:100%;height:120px;overflow:visible" viewBox="0 0 100 120" preserveAspectRatio="none"><path d="M0 20 Q50 60 100 20" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".7"></path></svg>
-      <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr))">
+      <div style="{{ gridStyle }}">
         <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
           <div style="position:relative;scroll-snap-align:start">
             <div style="{{ c.swayStyle }}">
@@ -66,14 +66,14 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
                 <div style="width:7px;height:7px;border-radius:50%;background:var(--rim,#b5b0c2);margin:-3px auto 0"></div>
                 <div style="{{ c.threadStyle }}"></div>
                 <div style="width:20px;height:14px;margin:0 auto -6px;border-radius:6px 6px 3px 3px;background:var(--rim,#b5b0c2);position:relative;z-index:2;display:grid;place-items:center"><div style="width:6px;height:6px;border-radius:50%;border:1.5px solid var(--bg,#f6f5f8)"></div></div>
-                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:460px;perspective:1400px;cursor:pointer">
+                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:560px;perspective:1400px;cursor:pointer">
                   <div style="{{ c.flipStyle }}">
                     <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card,#ececef);border-radius:18px;padding:12px 12px 14px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
                       <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span>Ultimate · {{ c.code }}</span><span>#{{ c.no }}</span></div>
-                      <div style="height:300px;margin-top:12px;border-radius:14px;overflow:hidden">
+                      <div style="height:380px;margin-top:12px;border-radius:14px;overflow:hidden">
                         <image-slot id="raid-{{ c.id }}" shape="rounded" radius="14" placeholder="{{ c.ph }}"></image-slot>
                       </div>
-                      <div style="margin-top:14px;font-size:24px;font-weight:500;letter-spacing:-.03em">{{ c.name }}</div>
+                      <div style="margin-top:14px;font-size:28px;font-weight:600;letter-spacing:-.03em">{{ c.name }}</div>
                       <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:2px">{{ c.en }}</div>
                       <div style="flex:1"></div>
                       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line,#dddbe2);padding-top:10px">
@@ -244,6 +244,12 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
             <label style="display:grid;gap:3px;font-size:11.5px;color:var(--sub,#6f6c78)">시작<input type="time" aria-label="시작 시각" value="{{ form.start }}" onChange="{{ setStart }}" style="width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px;color:var(--ink,#16151a)"></label>
             <label style="display:grid;gap:3px;font-size:11.5px;color:var(--sub,#6f6c78)">끝<input type="time" aria-label="끝 시각" value="{{ form.end }}" onChange="{{ setEnd }}" style="width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px;color:var(--ink,#16151a)"></label>
           </div>
+          <div style="display:grid;gap:4px"><span style="font-size:11.5px;color:var(--sub,#6f6c78)">참여 멤버</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 8px">
+            <sc-for list="{{ memberSlots }}" as="m"><label style="display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:6px"><span style="{{ m.dot }}">{{ m.r }}</span><input list="jam-members" aria-label="{{ m.r }} 닉네임" placeholder="닉네임" value="{{ m.v }}" onChange="{{ m.set }}" style="width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:12.5px;color:var(--ink,#16151a)"></label></sc-for>
+          </div>
+          <datalist id="jam-members"><sc-for list="{{ memberNames }}" as="nm"><option value="{{ nm }}"></option></sc-for></datalist>
+          </div>
           <select value="{{ form.best }}" onChange="{{ setBest }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
             <sc-for list="{{ phaseOpts }}" as="o"><option value="{{ o }}">최고 진도 · {{ o }}</option></sc-for>
           </select>
@@ -265,6 +271,7 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
             <span style="font-size:15px;font-weight:600">{{ l.summary }}</span>
             <span style="font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--accent,#a597e3) 28%,transparent)">{{ l.best }}</span>
           </div>
+          <sc-if value="{{ l.hasMembers }}"><div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:12px"><sc-for list="{{ l.memberList }}" as="mm"><span style="display:inline-flex;align-items:center;gap:4px"><span style="{{ mm.dot }}">{{ mm.r }}</span>{{ mm.n }}</span></sc-for></div></sc-if>
           <sc-if value="{{ l.hasMemo }}"><p style="margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--sub,#6f6c78)">{{ l.memo }}</p></sc-if>
         </div>
       </sc-for>
@@ -298,6 +305,10 @@ const RAIDS=[
 const SEED={};
 const FLOW=[['P1 가루다','저기압 스택으로 각성','빛 장판 → 힐러','#2f7d5b'],['P2 이프리트','말뚝 4개로 각성','빛 장판 → 캐스터','#d2552b'],['P3 타이탄','감옥 연쇄로 각성','빛 장판 → 근딜','#a07228'],['P4 라하브레아','LB3 네 번 연속','캐스터→힐러→근딜→탱커','#6b4bb0'],['P5 알테마 웨폰','세 야만신 기믹 복합','게이지 100 = 전멸','#14868c']];
 const DROPS=[12,50,24,60,16,42],ROTS=[-3,2.2,-1.6,2.8,-2.2,1.8];
+window.JAM_RAIDS=RAIDS; // raids.js 가 카드 목록(이름·추가·삭제)을 저장소 raids.json 에서 읽어 이 배열을 바꿈
+const ROLES=['T1','T2','H1','H2','D1','D2','D3','D4'],ROLE_C={T:'#2f6fe4',H:'#2e9e55',D:'#d24545'};
+const BASE_MEMBERS=['로살리아','키오레','팔콘','말랑찰떡','홀가분','피토','Ember'];
+const roleDot=(r,sz)=>({minWidth:sz,height:sz-6,padding:'0 5px',borderRadius:999,background:ROLE_C[r[0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'inline-grid',placeItems:'center'});
 const MONO="'JetBrains Mono',monospace";
 const dec=t=>t.replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&');
 const segs=html=>{const out=[];let b=0,hl=0;String(html).split(/(<\/?b>|<span class="hl">|<\/span>)/).forEach(tok=>{
@@ -310,7 +321,7 @@ const logH=l=>l.start&&l.end?spanH(l.start,l.end):(+l.hours||0);
 
 class Component extends DCLogic {
   state={view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
-  blankForm(id){return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],memo:''}}
+  blankForm(id){const last=this.state&&((this.state.logs||{})[id]||[])[0];return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],memo:'',members:{...((last&&last.members)||{})}}}
   phasesOf(id){const r=RAIDS.find(x=>x.id===id);if(id==='uwu'&&window.UWU)return [...window.UWU.PH.map(p=>p.name),'클리어'];
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
     return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
@@ -319,10 +330,11 @@ class Component extends DCLogic {
     this.loadLogs();
     this.applyTheme();
     if(!window.UWU)this._t=setInterval(()=>{if(window.UWU){clearInterval(this._t);this.forceUpdate()}},120);
+    this._onRaids=()=>this.forceUpdate();addEventListener('jam-raids',this._onRaids);
   }
-  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf)}
+  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids)}
   strip=React.createRef();
-  colW(el){return el.firstElementChild.offsetWidth/6}
+  colW(el){return el.firstElementChild.offsetWidth/Math.max(1,RAIDS.length)}
   snap(el,dir=0){const w=this.colW(el);let i=Math.round(el.scrollLeft/w)+dir;i=Math.max(0,Math.min(2,i));const max=el.scrollWidth-el.clientWidth;
     el.style.scrollSnapType='none';el.scrollTo({left:Math.min(max,i*w),behavior:'smooth'});clearTimeout(this._st);this._st=setTimeout(()=>{el.style.scrollSnapType='x mandatory'},700)}
   step(d){const el=this.strip.current;if(el)this.snap(el,d)}
@@ -360,11 +372,12 @@ class Component extends DCLogic {
     const mode=this.props.flipTrigger??'hover', sway=this.props.sway??true;
     const {view,flip,filter,form}=this.state;
     const grand=RAIDS.reduce((a,r)=>a+this.statsOf(r.id).tries,0);
-    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/6,tt=20+80*f*(1-f),top=150+DROPS[i],st=this.statsOf(r.id),fl=flip===r.id;
+    const NC=Math.max(1,RAIDS.length);
+    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=170+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
       return {...r,tries:st.tries,status:st.status,
         rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
         swayStyle:{position:'absolute',left:22,right:22,top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
-        hangStyle:{transformOrigin:'50% 0',transform:`rotate(${fl?0:ROTS[i]}deg)`,transition:'transform .7s cubic-bezier(.2,.9,.25,1.15)'},
+        hangStyle:{transformOrigin:'50% 0',transform:`rotate(${fl?0:ROTS[i%6]}deg)`,transition:'transform .7s cubic-bezier(.2,.9,.25,1.15)'},
         threadStyle:{width:1,margin:'0 auto',background:'var(--sub)',opacity:.55,height:top-tt-10},
         flipStyle:{position:'absolute',inset:0,transformStyle:'preserve-3d',transition:'transform .75s cubic-bezier(.2,.8,.2,1)',transform:fl?'rotateY(180deg)':'rotateY(0deg)'},
         enter:()=>{if(mode==='hover')this.setState({flip:r.id})},
@@ -378,7 +391,8 @@ class Component extends DCLogic {
       edgeMove:e=>{const r=e.currentTarget.getBoundingClientRect(),x=e.clientX-r.left,z=Math.min(160,r.width*.14);const v=x<z?'l':x>r.width-z?'r':null;if(v!==this.state.edge)this.setState({edge:v})},
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
-    const base={...strip,isLanding:!view,isDetail:!!view,cards,totalLabel:`06 Ultimates · 누적 ${grand}릴`,
+    const base={...strip,isLanding:!view,isDetail:!!view,cards,
+      stripStyle:{position:'relative',height:860,width:`max(${Math.max(100,NC/3.2*100)}%, ${NC*300}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(NC).padStart(2,"0")} Ultimates · 누적 ${grand}릴`,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
@@ -409,12 +423,14 @@ class Component extends DCLogic {
       flow:FLOW.map(f=>({n:f[0],s:f[1],lp:f[2],style:{background:f[3],color:'#fff',borderRadius:14,padding:12}})),
       progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
       stats:[{l:'트라이',v:st.tries+'릴'},{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best}],
-      form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setStart:setF('start'),setEnd:setF('end'),setBest:setF('best'),setMemo:setF('memo'),
+      form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setStart:setF('start'),setEnd:setF('end'),
+      memberSlots:ROLES.map(r=>({r,v:(form.members||{})[r]||'',dot:roleDot(r,30),set:e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,members:{...(s.form.members||{}),[r]:v}}}))}})),
+      memberNames:[...new Set([...BASE_MEMBERS,...Object.values(this.state.logs||{}).flat().flatMap(l=>Object.values(l.members||{}))].map(x=>String(x).trim()).filter(Boolean))],setBest:setF('best'),setMemo:setF('memo'),
       canEdit:!!(window.JamAdmin&&window.JamAdmin.on),readOnly:!(window.JamAdmin&&window.JamAdmin.on),
-      addLog:()=>{if(!form.start||!form.end){alert('시작·끝 시각을 넣을 것');return}const e={id:Date.now(),date:form.date,start:form.start,end:form.end,hours:spanH(form.start,form.end),best:form.best,memo:form.memo.trim()};
+      addLog:()=>{if(!form.start||!form.end){alert('시작·끝 시각을 넣을 것');return}const mem={};ROLES.forEach(r=>{const v=((form.members||{})[r]||'').trim();if(v)mem[r]=v});const e={id:Date.now(),date:form.date,start:form.start,end:form.end,hours:spanH(form.start,form.end),best:form.best,memo:form.memo.trim(),members:mem};
         this.setState(s=>({form:{...s.form,end:'',memo:''}}));
         this.persistLogs(L=>{L[view]=[e,...(L[view]||[])]},`트라이 일지 추가: ${view} ${e.date}`)},
-      logs:L.map(l=>({...l,dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
+      logs:L.map(l=>({...l,hasMembers:!!(l.members&&Object.keys(l.members).length),memberList:ROLES.filter(r=>(l.members||{})[r]).map(r=>({r,n:l.members[r],dot:roleDot(r,26)})),dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
         canEdit:!!(window.JamAdmin&&window.JamAdmin.on),
         remove:()=>{if(!confirm(`${l.date} 기록을 삭제할까?`))return;this.persistLogs(L=>{L[view]=(L[view]||[]).filter(x=>x.id!==l.id)},`트라이 일지 삭제: ${view} ${l.date}`)}})),
       noLogs:!L.length};
