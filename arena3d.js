@@ -33,7 +33,10 @@
     '--floor': '#ece7dc', '--rim': '#b9b1a1', '--line': '#dcd8cf'
   };
   const ZH = { bad: 10, safe: 5, buf: 7 }; // 장판 벽 높이
-  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 애니메이션: 기본은 항상 켬 (회사 PC처럼 윈도우 '애니메이션 효과'가 꺼져 있어도 부드럽게).
+  // 3D 화면 아래 '애니메이션' 스위치로 끌 수 있고, 끈 상태는 브라우저에 기억됨
+  let REDUCED = false;
+  try { REDUCED = localStorage.getItem('jamkeon.motion') === 'off'; } catch (e) {}
 
   /* ---------- 좌표 헬퍼 (평면도와 동일) ---------- */
   const P = (a, d) => { const r = a * Math.PI / 180; return [Math.sin(r) * d, -Math.cos(r) * d]; };
@@ -524,6 +527,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let CONT_PHASE = null;   // 연속 재생 범위: 페이즈 id (null 이면 전체)
   let CARRY = null;        // 연속 재생 때 이전 기믹 끝 위치 (말·보스가 이어서 걸어감)
   let SEL = -1;            // 3D 편집에서 고른 항목 번호 (items 안의 위치)
+  let LOWQ = false;        // 느린 PC 감지되면 화질 낮춤 (해상도 1배, 그림자 끔). 이 탭에서 계속 유지
   let VIEWOFF = 0;         // 옆 패널 때문에 화면을 민 정도 (다시 그려도 유지)
   let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
   let SPEED = 1;           // 재생 배속
@@ -615,8 +619,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const W = () => stage.clientWidth || 800, H = () => stage.clientHeight || 600;
     if (!RENDERER) {
       RENDERER = new T.WebGLRenderer({ antialias: true, alpha: false });
-      RENDERER.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-      RENDERER.shadowMap.enabled = true;
+      RENDERER.setPixelRatio(LOWQ ? 1 : Math.min(devicePixelRatio || 1, 2));
+      RENDERER.shadowMap.enabled = !LOWQ;
       RENDERER.shadowMap.type = T.PCFSoftShadowMap;
       RENDERER.domElement.tabIndex = 0;
       RENDERER.domElement.setAttribute('aria-label', '기믹 3D 필드. 드래그해서 회전');
@@ -648,7 +652,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     scene.add(new T.HemisphereLight(0xffffff, dark ? 0x202530 : 0xb8b0a0, dark ? 1.4 : 1.6));
     const sun = new T.DirectionalLight(0xffffff, dark ? 1.6 : 1.9);
     sun.position.set(-80, 200, 120);
-    sun.castShadow = true;
+    sun.castShadow = !LOWQ;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -140, right: 140, top: 140, bottom: -140, near: 10, far: 500 });
     sun.shadow.bias = -0.0005;
@@ -1177,9 +1181,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const grp = name => { const d = document.createElement('div'); d.className = 'a3d-grp'; d.innerHTML = `<span>${name}</span>`; bar.appendChild(d); return d; };
 
     /* 재생 */
-    const BASE_MS = REDUCED ? 1 : 1000, HOLD_MS = REDUCED ? 700 : 450;
+    const BASE_MS = () => REDUCED ? 1 : 1000, HOLD_MS = () => REDUCED ? 700 : 450; // 스위치를 바꾸면 바로 반영
     let cur = LAST, anim = null, playing = false;
-    const stepMs = i => BASE_MS * (STEPS[i].dur || 1) / SPEED;
+    const stepMs = i => BASE_MS() * (STEPS[i].dur || 1) / SPEED;
     const gp = grp('재생');
     let paused = 0, exiting = null;
     function togglePlay() {
@@ -1267,7 +1271,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       renderStep(anim.i, Math.min(1, u));
       renderCast(anim.i, Math.min(1.5, u), true);
       progEl.style.width = ((anim.i + Math.min(1, u)) / STEPS.length * 100) + '%';
-      if (u >= 1 + HOLD_MS / ms) {
+      if (u >= 1 + HOLD_MS() / ms) {
         if (playing && anim.i < LAST) startStep(anim.i + 1);
         else {
           anim = null; renderCast(0, 0, false);
@@ -1323,6 +1327,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     lk.title = '켜면 드래그로 시점이 돌거나 밀리지 않음 (휠·핀치 확대는 됨). 편집할 때 편함';
     lk.addEventListener('click', () => { LOCKCAM = !LOCKCAM; lk.setAttribute('aria-checked', String(LOCKCAM)); try { localStorage.setItem('jamkeon.lockcam', LOCKCAM ? '1' : '0'); } catch (e) {} applyLock(); });
     gl.appendChild(lk);
+    const mo = document.createElement('button'); mo.type = 'button'; mo.className = 'a3d-sw'; mo.setAttribute('role', 'switch');
+    mo.setAttribute('aria-checked', String(!REDUCED)); mo.innerHTML = '<span class="tr" aria-hidden="true"></span>애니메이션';
+    mo.title = '끄면 장판·이동이 바로 결과로 넘어감 (느린 PC용)';
+    mo.addEventListener('click', () => { REDUCED = !REDUCED; mo.setAttribute('aria-checked', String(!REDUCED)); try { localStorage.setItem('jamkeon.motion', REDUCED ? 'off' : 'on'); } catch (e) {} });
+    gl.appendChild(mo);
     const penBtn = btn('✎ 강조펜', PEN, b => { PEN = !PEN; b.setAttribute('aria-pressed', String(PEN)); stage.classList.toggle('pen', PEN); applyLock(); });
     penBtn.title = '켜면 끌어서 그리기 (Ctrl/⌘ 누른 채 끌어도 됨). 떼면 사라짐';
     gl.appendChild(penBtn); stage.classList.toggle('pen', PEN);
@@ -1726,6 +1735,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); sizeInk(); });
     ro.observe(stage);
 
+    let fpsT0 = 0, fpsN = 0;
     let raf = 0, viewOff = dlg.open ? VIEWOFF : 0; // 편집으로 다시 그릴 때 화면이 옆으로 튀지 않게 이전 값 유지
     const clock = new T.Clock();
     (function loop() {
@@ -1751,6 +1761,17 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (FOCUS && pawns[FOCUS]) { const s = 1 + 0.15 * Math.sin(t * 4); pawns[FOCUS].ring.scale.set(s, s, s); }
       controls.update();
       renderer.render(scene, camera);
+      // 프레임이 느리면(평균 30fps 미만) 한 번만 화질을 낮춤 → 애니메이션이 끊기지 않게
+      if (!LOWQ) {
+        const now = performance.now();
+        if (fpsT0 === 0) fpsT0 = now; else if (++fpsN === 45) {
+          const avg = (now - fpsT0) / 45;
+          if (avg > 33 && !document.hidden) {
+            LOWQ = true; renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; sun.castShadow = false;
+            renderer.setSize(W(), H(), false); scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+          }
+        }
+      }
     })();
     controls.addEventListener('start', () => { tween = null; });
     void floorDisc;

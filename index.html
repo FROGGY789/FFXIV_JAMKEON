@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261126y"></script>
-<script src="./raids.js?v=20261126y"></script>
-<script src="./sim.js?v=20261126y"></script>
+<script src="./admin.js?v=20261126z"></script>
+<script src="./raids.js?v=20261126z"></script>
+<script src="./sim.js?v=20261126z"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261126y"></script>
-<script src="./uwu-data.js?v=20261126y"></script>
-<script src="./notes-ex.js?v=20261126y"></script>
-<script src="./arena3d.js?v=20261126y"></script>
+<script src="./image-slot.js?v=20261126z"></script>
+<script src="./uwu-data.js?v=20261126z"></script>
+<script src="./notes-ex.js?v=20261126z"></script>
+<script src="./arena3d.js?v=20261126z"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -45,6 +45,15 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
 @keyframes aur1{from{transform:translate3d(-5%,-3%,0) rotate(0deg)}to{transform:translate3d(6%,4%,0) rotate(9deg)}}
 @keyframes aur2{from{transform:translate3d(5%,3%,0) rotate(0deg)}to{transform:translate3d(-6%,-4%,0) rotate(-7deg)}}
 @media (prefers-reduced-motion:reduce){.landing::before,.landing::after{animation:none}}
+/* 스크롤바: 얇고 둥근 연보라 (평소엔 옅게, 올리면 진하게) */
+html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3) 55%,transparent) transparent}
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3) 55%,transparent) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent,#a597e3) 45%,transparent);border-radius:999px;border:3px solid transparent;background-clip:padding-box;transition:background-color .2s}
+::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--accent,#a597e3) 85%,transparent)}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-corner{background:transparent}
 </style>
 </helmet>
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
