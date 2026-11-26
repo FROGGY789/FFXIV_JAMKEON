@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9bff5"/>
+      <stop offset="1" stop-color="#8f7fe0"/>
+    </linearGradient>
+  </defs>
+  <!-- 몽실한 구름 -->
+  <path fill="url(#g)" stroke="#6f5fc4" stroke-width="2.5" stroke-linejoin="round"
+        d="M17 50h31a11 11 0 0 0 1.5-21.9A15 15 0 0 0 21.3 23 12 12 0 0 0 17 50z"/>
+  <path fill="#fff" fill-opacity=".55" d="M22 30a8 8 0 0 1 9-6 2 2 0 0 1-.6 3.9 4.6 4.6 0 0 0-5 3.2A2 2 0 0 1 22 30z"/>
+</svg>
