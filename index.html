@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>우연히 살았네</title>
-<script src="./admin.js?v=20261126p"></script>
-<script src="./raids.js?v=20261126p"></script>
-<script src="./sim.js?v=20261126p"></script>
+<script src="./admin.js?v=20261126q"></script>
+<script src="./raids.js?v=20261126q"></script>
+<script src="./sim.js?v=20261126q"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -14,9 +14,9 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261126p"></script>
-<script src="./uwu-data.js?v=20261126p"></script>
-<script src="./arena3d.js?v=20261126p"></script>
+<script src="./image-slot.js?v=20261126q"></script>
+<script src="./uwu-data.js?v=20261126q"></script>
+<script src="./arena3d.js?v=20261126q"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -258,7 +258,7 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
           </div>
           <div style="display:grid;gap:4px"><span style="font-size:11.5px;color:var(--sub,#6f6c78)">참여 멤버</span>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:6px 8px">
-            <sc-for list="{{ memberSlots }}" as="m"><label style="display:grid;grid-template-columns:30px 76px minmax(0,1fr);align-items:center;gap:4px"><span style="{{ m.dot }}">{{ m.r }}</span><select aria-label="{{ m.r }} 직업" value="{{ m.job }}" onChange="{{ m.setJob }}" style="width:100%;min-width:0;padding:7px 2px;border-radius:9px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:12px;color:var(--ink,#16151a)"><option value="">직업</option><sc-for list="{{ m.jobOpts }}" as="j"><option value="{{ j.v }}">{{ j.t }}</option></sc-for></select><input list="jam-members" aria-label="{{ m.r }} 닉네임" placeholder="닉네임" value="{{ m.v }}" onChange="{{ m.set }}" style="width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:12.5px;color:var(--ink,#16151a)"></label></sc-for>
+            <sc-for list="{{ memberSlots }}" as="m"><label style="display:grid;grid-template-columns:30px 40px minmax(0,1fr);align-items:center;gap:4px"><span style="{{ m.dot }}">{{ m.r }}</span><button type="button" onClick="{{ m.pickJob }}" aria-label="{{ m.jobLabel }}" title="{{ m.jobLabel }}" style="{{ m.jobBtnStyle }}"><sc-if value="{{ m.hasJob }}"><img src="{{ m.jobIcon }}" alt="" width="24" height="24" style="display:block;width:24px;height:24px;border-radius:5px"></sc-if><sc-if value="{{ m.noJob }}"><span style="font-size:11px;color:var(--sub,#6f6c78)">직업</span></sc-if></button><input list="jam-members" aria-label="{{ m.r }} 닉네임" placeholder="닉네임" value="{{ m.v }}" onChange="{{ m.set }}" style="width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:12.5px;color:var(--ink,#16151a)"></label></sc-for>
           </div>
           <datalist id="jam-members"><sc-for list="{{ memberNames }}" as="nm"><option value="{{ nm }}"></option></sc-for></datalist>
           </div>
@@ -283,7 +283,7 @@ html.adm-on .log-photo:not(:has(image-slot[data-filled])){height:90px}
             <span style="font-size:15px;font-weight:600">{{ l.summary }}</span>
             <span style="font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--accent,#a597e3) 28%,transparent)">{{ l.best }}</span>
           </div>
-          <sc-if value="{{ l.hasMembers }}"><div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:12px"><sc-for list="{{ l.memberList }}" as="mm"><span style="display:inline-flex;align-items:center;gap:4px"><span style="{{ mm.dot }}">{{ mm.r }}</span>{{ mm.n }}</span></sc-for></div></sc-if>
+          <sc-if value="{{ l.hasMembers }}"><div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:12px"><sc-for list="{{ l.memberList }}" as="mm"><span style="display:inline-flex;align-items:center;gap:4px"><span style="{{ mm.dot }}">{{ mm.r }}</span><sc-if value="{{ mm.icon }}"><img src="{{ mm.icon }}" alt="{{ mm.jobName }}" title="{{ mm.jobName }}" width="20" height="20" style="width:20px;height:20px;border-radius:4px"></sc-if>{{ mm.n }}</span></sc-for></div></sc-if>
           <sc-if value="{{ l.hasMemo }}"><p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:var(--sub,#6f6c78);white-space:pre-wrap">{{ l.memo }}</p></sc-if>
         </div>
       </sc-for>
@@ -326,6 +326,25 @@ const JOBS={T:[['PLD','나이트','🛡️'],['WAR','전사','🪓'],['DRK','암
  D:[['MNK','몽크','👊'],['DRG','용기사','🐉'],['NIN','닌자','🥷'],['SAM','사무라이','⚔️'],['RPR','리퍼','💀'],['VPR','바이퍼','🐍'],
     ['BRD','음유시인','🏹'],['MCH','기공사','🔧'],['DNC','무도가','💃'],['BLM','흑마도사','🔥'],['SMN','소환사','💎'],['RDM','적마도사','🌹'],['PCT','픽토맨서','🎨']]};
 const JOB_MAP=Object.fromEntries(Object.values(JOBS).flat().map(j=>[j[0],j]));
+const jobIcon=c=>`./assets/jobs/${c}.png`;
+// 직업 아이콘 고르기 판 (버튼 아래에 뜸)
+function openJobPicker(anchor,list,cur,onPick){
+  document.querySelectorAll('.job-pop').forEach(x=>x.remove());
+  const pop=document.createElement('div');pop.className='job-pop';pop.setAttribute('role','dialog');pop.setAttribute('aria-label','직업 고르기');
+  pop.style.cssText='position:fixed;z-index:200;display:grid;grid-template-columns:repeat(5,40px);gap:4px;padding:8px;border-radius:12px;background:var(--card,#ececef);border:1px solid var(--line,#dddbe2);box-shadow:0 12px 30px rgba(0,0,0,.22)';
+  const mk=(code,label)=>{const b=document.createElement('button');b.type='button';b.title=label;b.setAttribute('aria-label',label);
+    b.style.cssText='width:40px;height:40px;padding:3px;border-radius:9px;border:2px solid '+(code===cur?'var(--accent,#a597e3)':'transparent')+';background:var(--bg,#f6f5f8);cursor:pointer;display:grid;place-items:center';
+    if(code){const i=document.createElement('img');i.src=jobIcon(code);i.alt='';i.width=30;i.height=30;i.style.borderRadius='6px';b.appendChild(i)}else{b.textContent='✕';b.style.color='var(--sub,#6f6c78)'}
+    b.addEventListener('click',()=>{onPick(code);close()});return b};
+  list.forEach(j=>pop.appendChild(mk(j[0],j[1])));pop.appendChild(mk('','직업 비우기'));
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight;
+  pop.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left))+'px';pop.style.top=(r.bottom+h+8>innerHeight?Math.max(8,r.top-h-6):r.bottom+6)+'px';
+  const away=e=>{if(!pop.contains(e.target)&&e.target!==anchor)close()},esc=e=>{if(e.key==='Escape')close()};
+  function close(){pop.remove();document.removeEventListener('pointerdown',away,true);document.removeEventListener('keydown',esc,true);anchor.focus&&anchor.focus()}
+  setTimeout(()=>{document.addEventListener('pointerdown',away,true);document.addEventListener('keydown',esc,true)},0);
+  const first=pop.querySelector('button');first&&first.focus();
+}
 // D1·D2 는 근딜, D3 원딜, D4 캐스터를 위에 보여줌
 const jobOrder=r=>{const L=JOBS[r[0]]||[];if(r[0]!=='D')return L;const melee=L.slice(0,6),phys=L.slice(6,9),cast=L.slice(9);return r==='D3'?[...phys,...melee,...cast]:r==='D4'?[...cast,...phys,...melee]:[...melee,...phys,...cast]};
 const roleDot=(r,sz)=>({minWidth:sz,height:sz-6,padding:'0 5px',borderRadius:999,background:ROLE_C[r[0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'inline-grid',placeItems:'center'});
@@ -444,7 +463,7 @@ class Component extends DCLogic {
       progressStyle:{height:'100%',width:(total?learnedN/total*100:0)+'%',background:'var(--accent)',transition:'width .4s'},progressLabel:`익힘 ${learnedN} / ${total}`,
       stats:[{l:'트라이',v:st.tries+'릴'},{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best}],
       form,phaseOpts:this.phasesOf(view),setDate:setF('date'),setStart:setF('start'),setEnd:setF('end'),
-      memberSlots:ROLES.map(r=>({r,v:(form.members||{})[r]||'',job:(form.jobs||{})[r]||'',jobOpts:jobOrder(r).map(j=>({v:j[0],t:`${j[2]} ${j[1]}`})),setJob:e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,jobs:{...(s.form.jobs||{}),[r]:v}}}))},dot:roleDot(r,30),set:e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,members:{...(s.form.members||{}),[r]:v}}}))}})),
+      memberSlots:ROLES.map(r=>{const jc=(form.jobs||{})[r]||'',jj=JOB_MAP[jc];return {r,v:(form.members||{})[r]||'',hasJob:!!jj,noJob:!jj,jobIcon:jj?jobIcon(jc):'',jobLabel:`${r} 직업: ${jj?jj[1]:'고르기'}`,jobBtnStyle:{width:40,height:34,padding:0,borderRadius:9,border:'1px solid var(--line,#dddbe2)',background:'var(--bg,#f6f5f8)',cursor:'pointer',display:'grid',placeItems:'center'},pickJob:e=>openJobPicker(e.currentTarget,jobOrder(r),jc,v=>this.setState(s=>({form:{...s.form,jobs:{...(s.form.jobs||{}),[r]:v}}}))),dot:roleDot(r,30),set:e=>{const v=e.target.value;this.setState(s=>({form:{...s.form,members:{...(s.form.members||{}),[r]:v}}}))}}}),
       memberNames:[...new Set([...BASE_MEMBERS,...Object.values(this.state.logs||{}).flat().flatMap(l=>Object.values(l.members||{}))].map(x=>String(x).trim()).filter(Boolean))],setBest:setF('best'),setMemo:setF('memo'),
       canEdit:!!(window.JamAdmin&&window.JamAdmin.on),readOnly:!(window.JamAdmin&&window.JamAdmin.on),
       isEditingLog:!!this.state.editId,addLabel:this.state.editId?'수정 저장':'기록 추가',
@@ -454,7 +473,7 @@ class Component extends DCLogic {
         this.setState(s=>({editId:null,form:{...s.form,end:'',memo:''}}));
         if(eid)this.persistLogs(L=>{L[view]=(L[view]||[]).map(x=>x.id===eid?{...x,...e}:x)},`트라이 일지 수정: ${view} ${e.date}`);
         else this.persistLogs(L=>{L[view]=[e,...(L[view]||[])]},`트라이 일지 추가: ${view} ${e.date}`)},
-      logs:L.map(l=>({...l,hasMembers:ROLES.some(r=>(l.members||{})[r]||(l.jobs||{})[r]),memberList:ROLES.filter(r=>(l.members||{})[r]||(l.jobs||{})[r]).map(r=>{const j=JOB_MAP[(l.jobs||{})[r]];return {r,n:`${j?j[2]+' ':''}${(l.members||{})[r]||(j?j[1]:'')}`,dot:roleDot(r,26)}}),dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
+      logs:L.map(l=>({...l,hasMembers:ROLES.some(r=>(l.members||{})[r]||(l.jobs||{})[r]),memberList:ROLES.filter(r=>(l.members||{})[r]||(l.jobs||{})[r]).map(r=>{const jc=(l.jobs||{})[r],j=JOB_MAP[jc];return {r,n:(l.members||{})[r]||'',icon:j?jobIcon(jc):'',jobName:j?j[1]:'',dot:roleDot(r,26)}}),dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
         canEdit:!!(window.JamAdmin&&window.JamAdmin.on),
         edit:()=>{this.setState({editId:l.id,form:{date:l.date,start:l.start||'',end:l.end||'',best:l.best,memo:l.memo||'',members:{...(l.members||{})},jobs:{...(l.jobs||{})}}});
           setTimeout(()=>{const t=document.querySelector('textarea[placeholder^="오늘 막힌 곳"]');if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.focus()}},50)},
