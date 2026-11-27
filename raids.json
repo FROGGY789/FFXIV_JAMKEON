@@ -5,7 +5,6 @@
   "no": "01",
   "code": "EX",
   "name": "극 이프리트",
-  "tag": "토벌전",
   "en": "The Bowl of Embers (Extreme)",
   "exp": "arr",
   "ph": "극 이프리트 사진",
@@ -17,7 +16,6 @@
   "no": "02",
   "code": "EX",
   "name": "극 타이탄",
-  "tag": "토벌전",
   "en": "The Navel (Extreme)",
   "exp": "arr",
   "ph": "극 타이탄 사진",
@@ -29,11 +27,10 @@
   "no": "03",
   "code": "EX",
   "name": "극 가루다",
-  "tag": "토벌전",
   "en": "The Howling Eye (Extreme)",
   "exp": "arr",
   "ph": "극 가루다 사진",
-  "n": 3
+  "n": 4
  },
  {
   "id": "rmwyd487n",
@@ -41,11 +38,10 @@
   "no": "04",
   "code": "EX",
   "name": "극 모그루 모그 12세",
-  "tag": "토벌전",
   "en": "Thornmarch (Extreme)",
   "exp": "arr",
   "ph": "극 모그루 모그 12세 사진",
-  "n": 1
+  "n": 4
  },
  {
   "id": "rmwygec0v",
@@ -53,7 +49,6 @@
   "no": "05",
   "code": "EX",
   "name": "극 리바이어선",
-  "tag": "토벌전",
   "en": "The Whorleater (Extreme)",
   "exp": "arr",
   "ph": "극 리바이어선 사진",
@@ -65,7 +60,6 @@
   "no": "06",
   "code": "EX",
   "name": "극 리오레우스",
-  "tag": "수렵전",
   "en": "The Great Hunt (Extreme)",
   "exp": "sb",
   "ph": "극 리오레우스 사진",
