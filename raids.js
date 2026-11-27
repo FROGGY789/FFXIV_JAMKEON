@@ -71,7 +71,8 @@
   const fire = () => dispatchEvent(new Event('jam-raids'));
   const clean = list => list.map((r, i) => ({
     id: String(r.id), kind: r.kind || 'ult', no: String(i + 1).padStart(2, '0'), code: String(r.code || '').trim(), name: String(r.name || '').trim() || '이름 없음',
-    tag: String(r.tag || '').trim() || undefined, en: String(r.en || '').trim(), exp: EXPS.some(x => x[0] === r.exp) ? r.exp : expOf(r.en), ph: String(r.name || '').trim() + ' 사진', n: Math.max(1, Math.min(12, +r.n || 5))
+    // 토벌전/수렵전은 이름 뒤에 자동으로 붙으니 부제에서는 뺌
+    tag: (t => (r.kind === 'ex' && /^(토벌전|수렵전)$/.test(t)) ? undefined : (t || undefined))(String(r.tag || '').trim()), en: String(r.en || '').trim(), exp: EXPS.some(x => x[0] === r.exp) ? r.exp : expOf(r.en), ph: String(r.name || '').trim() + ' 사진', n: (() => { const st = window.JamNotes && window.JamNotes.sets.find(x => x.en.includes(String(r.en || '').trim().toLowerCase())); return st ? st.PH.length : Math.max(1, Math.min(12, +r.n || 5)); })() // 기믹 노트가 있으면 그 페이즈 수
   }));
   function apply(list) {
     const R = window.JAM_RAIDS; if (!R || !Array.isArray(list) || !list.length) return;
@@ -193,7 +194,7 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
         es.addEventListener('change', () => { r.exp = es.value; fillDetail(ds, ks.value, r.name, r.exp); });
         ds.addEventListener('change', () => { const m = DUTIES.find(x => x[0] === ks.value && x[1] === ds.value); if (m) fillFrom(r, m, row); });
         kw.append(es, ks, ds); kl.appendChild(kw);
-        row.append(no, kl, field(r, 'name', '이름', '절 OOO'), field(r, 'tag', '부제 (선택)', '상세 페이지 둘째 줄'), field(r, 'en', '영문', 'English name'), field(r, 'code', '코드', 'UWU'), field(r, 'n', '페이즈', '', 'number'));
+        row.append(no, kl, field(r, 'name', '이름', '절 OOO'), field(r, 'tag', '부제 (선택)', '클리어 후 한마디'), field(r, 'en', '영문', 'English name'), field(r, 'code', '코드', 'UWU'), field(r, 'n', '페이즈', '', 'number'));
         const ops = document.createElement('div'); ops.className = 'ops';
         const mk = (t, title, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.title = title; b.setAttribute('aria-label', title); if (cls) b.className = cls; b.addEventListener('click', fn); return b; };
         ops.append(
