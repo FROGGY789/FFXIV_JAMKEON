@@ -10,7 +10,12 @@
  */
 (function () {
   'use strict';
-  const REPO = 'FROGGY789/FFXIV_JAMKEON';
+  // 저장소: GitHub Pages 주소(아이디.github.io/저장소/)에서 알아냄 → 저장소 이름을 바꿔도 코드 수정 없이 동작
+  const REPO = (() => {
+    const h = location.hostname, seg = location.pathname.split('/').filter(Boolean)[0];
+    if (/\.github\.io$/i.test(h) && seg) return h.split('.')[0] + '/' + seg;
+    return 'FROGGY789/survival_diary';
+  })();
   const BRANCH = 'gh-pages';
   const STATE = '.image-slots.state.json';
   const KEY = 'jamkeon.adminToken';
