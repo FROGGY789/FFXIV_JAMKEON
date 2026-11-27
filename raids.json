@@ -33,6 +33,26 @@
   "n": 4
  },
  {
+  "id": "rmwygec0v",
+  "kind": "ex",
+  "no": "05",
+  "code": "EX",
+  "name": "극 리바이어선",
+  "en": "The Whorleater (Extreme)",
+  "exp": "arr",
+  "ph": "극 리바이어선 사진",
+  "n": 4
+ },
+ {
+  "id": "rmwygxqk3",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 라무",
+  "en": "The Striking Tree (Extreme)",
+  "n": 1,
+  "exp": "arr"
+ },
+ {
   "id": "rmwyd487n",
   "kind": "ex",
   "no": "04",
@@ -44,15 +64,76 @@
   "n": 4
  },
  {
-  "id": "rmwygec0v",
+  "id": "rmwygxqk4",
   "kind": "ex",
-  "no": "05",
   "code": "EX",
-  "name": "극 리바이어선",
-  "en": "The Whorleater (Extreme)",
-  "exp": "arr",
-  "ph": "극 리바이어선 사진",
-  "n": 4
+  "name": "극 시바",
+  "en": "The Akh Afah Amphitheatre (Extreme)",
+  "n": 1,
+  "exp": "arr"
+ },
+ {
+  "id": "rmwygxqk5",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 비스마르크",
+  "en": "The Limitless Blue (Extreme)",
+  "n": 1,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqk6",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 라바나",
+  "en": "Thok ast Thok (Extreme)",
+  "n": 1,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqk7",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 나이츠 오브 라운드",
+  "en": "The Minstrel's Ballad: Thordan's Reign",
+  "n": 2,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqk8",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 세피로트",
+  "en": "Containment Bay S1T7 (Extreme)",
+  "n": 2,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqk9",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 니드호그",
+  "en": "The Minstrel's Ballad: Nidhogg's Rage",
+  "n": 2,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqka",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 소피아",
+  "en": "Containment Bay P1T6 (Extreme)",
+  "n": 2,
+  "exp": "hw"
+ },
+ {
+  "id": "rmwygxqkb",
+  "kind": "ex",
+  "code": "EX",
+  "name": "극 주르반",
+  "en": "Containment Bay Z1T9 (Extreme)",
+  "n": 2,
+  "exp": "hw"
  },
  {
   "id": "ucob",
