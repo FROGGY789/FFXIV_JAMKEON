@@ -117,7 +117,8 @@
     'landslide': '산사태', 'weight of the land': '대지의 무게', 'geocrush': '대지 붕괴', 'earthen fury': '대지의 분노', 'upheaval': '대격진', 'tumult': '격진',
     'rock buster': '바위 쪼개기', 'mountain buster': '산 쪼개기', 'granite gaol': '화강암 감옥', 'bomb boulders': '바위 폭탄', 'rock throw': '바위 던지기',
     'slipstream': '반동 기류', 'downburst': '하강 기류', 'mistral song': '삭풍의 노래', 'mistral shriek': '삭풍의 비명', 'friction': '바람의 칼날',
-    'aerial blast': '대기 폭발', 'feather rain': '깃털비', 'wicked wheel': '마녀의 수레바퀴', 'wicked tornado': '마녀의 회오리', 'eye of the storm': '태풍의 눈'
+    'aerial blast': '대기 폭발', 'feather rain': '깃털비', 'wicked wheel': '마녀의 수레바퀴', 'wicked tornado': '마녀의 회오리', 'eye of the storm': '태풍의 눈',
+    'flare': '플레어', 'holy': '홀리', 'meteor': '메테오'
   };
   // 'Crimson Cyclone ×4', 'Hellfire → Radiant Plume #1', 'Slipstream / Mistral Song' → 첫 기술을 한국어로. 모르면 카드 제목 첫 부분(한국어)
   function koCast(name, card) {
