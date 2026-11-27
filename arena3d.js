@@ -110,6 +110,24 @@
     playPhase: pid => { const u = U(); const ph = u && u.PH.find(p => p.id === pid); if (!ph || !ph.cards.length) return; CONT = true; CONT_PHASE = pid; CARRY = null; open(ph.cards[0].d, { autoplay: true }); goFull(); }
   };
 
+  /* ---------- 시전 바 기술 이름: 한국 서버 표기 ---------- */
+  const KO_CAST = {
+    'incinerate': '화염 숨결', 'vulcan burst': '폭렬 난사', 'eruption': '용암 분출', 'searing wind': '작열', 'hellfire': '지옥의 화염',
+    'radiant plume': '광휘의 불기둥', 'crimson cyclone': '진홍 회오리', 'infernal nails': '염옥의 말뚝', 'infernal nail': '염옥의 말뚝', 'infernal fetters': '염옥의 사슬',
+    'landslide': '산사태', 'weight of the land': '대지의 무게', 'geocrush': '대지 붕괴', 'earthen fury': '대지의 분노', 'upheaval': '대격진', 'tumult': '격진',
+    'rock buster': '바위 쪼개기', 'mountain buster': '산 쪼개기', 'granite gaol': '화강암 감옥', 'bomb boulders': '바위 폭탄', 'rock throw': '바위 던지기',
+    'slipstream': '반동 기류', 'downburst': '하강 기류', 'mistral song': '삭풍의 노래', 'mistral shriek': '삭풍의 비명', 'friction': '바람의 칼날',
+    'aerial blast': '대기 폭발', 'feather rain': '깃털비', 'wicked wheel': '마녀의 수레바퀴', 'wicked tornado': '마녀의 회오리', 'eye of the storm': '태풍의 눈'
+  };
+  // 'Crimson Cyclone ×4', 'Hellfire → Radiant Plume #1', 'Slipstream / Mistral Song' → 첫 기술을 한국어로. 모르면 카드 제목 첫 부분(한국어)
+  function koCast(name, card) {
+    const first = String(name || '').split(/\s*(?:\/|→|->)\s*/)[0].replace(/\(.*?\)|[×x]\s*\d+|#\d+/g, '').trim().toLowerCase();
+    if (KO_CAST[first]) return KO_CAST[first];
+    if (/[가-힣]/.test(name)) return name;
+    const h = card ? htmlText(card.h).split('·')[0].trim() : '';
+    return h || name;
+  }
+
   /* ---------- 카드 정보 (window.UWU) ---------- */
   const U = () => (window.JamNotes && window.UWU && window.UWU.PH) ? window.JamNotes.all() : (window.UWU && window.UWU.PH ? window.UWU : null);
   function metaOf(items) {
@@ -517,8 +535,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       }
       if (e.key === ' ' && R && R.togglePlay) { e.preventDefault(); R.togglePlay(); }
       else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFull(); }
-      else if (e.key === 'ArrowRight' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(1, false); }
-      else if (e.key === 'ArrowLeft' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; go(-1, false); }
+      // ←/→: 이 기믹 안에서 한 단계씩 (부드럽게 앞뒤로), 끝에 닿으면 이전·다음 기믹으로
+      else if (e.key === 'ArrowRight' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; if (R && R.stepBy) R.stepBy(1); else go(1, false); }
+      else if (e.key === 'ArrowLeft' && !e.target.closest('ol.go')) { e.preventDefault(); CONT = false; if (R && R.stepBy) R.stepBy(-1); else go(-1, false); }
     });
     dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener('cancel', e => { if (EDIT && dirty() && !confirm('저장 안 한 편집이 있음. 닫을까?')) e.preventDefault(); });
@@ -574,7 +593,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const list = allCards(CUR), i = list.indexOf(CUR);
     if (i < 0 || !list[i + delta]) return false;
     if (autoplay && CONT && CONT_PHASE) { const m = metaOf(list[i + delta]); if (!m || m.ph.id !== CONT_PHASE) return false; }
-    open(list[i + delta], { autoplay, keepCam: true });
+    open(list[i + delta], { autoplay, keepCam: true, oneStep: !!OPTS.oneStepNext });
     return true;
   }
 
@@ -1017,7 +1036,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     /* --- 재생 타임라인 ---
      * 기본(자동): ① 배치 → ② 장판(시전 바 → 장판 퍼짐) → ③ 이동(실선 화살표) → ④ 이동(점선 화살표)
      * 직접 작성: d 안에 {seq:[{s, mv, cast, aggro}, ...]} */
-    const castName = (meta && (meta.c.cast || htmlText(meta.c.en))) || '';
+    const castName = meta ? koCast(meta.c.cast || htmlText(meta.c.en), meta.c) : '';
     const bossName = (items.find(o => o && o.b && (BC[o.b] || (o.r || 11) >= 9)) || {}).b || '';
     const STEPS = [
       { name: '배치', cap: '보스와 각 롤의 시작 위치', dur: 0.8 },
@@ -1050,7 +1069,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const extend = () => pawnsE.forEach(e => e.pos.push(e.pos[e.pos.length - 1]));
     if (seq && seq.length) {
       seq.forEach(f => {
-        STEPS.push({ name: String(STEPS.length + 1), cap: strip(f.s || ''), dur: f.cast ? 2 : 1.3, cast: f.cast ? { boss: bossName, name: f.cast } : null, aggro: f.aggro });
+        STEPS.push({ name: String(STEPS.length + 1), cap: strip(f.s || ''), dur: f.cast ? 2 : 1.3, cast: f.cast ? { boss: bossName, name: koCast(f.cast, meta && meta.c) } : null, aggro: f.aggro });
         extend();
         const i = STEPS.length - 1;
         Object.entries(f.mv || {}).forEach(([role, v]) => {
@@ -1313,6 +1332,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const ms = stepMs(anim.i);
       anim.el = (now - anim.s) * SPEED;
       const u = (now - anim.s) / ms;
+      if (anim.rev) { // 뒤로 한 단계: 이 단계를 거꾸로 재생 → 이전 단계 끝 모습
+        const v = 1 - Math.min(1, u * 1.6);
+        renderStep(anim.i, v); progEl.style.width = ((anim.i + v) / STEPS.length * 100) + '%';
+        if (v <= 0) { anim = null; renderStep(cur, 1); renderCast(0, 0, false); syncUI(); }
+        return;
+      }
       renderStep(anim.i, Math.min(1, u));
       renderCast(anim.i, Math.min(1.5, u), true);
       progEl.style.width = ((anim.i + Math.min(1, u)) / STEPS.length * 100) + '%';
@@ -1765,7 +1790,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     /* --- 처음 상태 --- */
     applyFocus();
-    if (autoplay) { playing = true; startStep(0); renderStep(0, 0); }
+    if (autoplay) { playing = !OPTS.oneStep; startStep(0); renderStep(0, 0); } // oneStep: 키보드로 넘어온 경우 첫 단계(말이 이어서 걸어옴)만 재생하고 멈춤
     else { renderStep(LAST, 1); progEl.style.width = '100%'; syncUI(); }
     renderCast(0, 0, false);
     showSel();
@@ -1826,6 +1851,18 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       select: i => { SEL = i; showSel(); },
       gotoLine: i => { CONT = false; playing = false; paused = 0; exiting = null; pickLine = i; startStep(lineStep(i)); },
       togglePlay,
+      stepBy(d) {
+        playing = false; paused = 0; exiting = null;
+        if (d > 0) {
+          if (cur < LAST) { startStep(cur + 1); return; }
+          // 마지막 단계에서 → : 말·보스가 지금 자리에서 다음 기믹 시작 자리로 걸어감
+          CARRY = snapshot(); OPTS.oneStepNext = true;
+          const ok = go(1, true); OPTS.oneStepNext = false; if (!ok) CARRY = null;
+        } else {
+          if (cur > 0) { if (anim && !anim.rev) renderStep(cur, 1); anim = { i: cur, s: performance.now(), el: 0, rev: true }; cur -= 1; renderCast(0, 0, false); syncUI(); return; }
+          go(-1, false);
+        }
+      },
       syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
