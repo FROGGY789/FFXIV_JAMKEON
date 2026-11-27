@@ -55,11 +55,23 @@
       ['신화의 세계: 아글라이아', 'Aglaia', 'MY1', 3], ['신화의 세계: 에우프로시네', 'Euphrosyne', 'MY2', 3], ['신화의 세계: 탈레이아', 'Thaleia', 'MY3', 3],
       ['바나딜: 쥬노 첫 번째 걸음', 'Jeuno: The First Walk', 'VD1', 3], ['바나딜: 산도리아 두 번째 걸음', "San d'Oria: The Second Walk", 'VD2', 3]])
   );
+  // 확장팩: 랜딩 빨랫줄 위 탭으로 나눠 봄. 영문 이름으로 자동 판별 (목록에 없으면 직접 고름)
+  const EXPS = [['arr', '신생', 'ARR'], ['hw', '창천', 'HW'], ['sb', '홍련', 'SB'], ['shb', '칠흑', 'ShB'], ['ew', '효월', 'EW'], ['dt', '황금', 'DT']];
+  const EXP_RX = [ // 순서 중요: 'Unending Coil'(홍련)을 'Coil of Bahamut'(신생)보다, 'Epic of Alexander'(칠흑)를 'Alexander'(창천)보다 먼저
+    ['sb', /Unending Coil|Weapon's Refrain|Pool of Tribute|Emanation|Shinryu|Jade Stoa|Great Hunt|Tsukuyomi|Hells' Kier|Wreath of Snakes|Omega:|Rabanastre|Ridorana|Orbonne/i],
+    ['shb', /Epic of Alexander|Dancing Plague|Crown of the Immaculate|Hades|Cinder Drift|Memoria Misera|Seat of Sacrifice|Castrum Marinum|Cloud Deck|Eden|Copied Factory|Puppets|Paradigm/i],
+    ['ew', /Dragonsong|Omega Protocol|Zodiark|Hydaelyn|Endsinger|Storm's Crown|Mount Ordeals|Voidcast|Abyssal Fracture|Pand.monium|Aglaia|Euphrosyne|Thaleia/i],
+    ['dt', /Futures Rewritten|Worqor|Everkeep|Sphene|Windward Wilds|Necron|AAC |Jeuno|San d'Oria/i],
+    ['hw', /Limitless Blue|Thok ast Thok|Thordan|S1T7|Nidhogg|P1T6|Z1T9|Alexander|Void Ark|Weeping City|Dun Scaith/i],
+    ['arr', /Bowl of Embers|Navel|Howling Eye|Whorleater|Striking Tree|Thornmarch|Akh Afah|Coil of Bahamut|Labyrinth of the Ancients|Syrcus|World of Darkness/i]
+  ];
+  const expOf = en => { const m = EXP_RX.find(([, rx]) => rx.test(String(en || ''))); return m ? m[0] : ''; };
+  window.JAM_EXPS = EXPS; window.JAM_EXP_OF = expOf;
   const A = () => window.JamAdmin || { on: false };
   const fire = () => dispatchEvent(new Event('jam-raids'));
   const clean = list => list.map((r, i) => ({
     id: String(r.id), kind: r.kind || 'ult', no: String(i + 1).padStart(2, '0'), code: String(r.code || '').trim(), name: String(r.name || '').trim() || '이름 없음',
-    tag: String(r.tag || '').trim() || undefined, en: String(r.en || '').trim(), ph: String(r.name || '').trim() + ' 사진', n: Math.max(1, Math.min(12, +r.n || 5))
+    tag: String(r.tag || '').trim() || undefined, en: String(r.en || '').trim(), exp: EXPS.some(x => x[0] === r.exp) ? r.exp : expOf(r.en), ph: String(r.name || '').trim() + ' 사진', n: Math.max(1, Math.min(12, +r.n || 5))
   }));
   function apply(list) {
     const R = window.JAM_RAIDS; if (!R || !Array.isArray(list) || !list.length) return;
@@ -85,14 +97,14 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
 .rm form{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:calc(100dvh - 24px)}
 .rm .hd{padding:16px 18px 10px}.rm h2{margin:0;font-size:18px;font-weight:800}.rm .hd p{margin:4px 0 0;font-size:12.5px;color:var(--sub,#6f6c78)}
 .rm .list{overflow:auto;padding:4px 18px 10px;display:grid;gap:8px}
-.rm .row{display:grid;grid-template-columns:52px minmax(0,2.1fr) minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1.3fr) 70px 58px auto;gap:6px;align-items:end;background:var(--card,#ececef);border-radius:12px;padding:8px 10px}
+.rm .row{display:grid;grid-template-columns:52px minmax(0,2.8fr) minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1.3fr) 70px 58px auto;gap:6px;align-items:end;background:var(--card,#ececef);border-radius:12px;padding:8px 10px}
 .rm .row .no{font:700 12px 'JetBrains Mono',monospace;color:var(--sub,#6f6c78);align-self:center;cursor:grab;user-select:none;display:flex;gap:4px;align-items:center}
 .rm .row .no::before{content:'⠿';font-size:16px;line-height:1;color:var(--sub,#6f6c78)}
 .rm .row.drag{opacity:.4}
 .rm .row.over-top{box-shadow:inset 0 3px 0 #a597e3}.rm .row.over-bot{box-shadow:inset 0 -3px 0 #a597e3}
 .rm label{display:grid;gap:2px;font-size:11px;color:var(--sub,#6f6c78)}
 .rm .kd,.rm .kw,.rm label{min-width:0}
-.rm .kw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:4px}
+.rm .kw{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.2fr);gap:4px}
 .rm select{min-width:0;width:100%;box-sizing:border-box;text-overflow:ellipsis;padding:7px 6px;border-radius:8px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:inherit;font-size:12.5px}
 .rm input{width:100%;box-sizing:border-box;padding:7px 8px;border-radius:8px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:inherit;font-size:13px}
 .rm .ops{display:flex;gap:4px}
@@ -133,18 +145,20 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
         r[k] = i.value;
         // 이름을 목록에서 고르면 영문·코드·페이즈 수도 채움
         if (k === 'name') { const m = DUTIES.find(x => x[1] === i.value.trim()); if (m) fillFrom(r, m, i.closest('.row')); }
+        if (k === 'en') { const e = expOf(i.value), ex = i.closest('.row') && i.closest('.row').querySelector('.exp'); if (e && ex && !ex.value) { r.exp = e; ex.value = e; } }
       });
       if (k === 'name') { i.setAttribute('list', 'rm-duties'); i.placeholder = '이름 (극·영식·절 치면 목록)'; }
       l.appendChild(i); return l;
     };
     function fillFrom(r, m, row) {
-      r.kind = m[0]; r.name = m[1]; r.en = m[2]; r.code = m[3]; r.n = m[4];
+      r.kind = m[0]; r.name = m[1]; r.en = m[2]; r.code = m[3]; r.n = m[4]; r.exp = expOf(m[2]) || r.exp;
       if (!row) return;
+      const ex = row.querySelector('.exp'); if (ex) ex.value = r.exp || '';
       row.querySelector('[data-k=name]').value = m[1]; row.querySelector('[data-k=en]').value = m[2]; row.querySelector('[data-k=code]').value = m[3]; row.querySelector('[data-k=n]').value = m[4];
-      row.querySelector('.kind').value = m[0]; fillDetail(row.querySelector('.detail'), m[0], m[1]);
+      row.querySelector('.kind').value = m[0]; fillDetail(row.querySelector('.detail'), m[0], m[1], r.exp);
     }
-    function fillDetail(sel, kind, name) {
-      sel.innerHTML = '<option value="">세부 고르기…</option>' + DUTIES.filter(x => x[0] === kind).map(x => `<option value="${x[1].replace(/"/g, '&quot;')}">${x[1]}</option>`).join('');
+    function fillDetail(sel, kind, name, exp) {
+      sel.innerHTML = '<option value="">세부 고르기…</option>' + DUTIES.filter(x => x[0] === kind && (!exp || expOf(x[2]) === exp)).map(x => `<option value="${x[1].replace(/"/g, '&quot;')}">${x[1]}</option>`).join('');
       sel.value = DUTIES.some(x => x[0] === kind && x[1] === name) ? name : '';
     }
     let dragFrom = -1;
@@ -165,16 +179,20 @@ dialog.rm::backdrop{background:rgba(10,12,20,.45)}
         const no = document.createElement('span'); no.className = 'no'; no.textContent = '#' + String(i + 1).padStart(2, '0'); no.title = '끌어서 순서 바꾸기';
         no.addEventListener('pointerdown', () => { row.draggable = true; });
         // 분류 → 세부 선택 (고르면 이름·영문·코드·페이즈 수가 채워짐)
-        const kl = document.createElement('label'); kl.className = 'kd'; kl.textContent = '분류 · 세부';
+        const kl = document.createElement('label'); kl.className = 'kd'; kl.textContent = '확장 · 분류 · 세부';
+        const es = document.createElement('select'); es.className = 'exp'; es.setAttribute('aria-label', '확장팩');
+        es.innerHTML = '<option value="">확장?</option>' + EXPS.map(([v, t, a]) => `<option value="${v}" title="${t}">${a}</option>`).join('');
+        if (!r.exp) r.exp = expOf(r.en); es.value = r.exp || '';
         const kw = document.createElement('div'); kw.className = 'kw';
         const ks = document.createElement('select'); ks.className = 'kind'; ks.setAttribute('aria-label', '분류');
         KINDS.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; ks.appendChild(o); });
         ks.value = r.kind || 'ult';
         const ds = document.createElement('select'); ds.className = 'detail'; ds.setAttribute('aria-label', '세부');
-        fillDetail(ds, ks.value, r.name);
-        ks.addEventListener('change', () => { r.kind = ks.value; fillDetail(ds, ks.value, r.name); });
+        fillDetail(ds, ks.value, r.name, r.exp);
+        ks.addEventListener('change', () => { r.kind = ks.value; fillDetail(ds, ks.value, r.name, r.exp); });
+        es.addEventListener('change', () => { r.exp = es.value; fillDetail(ds, ks.value, r.name, r.exp); });
         ds.addEventListener('change', () => { const m = DUTIES.find(x => x[0] === ks.value && x[1] === ds.value); if (m) fillFrom(r, m, row); });
-        kw.append(ks, ds); kl.appendChild(kw);
+        kw.append(es, ks, ds); kl.appendChild(kw);
         row.append(no, kl, field(r, 'name', '이름', '절 OOO'), field(r, 'tag', '부제 (선택)', '상세 페이지 둘째 줄'), field(r, 'en', '영문', 'English name'), field(r, 'code', '코드', 'UWU'), field(r, 'n', '페이즈', '', 'number'));
         const ops = document.createElement('div'); ops.className = 'ops';
         const mk = (t, title, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.title = title; b.setAttribute('aria-label', title); if (cls) b.className = cls; b.addEventListener('click', fn); return b; };

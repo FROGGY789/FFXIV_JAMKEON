@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261127i"></script>
-<script src="./raids.js?v=20261127i"></script>
-<script src="./sim.js?v=20261127i"></script>
+<script src="./admin.js?v=20261127j"></script>
+<script src="./raids.js?v=20261127j"></script>
+<script src="./sim.js?v=20261127j"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261127i"></script>
-<script src="./uwu-data.js?v=20261127i"></script>
-<script src="./notes-ex.js?v=20261127i"></script>
-<script src="./arena3d.js?v=20261127i"></script>
+<script src="./image-slot.js?v=20261127j"></script>
+<script src="./uwu-data.js?v=20261127j"></script>
+<script src="./notes-ex.js?v=20261127j"></script>
+<script src="./arena3d.js?v=20261127j"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -75,6 +75,9 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
     </div>
   </div>
 
+  <div role="tablist" aria-label="확장팩" style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:26px 0 -6px">
+    <sc-for list="{{ expTabs }}" as="x"><button type="button" role="tab" aria-selected="{{ x.on }}" onClick="{{ x.pick }}" style="{{ x.style }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em">{{ x.code }}</span><span>{{ x.label }}</span><span style="{{ x.countStyle }}">{{ x.count }}</span></button></sc-for>
+  </div>
   <div onMouseMove="{{ edgeMove }}" onMouseLeave="{{ edgeLeave }}" style="position:relative">
   <button onClick="{{ prev }}" aria-label="이전" style="{{ prevStyle }}">←</button>
   <button onClick="{{ next }}" aria-label="다음" style="{{ nextStyle }}">→</button>
@@ -384,7 +387,7 @@ const spanH=(a,b)=>{if(!a||!b)return 0;const m=t=>{const[h,mi]=t.split(':').map(
 const logH=l=>l.start&&l.end?spanH(l.start,l.end):(+l.hours||0);
 
 class Component extends DCLogic {
-  state={view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
+  state={exp:(()=>{try{return localStorage.getItem('jamkeon.exp')||'all'}catch(e){return 'all'}})(),view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
   blankForm(id){const last=this.state&&((this.state.logs||{})[id]||[])[0];return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],cat:(last&&last.cat)||'try',memo:'',members:{...((last&&last.members)||{})},jobs:{...((last&&last.jobs)||{})}}}
   phasesOf(id){const r=RAIDS.find(x=>x.id===id);const ns=window.JamNotes&&window.JamNotes.forRaid(id);if(ns)return [...ns.PH.map(p=>p.name),'클리어'];
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
@@ -398,8 +401,11 @@ class Component extends DCLogic {
   }
   componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids)}
   strip=React.createRef();
-  colW(el){return el.firstElementChild.offsetWidth/Math.max(1,RAIDS.length)}
-  snap(el,dir=0){const w=this.colW(el);let i=Math.round(el.scrollLeft/w)+dir;i=Math.max(0,Math.min(2,i));const max=el.scrollWidth-el.clientWidth;
+  expOf(r){return r.exp||(window.JAM_EXP_OF&&window.JAM_EXP_OF(r.en))||''}
+  visRaids(){const ex=this.state.exp||'all';const v=ex==='all'?RAIDS:RAIDS.filter(r=>(this.expOf(r)||'etc')===ex);return v.length?v:RAIDS}
+  pickExp(k){try{localStorage.setItem('jamkeon.exp',k)}catch(e){}this.setState({exp:k,flip:null});const el=this.strip.current;if(el)el.scrollTo({left:0})}
+  colW(el){return el.firstElementChild.offsetWidth/Math.max(1,this.visRaids().length)}
+  snap(el,dir=0){const w=this.colW(el);let i=Math.round(el.scrollLeft/w)+dir;i=Math.max(0,Math.min(this.visRaids().length-1,i));const max=el.scrollWidth-el.clientWidth;
     el.style.scrollSnapType='none';el.scrollTo({left:Math.min(max,i*w),behavior:'smooth'});clearTimeout(this._st);this._st=setTimeout(()=>{el.style.scrollSnapType='x mandatory'},700)}
   step(d){const el=this.strip.current;if(el)this.snap(el,d)}
   pDown(e){if(e.pointerType!=='mouse'||e.button!==0)return;const el=this.strip.current;if(!el)return;cancelAnimationFrame(this._raf);
@@ -436,8 +442,13 @@ class Component extends DCLogic {
     const mode=this.props.flipTrigger??'hover', sway=this.props.sway??true;
     const {view,flip,filter,form}=this.state;
     const grand=RAIDS.reduce((a,r)=>a+this.statsOf(r.id).tries,0);
-    const NC=Math.max(1,RAIDS.length);
-    const cards=RAIDS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=150+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
+    const VIS=this.visRaids(),NC=Math.max(1,VIS.length),curExp=VIS===RAIDS?'all':(this.state.exp||'all');
+    const EXPS=window.JAM_EXPS||[];
+    const expTabs=[['all','전체','ALL'],...EXPS,['etc','기타','ETC']].map(([k,t,code])=>{const n=k==='all'?RAIDS.length:RAIDS.filter(r=>(this.expOf(r)||'etc')===k).length;const on=curExp===k;
+      return {k,label:t,code,count:n,show:n>0,on:String(on),pick:()=>this.pickExp(k),
+        style:{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid '+(on?'var(--ink,#16151a)':'var(--line,#dddbe2)'),background:on?'var(--ink,#16151a)':'color-mix(in srgb,var(--card,#ececef) 70%,transparent)',color:on?'var(--bg,#f6f5f8)':'var(--ink,#16151a)',borderRadius:999,padding:'7px 13px',fontSize:13,fontWeight:700,cursor:'pointer',backdropFilter:'blur(6px)',transition:'background .2s,color .2s'},
+        countStyle:{fontSize:11,fontWeight:700,opacity:.65,fontVariantNumeric:'tabular-nums'}}}).filter(x=>x.show);
+    const cards=VIS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=150+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
       return {...r,kindLabel:({ult:'Ultimate',ex:'Extreme',raid:'Raid',ally:'Alliance',etc:'Duty'})[r.kind||'ult']||'Ultimate',tries:st.tries,status:st.status,
         rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
         swayStyle:{position:'absolute',left:'clamp(18px,2.4vw,44px)',right:'clamp(18px,2.4vw,44px)',top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
@@ -456,12 +467,13 @@ class Component extends DCLogic {
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
     const base={...strip,isLanding:!view,isDetail:!!view,cards,
-      stripStyle:{position:'relative',height:760,width:`max(${Math.max(100,NC/4*100)}%, ${NC*290}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(NC).padStart(2,"0")} Raids · 누적 ${grand}릴`,
+      stripStyle:{position:'relative',height:760,width:`max(${Math.max(100,NC/4*100)}%, ${NC*290}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(RAIDS.length).padStart(2,"0")} Raids · 누적 ${grand}릴`,expTabs,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
     const raid=RAIDS.find(r=>r.id===view),U=window.JamNotes&&window.JamNotes.forRaid(view),isU=!!U;
-    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:(()=>{const d=(this.state.logs[r.id]||[]).map(l=>l.date||'').filter(Boolean).sort().pop();return d?`${d.slice(0,4)}년 ${+d.slice(5,7)}월`:'기록 없음'})(),go:()=>{if(!a)this.open(r.id)},
+    const MV=(()=>{const v=this.visRaids();return v.some(r=>r.id===view)?v:RAIDS})();
+    const minis=MV.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:(()=>{const d=(this.state.logs[r.id]||[]).map(l=>l.date||'').filter(Boolean).sort().pop();return d?`${d.slice(0,4)}년 ${+d.slice(5,7)}월`:'기록 없음'})(),go:()=>{if(!a)this.open(r.id)},
       wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
       cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
     const feed=[];let total=0,learnedN=0;
