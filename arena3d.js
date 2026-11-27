@@ -1134,6 +1134,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const LAST = STEPS.length - 1;
     // 항목에 step:N 이 있으면 그 단계(1부터)에서 나타남. 예) 장판이 깔린 뒤 생기는 회오리
     ENT.forEach(e => { const o = items[e.idx]; if (o && o.step) { e.at = Math.min(LAST, Math.max(0, o.step - 1)); e.delay = 0; e.span = e.kind === 'zone' ? 0.6 : 1; } });
+    // 지형(env:1): 물·돌기둥처럼 처음부터 그대로 있음. 등장 애니메이션 없음, 연속 재생 때도 안 사라짐
+    ENT.forEach(e => { const o = items[e.idx]; if (o && o.env) { e.env = true; e.at = -1; e.delay = 0; e.span = 1e-4; } });
     while (pawnsE.length && pawnsE[0].pos.length < STEPS.length) extend();
 
     const easeO = t => 1 - Math.pow(1 - t, 3);
@@ -1181,6 +1183,10 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
           e.g.visible = v > 0; if (e.g.material) e.g.material.opacity = v;
         }
       });
+      // gone:N 항목(먹은 구슬 등)은 N번째 단계 끝에서 작아지며 사라짐
+      ENT.forEach(e => { const o = items[e.idx]; if (!o || !o.gone) return; const g = o.gone - 1;
+        if (i > g) e.g.visible = false;
+        else if (i === g) { const k = 1 - clamp01((u - 0.7) / 0.3); e.g.scale.setScalar(Math.max(0.001, k)); if (k <= 0.01) e.g.visible = false; } });
       // 어그로: 그 단계까지 마지막으로 지정된 탱커
       let ag = agLocal || aggroOf();
       for (let j = 0; j <= i; j++) if (STEPS[j].aggro) ag = STEPS[j].aggro;
@@ -1383,6 +1389,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     function tickExit(now) {
       const u = clamp01((now - exiting.s) * SPEED / EXIT_MS);
       ENT.forEach(e => {
+        if (e.env) return;
         if (e.kind === 'zone') { const z = e.g.userData.z; z.fill.material.opacity = z.baseOp * (1 - u); z.lineMat.opacity = z.lineOp * (1 - u); z.wall.scale.y = Math.max(0.001, 1 - u); }
         else if (e.kind === 'arrow' || e.kind === 'tether') e.g.visible = u < 0.5;
         else if (e.kind === 'label' && e.g.material) e.g.material.opacity = 1 - u;
