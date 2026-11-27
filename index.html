@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261127f"></script>
-<script src="./raids.js?v=20261127f"></script>
-<script src="./sim.js?v=20261127f"></script>
+<script src="./admin.js?v=20261127g"></script>
+<script src="./raids.js?v=20261127g"></script>
+<script src="./sim.js?v=20261127g"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261127f"></script>
-<script src="./uwu-data.js?v=20261127f"></script>
-<script src="./notes-ex.js?v=20261127f"></script>
-<script src="./arena3d.js?v=20261127f"></script>
+<script src="./image-slot.js?v=20261127g"></script>
+<script src="./uwu-data.js?v=20261127g"></script>
+<script src="./notes-ex.js?v=20261127g"></script>
+<script src="./arena3d.js?v=20261127g"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -461,7 +461,7 @@ class Component extends DCLogic {
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
     const raid=RAIDS.find(r=>r.id===view),U=window.JamNotes&&window.JamNotes.forRaid(view),isU=!!U;
-    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:this.statsOf(r.id).tries+'릴',go:()=>{if(!a)this.open(r.id)},
+    const minis=RAIDS.map((r,i)=>{const a=r.id===view;return {...r,triesLabel:(()=>{const d=(this.state.logs[r.id]||[]).map(l=>l.date||'').filter(Boolean).sort().pop();return d?`${d.slice(0,4)}년 ${+d.slice(5,7)}월`:'기록 없음'})(),go:()=>{if(!a)this.open(r.id)},
       wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
       cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
     const feed=[];let total=0,learnedN=0;
