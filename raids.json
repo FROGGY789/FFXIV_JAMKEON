@@ -8,7 +8,8 @@
   "tag": "토벌전",
   "en": "The Bowl of Embers (Extreme)",
   "ph": "극 이프리트 사진",
-  "n": 3
+  "n": 3,
+  "exp": "arr"
  },
  {
   "id": "rmwx4odr3",
@@ -19,7 +20,8 @@
   "tag": "토벌전",
   "en": "The Navel (Extreme)",
   "ph": "극 타이탄 사진",
-  "n": 4
+  "n": 4,
+  "exp": "arr"
  },
  {
   "id": "rmwx4oe7v",
@@ -30,7 +32,8 @@
   "tag": "토벌전",
   "en": "The Howling Eye (Extreme)",
   "ph": "극 가루다 사진",
-  "n": 3
+  "n": 3,
+  "exp": "arr"
  },
  {
   "id": "rmwyd487n",
@@ -41,7 +44,8 @@
   "tag": "토벌전",
   "en": "Thornmarch (Extreme)",
   "ph": "극 모그루 모그 12세 사진",
-  "n": 1
+  "n": 1,
+  "exp": "arr"
  },
  {
   "id": "ucob",
@@ -52,7 +56,8 @@
   "tag": "수렵전",
   "en": "The Great Hunt (Extreme)",
   "ph": "극 리오레우스 사진",
-  "n": 2
+  "n": 2,
+  "exp": "sb"
  },
  {
   "id": "uwu",
@@ -63,6 +68,7 @@
   "tag": "웨폰 파괴작전",
   "en": "The Weapon's Refrain",
   "ph": "절 알테마 사진",
-  "n": 5
+  "n": 5,
+  "exp": "sb"
  }
 ]
