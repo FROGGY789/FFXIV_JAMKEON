@@ -20,7 +20,7 @@
 처음 한 번만 설정 필요 (로그인 창의 "처음 설정 / 비밀번호 변경"):
 
 1. GitHub → Settings → Developer settings → [Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
-2. Repository access: `FROGGY789/FFXIV_JAMKEON`만 선택, Permissions: **Contents · Read and write**
+2. Repository access: `FROGGY789/survival_diary`만 선택, Permissions: **Contents · Read and write**
 3. 토큰 + 새 비밀번호 입력 → 토큰이 비밀번호로 암호화돼서 `gh-pages`의 `admin-key.json`에 저장됨
 
 로그인하면 레이드 카드의 사진 칸에 이미지를 끌어다 놓거나 클릭해서 올릴 수 있음.
