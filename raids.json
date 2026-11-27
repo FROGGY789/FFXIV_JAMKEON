@@ -30,12 +30,23 @@
   "tag": "토벌전",
   "en": "The Howling Eye (Extreme)",
   "ph": "극 가루다 사진",
-  "n": 4
+  "n": 3
+ },
+ {
+  "id": "rmwyd487n",
+  "kind": "ex",
+  "no": "04",
+  "code": "EX",
+  "name": "극 모그루 모그 12세",
+  "tag": "토벌전",
+  "en": "Thornmarch (Extreme)",
+  "ph": "극 모그루 모그 12세 사진",
+  "n": 1
  },
  {
   "id": "ucob",
   "kind": "ex",
-  "no": "04",
+  "no": "05",
   "code": "EX",
   "name": "극 리오레우스",
   "tag": "수렵전",
@@ -46,7 +57,7 @@
  {
   "id": "uwu",
   "kind": "ult",
-  "no": "05",
+  "no": "06",
   "code": "UWU",
   "name": "절 알테마",
   "tag": "웨폰 파괴작전",
