@@ -267,8 +267,9 @@
     const off = () => { const a = Math.random() * 360, d = 25 + Math.random() * 45; return P(a, d).map(r1); };
     // 어그로(별): {aggro:'T1'|'T2'|'none'} 항목 하나로 저장. 없으면 T1 (3D와 같은 규칙)
     const aggroOf = () => (cur.items.find(o => o && o.aggro) || {}).aggro || 'T1';
-    function toggleAggro(role) {
-      const now = aggroOf(), next = now === role ? 'none' : role;
+    function toggleAggro(role) { setAggro(aggroOf() === role ? 'none' : role); }
+    function setAggro(next) {
+      if (next === aggroOf()) return;
       record(); cur.items = cur.items.filter(o => !(o && o.aggro && o.xy == null && !o.p)); cur.items.push({ aggro: next });
       sel = -1; touch(); render(); props();
       status(next === 'none' ? '어그로 표시 끔' : `어그로: ${next}`, '');
@@ -296,6 +297,11 @@
       const gr = g('롤 (누르면 판에 놓임)');
       b(gr, 'T1~D4 전부', () => addAllRoles(), '', 'font-weight:700').title = '빠진 롤을 한 번에 판에 놓음';
       ROLES.forEach(r => b(gr, r, () => { const ex = cur.items.findIndex(o => o.p === r); if (ex >= 0) { sel = ex; render(); props(); return; } add({ p: r, xy: off() }); }, 'role', `background:${RC[r[0]]}`));
+      // 어그로(별) 고르기: 탱커 말 오른쪽 클릭으로도 바뀜
+      const ga = g('어그로 (별 표시) · 탱커 말 우클릭으로도 바뀜');
+      const agBtns = [['T1', 'T1'], ['T2', 'T2'], ['none', '없음']].map(([v, t]) => b(ga, t, () => setAggro(v), '', 'min-width:52px'));
+      const syncAg = () => { const cur0 = aggroOf(); agBtns.forEach((x, i) => x.setAttribute('aria-pressed', String(['T1', 'T2', 'none'][i] === cur0))); };
+      syncAg(); pal._syncAg = syncAg;
       const gk = g('장판 종류');
       const kinds = [['bad', '위험'], ['safe', '안전'], ['buf', '기믹']];
       const kb = kinds.map(([k, t]) => b(gk, t, () => { kind = k; kb.forEach((x, i) => x.setAttribute('aria-pressed', String(kinds[i][0] === k))); if (sel >= 0 && cur.items[sel].z) { record(); cur.items[sel].k = k; touch(); render(); } }));
@@ -373,6 +379,7 @@
       return H;
     };
     function render() {
+      if (pal && pal._syncAg) pal._syncAg();
       const u = window.UWU;
       if (!u || !u.draw) { board.innerHTML = '<p class="note">불러오는 중…</p>'; setTimeout(render, 200); return; }
       board.innerHTML = u.draw(cur.items);
