@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261127o"></script>
-<script src="./raids.js?v=20261127o"></script>
-<script src="./sim.js?v=20261127o"></script>
+<script src="./admin.js?v=20261127p"></script>
+<script src="./raids.js?v=20261127p"></script>
+<script src="./sim.js?v=20261127p"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261127o"></script>
-<script src="./uwu-data.js?v=20261127o"></script>
-<script src="./notes-ex.js?v=20261127o"></script>
-<script src="./arena3d.js?v=20261127o"></script>
+<script src="./image-slot.js?v=20261127p"></script>
+<script src="./uwu-data.js?v=20261127p"></script>
+<script src="./notes-ex.js?v=20261127p"></script>
+<script src="./arena3d.js?v=20261127p"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -54,12 +54,39 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
 ::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--accent,#a597e3) 85%,transparent)}
 ::-webkit-scrollbar-button{display:none;width:0;height:0}
 ::-webkit-scrollbar-corner{background:transparent}
+
+/* 랜딩: 확장팩 세로 스크롤 · 왼쪽 점 이동 · 이어지는 빨랫줄 */
+html{scroll-behavior:smooth}
+.exp-nav{position:fixed;left:clamp(10px,1.6vw,26px);top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:6px}
+.exp-nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:999px}
+.exp-nav .d{width:9px;height:9px;border-radius:999px;background:color-mix(in srgb,var(--sub,#6f6c78) 45%,transparent);transition:height .35s cubic-bezier(.2,.8,.2,1),background .3s}
+.exp-nav .t{font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--sub,#6f6c78);opacity:0;transform:translateX(-6px);transition:opacity .25s,transform .3s;white-space:nowrap;background:color-mix(in srgb,var(--bg,#f6f5f8) 85%,transparent);padding:4px 7px;border-radius:6px}
+.exp-nav .t b{color:var(--ink,#16151a)}
+.exp-nav button:hover .t,.exp-nav button:focus-visible .t,.exp-nav .on .t{opacity:1;transform:none}
+.exp-nav .on .d{height:26px;background:var(--accent,#a597e3)}
+.exp-nav button:focus-visible{outline:2px solid var(--accent,#a597e3);outline-offset:2px}
+.exp-sec{position:relative;padding-top:54px;scroll-margin-top:10px}
+.exp-hd{display:flex;align-items:flex-end;gap:16px;opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
+.exp-hd .no{font:300 clamp(46px,6vw,84px)/.8 'JetBrains Mono',monospace;color:transparent;-webkit-text-stroke:1px color-mix(in srgb,var(--accent,#a597e3) 75%,transparent);letter-spacing:-.04em}
+.exp-hd .code{font:500 10px/1.2 'JetBrains Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--sub,#6f6c78)}
+.exp-hd h2{margin:4px 0 0;font-size:clamp(26px,3vw,40px);font-weight:600;letter-spacing:-.04em;line-height:1}
+.exp-sec.in .exp-hd{opacity:1;transform:none}
+.exp-row{overflow-x:auto;overflow-y:hidden;margin-top:6px;scrollbar-width:none;cursor:grab;touch-action:pan-x pan-y;user-select:none}
+.exp-row::-webkit-scrollbar{display:none}
+.exp-line{clip-path:inset(0 100% 0 0);transition:clip-path 1.3s cubic-bezier(.65,0,.35,1)}
+.exp-sec.in .exp-line{clip-path:inset(0 0 0 0)}
+.exp-sec .drop{opacity:0;transform:translateY(-70px) rotate(-4deg)}
+.exp-sec.in .drop{animation:hangIn .9s cubic-bezier(.2,.9,.25,1.12) both}
+@keyframes hangIn{0%{opacity:0;transform:translateY(-70px) rotate(-4deg)}60%{opacity:1}100%{opacity:1;transform:none}}
+.flow-link path{transition:opacity .6s}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.exp-hd,.exp-sec .drop{opacity:1;transform:none;animation:none!important;transition:none}.exp-line{clip-path:none;transition:none}}
+@media (max-width:760px){.exp-nav{left:4px}.exp-nav .t{display:none}.landing{padding-left:30px!important}.flow-link{display:none}}
 </style>
 </helmet>
 <div style="min-height:100vh;background:var(--bg,#f6f5f8);color:var(--ink,#16151a)">
 
 <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
-<div style="padding:36px clamp(16px,4vw,56px) 28px;max-width:1720px;margin:0 auto;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center" class="landing" data-screen-label="Landing">
+<div class="landing" data-screen-label="Landing" style="padding:36px clamp(16px,4vw,56px) 80px clamp(64px,7vw,120px);max-width:1720px;margin:0 auto;min-height:100vh;box-sizing:border-box;position:relative">
   <div style="display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start">
     <div>
       <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub,#6f6c78)">
@@ -75,31 +102,39 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
     </div>
   </div>
 
-  <div role="tablist" aria-label="확장팩" style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:26px 0 -6px">
-    <sc-for list="{{ expTabs }}" as="x"><button type="button" role="tab" aria-selected="{{ x.on }}" onClick="{{ x.pick }}" style="{{ x.style }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em">{{ x.code }}</span><span>{{ x.label }}</span><span style="{{ x.countStyle }}">{{ x.count }}</span></button></sc-for>
-  </div>
-  <div onMouseMove="{{ edgeMove }}" onMouseLeave="{{ edgeLeave }}" style="position:relative">
-  <button onClick="{{ prev }}" aria-label="이전" style="{{ prevStyle }}">←</button>
-  <button onClick="{{ next }}" aria-label="다음" style="{{ nextStyle }}">→</button>
-  <div ref="{{ stripRef }}" onPointerDown="{{ pDown }}" onPointerMove="{{ pMove }}" onPointerUp="{{ pUp }}" onPointerCancel="{{ pUp }}" style="overflow-x:auto;margin:30px 0 0;padding:0 0 10px;scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;touch-action:pan-y;user-select:none">
-    <div style="{{ stripStyle }}">
-      <svg style="position:absolute;left:0;top:0;width:100%;height:120px;overflow:visible" viewBox="0 0 100 120" preserveAspectRatio="none"><path d="M0 20 Q50 60 100 20" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".7"></path></svg>
-      <div style="{{ gridStyle }}">
-        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
-          <div style="position:relative;scroll-snap-align:start">
+
+  <nav class="exp-nav" aria-label="확장팩 바로가기">
+    <sc-for list="{{ expNav }}" as="n"><button type="button" onClick="{{ n.go }}" aria-label="{{ n.aria }}" aria-current="{{ n.cur }}" class="{{ n.cls }}"><span class="d"></span><span class="t"><b>{{ n.code }}</b> {{ n.label }}</span></button></sc-for>
+  </nav>
+
+  <div class="flow" style="position:relative;margin-top:18px">
+    <svg class="flow-link" aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none"><path d="" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" opacity=".7"></path></svg>
+    <sc-for list="{{ sections }}" as="sec">
+      <section class="exp-sec" id="{{ sec.anchor }}" data-exp="{{ sec.key }}">
+        <div class="exp-hd">
+          <span class="no">{{ sec.no }}</span>
+          <div><div class="code">{{ sec.code }} · {{ sec.count }} cards</div><h2>{{ sec.label }}</h2></div>
+        </div>
+        <sc-for list="{{ sec.lines }}" as="ln">
+        <div class="exp-row" onPointerDown="{{ rowDown }}" onPointerMove="{{ rowMove }}" onPointerUp="{{ rowUp }}" onPointerCancel="{{ rowUp }}">
+          <div style="{{ ln.stripStyle }}">
+            <svg class="exp-line" style="position:absolute;left:0;top:0;width:100%;height:120px;overflow:visible" viewBox="0 0 100 120" preserveAspectRatio="none"><path class="ln" d="M0 20 Q50 60 100 20" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".7"></path></svg>
+            <div style="{{ ln.gridStyle }}">
+              <sc-for list="{{ ln.cards }}" as="c">
+          <div style="position:relative">
             <div style="{{ c.swayStyle }}">
-              <div style="{{ c.hangStyle }}">
+              <div class="drop" style="{{ c.dropStyle }}"><div style="{{ c.hangStyle }}">
                 <div style="width:7px;height:7px;border-radius:50%;background:var(--rim,#b5b0c2);margin:-3px auto 0"></div>
                 <div style="{{ c.threadStyle }}"></div>
                 <div style="width:20px;height:14px;margin:0 auto -6px;border-radius:6px 6px 3px 3px;background:var(--rim,#b5b0c2);position:relative;z-index:2;display:grid;place-items:center"><div style="width:6px;height:6px;border-radius:50%;border:1.5px solid var(--bg,#f6f5f8)"></div></div>
-                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:480px;perspective:1400px;cursor:pointer">
+                <div onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" onClick="{{ c.click }}" style="position:relative;height:{{ c.cardH }}px;perspective:1400px;cursor:pointer">
                   <div style="{{ c.flipStyle }}">
                     <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card,#ececef);border-radius:18px;padding:12px 12px 14px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
                       <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub,#6f6c78)"><span>{{ c.kindLabel }} · {{ c.code }}</span><span>#{{ c.no }}</span></div>
-                      <div style="height:310px;margin-top:12px;border-radius:14px;overflow:hidden">
+                      <div style="height:{{ c.imgH }}px;margin-top:12px;border-radius:14px;overflow:hidden">
                         <image-slot id="raid-{{ c.id }}" shape="rounded" radius="14" placeholder="{{ c.ph }}"></image-slot>
                       </div>
-                      <div style="margin-top:14px;font-size:25px;font-weight:600;letter-spacing:-.03em">{{ c.name }}<span style="color:#d24545;font-weight:inherit">{{ c.suffix }}</span></div>
+                      <div style="margin-top:12px;font-size:clamp(18px,1.6vw,23px);font-weight:600;letter-spacing:-.03em;line-height:1.2">{{ c.name }}<span style="color:#d24545;font-weight:inherit;white-space:nowrap">{{ c.suffix }}</span></div>
                       <div style="font-size:12px;color:var(--sub,#6f6c78);margin-top:2px">{{ c.en }}</div>
                       <div style="flex:1"></div>
                       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line,#dddbe2);padding-top:10px">
@@ -109,7 +144,7 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
                     </div>
                     <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg);background:var(--holo);border-radius:18px;padding:16px;display:flex;flex-direction:column;box-shadow:0 20px 40px -26px rgba(20,20,40,.45)">
                       <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase"><span>Try log / {{ c.no }}</span><span style="border:1px solid var(--ink,#16151a);border-radius:999px;padding:2px 8px;letter-spacing:.06em">{{ c.status }}</span></div>
-                      <div style="font-size:15px;font-weight:600;margin-top:16px;letter-spacing:-.02em">{{ c.name }}<span style="color:#d24545;font-weight:inherit">{{ c.suffix }}</span></div>
+                      <div style="font-size:15px;font-weight:600;margin-top:16px;letter-spacing:-.02em">{{ c.name }}<span style="color:#d24545;font-weight:inherit;white-space:nowrap">{{ c.suffix }}</span></div>
                       <div style="display:flex;align-items:baseline;gap:4px;margin-top:6px"><span style="font-size:48px;font-weight:500;letter-spacing:-.04em;line-height:1">{{ c.tries }}</span><span style="font-size:14px">릴 트라이</span></div>
                       <div style="display:grid;margin-top:16px">
                         <sc-for list="{{ c.rows }}" as="row" hint-placeholder-count="4">
@@ -122,14 +157,16 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
                   </div>
                 </div>
               </div>
-            </div>
+            </div></div>
           </div>
         </sc-for>
-      </div>
-    </div>
+            </div>
+          </div>
+        </div>
+        </sc-for>
+      </section>
+    </sc-for>
   </div>
-  </div>
-
 </div>
 </sc-if>
 
@@ -401,8 +438,9 @@ class Component extends DCLogic {
     this.applyTheme();
     if(!window.UWU)this._t=setInterval(()=>{if(window.UWU){clearInterval(this._t);this.forceUpdate()}},120);
     this._onRaids=()=>this.forceUpdate();addEventListener('jam-raids',this._onRaids);
+    this.wireLanding();
   }
-  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids)}
+  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids);if(this._io)this._io.disconnect();if(this._onScroll)removeEventListener('scroll',this._onScroll);if(this._onRs)removeEventListener('resize',this._onRs)}
   strip=React.createRef();
   expOf(r){return r.exp||(window.JAM_EXP_OF&&window.JAM_EXP_OF(r.en))||''}
   visRaids(){const ex=this.state.exp||'all';const v=ex==='all'?RAIDS:RAIDS.filter(r=>(this.expOf(r)||'etc')===ex);return v.length?v:RAIDS}
@@ -419,7 +457,28 @@ class Component extends DCLogic {
     let v=-d.v*16;const tick=()=>{v*=.93;el.scrollLeft+=v;if(Math.abs(v)>1.5)this._raf=requestAnimationFrame(tick);else this.snap(el,0)};
     if(Math.abs(v)>2)this._raf=requestAnimationFrame(tick);else this.snap(el,0);
     setTimeout(()=>{this._dragged=false},0)}
-  componentDidUpdate(pp,ps){this.applyTheme();if(ps.view!==this.state.view)window.scrollTo(0,0)}
+  componentDidUpdate(pp,ps){this.applyTheme();if(ps.view!==this.state.view)window.scrollTo(0,0);this.wireLanding()}
+  // 가로 줄(확장팩 한 줄) 마우스로 끌어서 넘기기 + 관성
+  rowDown(e){if(e.pointerType!=='mouse'||e.button!==0)return;const el=e.currentTarget;cancelAnimationFrame(this._raf);this._drag={el,x:e.clientX,left:el.scrollLeft,t:performance.now(),v:0,lx:e.clientX};this._dragged=false}
+  rowMove(e){const d=this._drag;if(!d)return;const dx=e.clientX-d.x;if(Math.abs(dx)>6){this._dragged=true;d.el.style.cursor='grabbing';if(this.state.flip&&(this.props.flipTrigger??'hover')==='hover')this.setState({flip:null})}
+    const now=performance.now();d.v=(e.clientX-d.lx)/Math.max(1,now-d.t);d.lx=e.clientX;d.t=now;if(this._dragged)d.el.scrollLeft=d.left-dx}
+  rowUp(){const d=this._drag;this._drag=null;if(!d)return;d.el.style.cursor='';let v=-d.v*16;const el=d.el;const tick=()=>{v*=.93;el.scrollLeft+=v;if(Math.abs(v)>1)this._raf=requestAnimationFrame(tick)};if(Math.abs(v)>2)this._raf=requestAnimationFrame(tick);setTimeout(()=>{this._dragged=false},0)}
+  // 화면에 들어온 구역은 등장 애니메이션 · 왼쪽 점 활성화 · 줄과 줄을 잇는 빨랫줄 다시 그리기
+  wireLanding(){
+    if(this.state.view){return}
+    const secs=[...document.querySelectorAll('.exp-sec')];if(!secs.length)return;
+    if(!this._io){this._io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)en.target.classList.add('in')}),{rootMargin:'0px 0px -12% 0px',threshold:.12})}
+    secs.forEach(el=>{if(!el._obs){el._obs=1;this._io.observe(el)}});
+    if(!this._onScroll){this._onScroll=()=>{cancelAnimationFrame(this._sr);this._sr=requestAnimationFrame(()=>{const ss=[...document.querySelectorAll('.exp-sec')];if(!ss.length)return;const y=innerHeight*.4;let cur=ss[0];ss.forEach(el=>{if(el.getBoundingClientRect().top<=y)cur=el});const k=cur.dataset.exp;if(k&&k!==this.state.activeSec)this.setState({activeSec:k})})};addEventListener('scroll',this._onScroll,{passive:true})}
+    if(!this._onRs){this._onRs=()=>{clearTimeout(this._rt);this._rt=setTimeout(()=>{if(Math.abs((this.state.vw||0)-innerWidth)>40)this.setState({vw:innerWidth});this.layoutLink()},150)};addEventListener('resize',this._onRs)}
+    requestAnimationFrame(()=>this.layoutLink())}
+  layoutLink(){
+    const flow=document.querySelector('.flow'),path=flow&&flow.querySelector('.flow-link path');if(!path)return;
+    const fb=flow.getBoundingClientRect(),rows=[...flow.querySelectorAll('.exp-row')].map(el=>{const row=el.getBoundingClientRect(),st=el.firstElementChild.getBoundingClientRect(),b={left:Math.max(row.left,st.left),right:Math.min(row.right,st.right),top:st.top};return {l:b.left-fb.left,r:b.right-fb.left,y:b.top-fb.top+20}});
+    let d='';for(let i=0;i<rows.length-1;i++){const a=rows[i],b=rows[i+1],right=i%2===0,x=right?a.r:a.l,o=right?Math.min(46,innerWidth-fb.right+24):-Math.min(46,fb.left-8),mid=(a.y+b.y)/2;
+      const x2=right?b.r:b.l,ox=right?Math.max(x,x2)+o:Math.min(x,x2)+o;
+      d+=`M${x} ${a.y} C${ox} ${a.y+10} ${ox} ${mid} ${ox} ${mid} S${ox} ${b.y-10} ${x2} ${b.y} `}
+    path.setAttribute('d',d.trim())}
   applyTheme(){const t=THEMES[this.props.theme]||THEMES['라벤더'];const s=document.documentElement.style;
     Object.entries(t).forEach(([k,v])=>s.setProperty('--'+k,v));
     s.setProperty('--bad','rgba(226,64,52,.30)');s.setProperty('--badS','rgba(200,40,30,.8)');s.setProperty('--safe','rgba(40,170,90,.25)');s.setProperty('--safeS','rgba(30,140,70,.9)');s.setProperty('--buf','rgba(60,170,220,.25)');s.setProperty('--bufS','rgba(40,130,190,.9)')}
@@ -445,13 +504,10 @@ class Component extends DCLogic {
     const mode=this.props.flipTrigger??'hover', sway=this.props.sway??true;
     const {view,flip,filter,form}=this.state;
     const grand=RAIDS.reduce((a,r)=>a+this.statsOf(r.id).tries,0);
-    const VIS=this.visRaids(),NC=Math.max(1,VIS.length),curExp=VIS===RAIDS?'all':(this.state.exp||'all');
     const EXPS=window.JAM_EXPS||[];
-    const expTabs=[['all','전체','ALL'],...EXPS,['etc','기타','ETC']].map(([k,t,code])=>{const n=k==='all'?RAIDS.length:RAIDS.filter(r=>(this.expOf(r)||'etc')===k).length;const on=curExp===k;
-      return {k,label:t,code,count:n,show:n>0,on:String(on),pick:()=>this.pickExp(k),
-        style:{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid '+(on?'var(--ink,#16151a)':'var(--line,#dddbe2)'),background:on?'var(--ink,#16151a)':'color-mix(in srgb,var(--card,#ececef) 70%,transparent)',color:on?'var(--bg,#f6f5f8)':'var(--ink,#16151a)',borderRadius:999,padding:'7px 13px',fontSize:13,fontWeight:700,cursor:'pointer',backdropFilter:'blur(6px)',transition:'background .2s,color .2s'},
-        countStyle:{fontSize:11,fontWeight:700,opacity:.65,fontVariantNumeric:'tabular-nums'}}}).filter(x=>x.show);
-    const cards=VIS.map((r,i)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=150+DROPS[i%6],st=this.statsOf(r.id),fl=flip===r.id;
+    // 확장팩별 구역: 신생 → … → 최신, 마지막에 기타. 카드가 있는 구역만
+    const groups=[...EXPS.map(([k,t,code])=>({k,t,code})),{k:'etc',t:'기타',code:'ETC'}].map(g=>({...g,list:RAIDS.filter(r=>(this.expOf(r)||'etc')===g.k)})).filter(g=>g.list.length);
+    const mkCard=(r,i,NC)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=128+DROPS[i%6]*.7,st=this.statsOf(r.id),fl=flip===r.id;
       return {...r,suffix:suffixOf(r),kindLabel:({ult:'Ultimate',ex:'Extreme',raid:'Raid',ally:'Alliance',etc:'Duty'})[r.kind||'ult']||'Ultimate',tries:st.tries,status:st.status,
         rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
         swayStyle:{position:'absolute',left:'clamp(18px,2.4vw,44px)',right:'clamp(18px,2.4vw,44px)',top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
@@ -461,7 +517,19 @@ class Component extends DCLogic {
         enter:()=>{if(mode==='hover')this.setState({flip:r.id})},
         leave:()=>{if(mode==='hover')this.setState({flip:null})},
         click:e=>{if(this._dragged||(e.target.closest&&e.target.closest('image-slot')))return;if(mode==='click')this.setState(s=>({flip:s.flip===r.id?null:r.id}));else this.open(r.id)},
-        open:e=>{e.stopPropagation();if(!this._dragged)this.open(r.id)}}});
+        open:e=>{e.stopPropagation();if(!this._dragged)this.open(r.id)}}};
+    // 한 줄에 들어갈 카드 수: 화면 폭 기준(카드 최소 240px). 넘치면 줄을 나눠 고르게(7장 → 4+3). 폰은 한 줄 가로 스크롤
+    const vw=this.state.vw||innerWidth,avail=Math.min(1720,vw)-Math.min(120,Math.max(64,vw*.07))-Math.min(56,Math.max(16,vw*.04));
+    const MINW=240,CARD_H=410,IMG_H=236,narrow=avail<2*MINW;
+    const sections=groups.map((g,si)=>{const n=g.list.length,per=narrow?n:Math.max(1,Math.floor(avail/MINW)),nl=Math.ceil(n/per),each=Math.ceil(n/nl);
+      const lines=Array.from({length:nl},(_,li)=>g.list.slice(li*each,li*each+each)).filter(x=>x.length).map((list,li)=>{const NC=list.length,cols=narrow?NC:each;
+        return {stripStyle:{position:'relative',height:CARD_H+190,width:narrow?`max(100%, ${NC*260}px)`:`min(${NC/each*100}%, ${NC*310}px)`,margin:narrow?0:'0 auto'},
+          gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},
+          cards:list.map((r,i)=>({...mkCard(r,i,NC),cardH:CARD_H,imgH:IMG_H,dropStyle:{animationDelay:((li*each+i)*70+150)+'ms'}}))}});
+      return {key:g.k,anchor:'exp-'+g.k,code:g.code,label:g.t,count:n,no:String(si+1).padStart(2,'0'),lines}});
+    const act=this.state.activeSec||(groups[0]&&groups[0].k);
+    const expNav=groups.map(g=>({code:g.code,label:g.t,aria:`${g.code} ${g.t}로 이동`,cur:g.k===act?'true':'false',cls:g.k===act?'on':'',go:()=>{const el=document.getElementById('exp-'+g.k);if(el)el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}}));
+    const cards=[];
     const arrow=s=>{const on=this.state.edge===s;return {position:'absolute',top:360,[s==='l'?'left':'right']:12,zIndex:10,width:52,height:52,borderRadius:'50%',border:'none',
       background:'var(--ink)',color:'var(--bg)',fontSize:18,cursor:'pointer',boxShadow:'0 14px 30px -14px rgba(0,0,0,.5)',
       opacity:on?1:0,pointerEvents:on?'auto':'none',transform:`translateY(-50%) translateX(${on?0:(s==='l'?-12:12)}px) scale(${on?1:.85})`,transition:'opacity .25s, transform .3s cubic-bezier(.2,.8,.2,1)'}};
@@ -470,12 +538,12 @@ class Component extends DCLogic {
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
     const base={...strip,isLanding:!view,isDetail:!!view,cards,
-      stripStyle:{position:'relative',height:760,width:`max(${Math.max(100,NC/4*100)}%, ${NC*290}px)`},gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},totalLabel:`${String(RAIDS.length).padStart(2,"0")} Raids · 누적 ${grand}릴`,expTabs,
+      sections,expNav,rowDown:e=>this.rowDown(e),rowMove:e=>this.rowMove(e),rowUp:e=>this.rowUp(e),totalLabel:`${String(RAIDS.length).padStart(2,"0")} Raids · 누적 ${grand}릴`,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
     const raid=RAIDS.find(r=>r.id===view),U=window.JamNotes&&window.JamNotes.forRaid(view),isU=!!U;
-    const MV=(()=>{const v=this.visRaids();return v.some(r=>r.id===view)?v:RAIDS})();
+    const MV=(()=>{const e=this.expOf(raid||{})||'etc';const v=RAIDS.filter(r=>(this.expOf(r)||'etc')===e);return v.length?v:RAIDS})();
     const minis=MV.map((r,i)=>{const a=r.id===view;return {...r,suffix:suffixOf(r),triesLabel:(()=>{const d=(this.state.logs[r.id]||[]).map(l=>l.date||'').filter(Boolean).sort().pop();return d?`${d.slice(0,4)}년 ${+d.slice(5,7)}월`:'기록 없음'})(),go:()=>{if(!a)this.open(r.id)},
       wrapStyle:{transformOrigin:'50% 0',transform:`rotate(${a?0:(i%2?1.8:-1.8)}deg)`,transition:'transform .5s',animation:`dropIn .65s cubic-bezier(.2,.8,.2,1) ${i*80}ms both`},
       cardStyle:{background:'var(--card)',borderRadius:14,padding:8,cursor:a?'default':'pointer',transition:'box-shadow .3s',boxShadow:a?'0 0 0 2px var(--accent), 0 16px 30px -20px rgba(0,0,0,.45)':'0 12px 28px -22px rgba(0,0,0,.4)'}}});
