@@ -357,9 +357,13 @@
 .a3d-btn svg{width:16px!important;height:16px!important;max-width:none!important;margin:0!important;display:inline!important}
 dialog.a3d{border:0;padding:0;margin:auto;width:min(1200px,100vw - 24px);height:min(860px,100dvh - 24px);max-width:none;max-height:none;border-radius:18px;
   background:var(--a3d-bg);color:var(--a3d-ink);box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:inherit}
-dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
+dialog.a3d::backdrop{background:rgba(10,12,20,.55)}
+.a3d-rz{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;z-index:40;touch-action:none;opacity:.55;background:linear-gradient(135deg,transparent 50%,var(--a3d-sub) 50%,var(--a3d-sub) 58%,transparent 58%,transparent 70%,var(--a3d-sub) 70%,var(--a3d-sub) 78%,transparent 78%)}
+.a3d-rz:hover{opacity:1}
+.a3d-in:fullscreen~.a3d-rz,.a3d-in:fullscreen .a3d-rz{display:none}
+@media(max-width:640px){.a3d-rz{display:none}}
 .a3d-in:fullscreen{width:100vw;height:100vh;background:var(--a3d-bg);color:var(--a3d-ink);position:relative;grid-template-rows:auto minmax(0,1fr)}
-.a3d-in:fullscreen .a3d-bar{position:absolute;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--a3d-bg) 90%,transparent);backdrop-filter:blur(8px);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .4s}
+.a3d-in:fullscreen .a3d-bar{position:absolute;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--a3d-bg) 94%,transparent);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .4s}
 .a3d-in:fullscreen.idle .a3d-bar{transform:translateY(100%);opacity:0;pointer-events:none}
 .a3d-in:fullscreen.idle{cursor:none}
 .a3d-in:fullscreen.idle .a3d-hint{opacity:0;transition:opacity .4s}
@@ -507,6 +511,17 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     <div class="a3d-role" aria-live="polite"></div><div class="a3d-pop" role="tooltip"></div><aside class="a3d-side"></aside><div class="a3d-prog"><i></i></div></div>
   <div class="a3d-bar"></div></div>`;
     document.body.appendChild(dlg);
+    // 창 크기 조절: 오른쪽 아래 손잡이를 끌기 (크기는 기억됨)
+    { const rz = document.createElement('div'); rz.className = 'a3d-rz'; rz.title = '끌어서 창 크기 조절'; dlg.appendChild(rz);
+      try { const sz = JSON.parse(localStorage.getItem('jamkeon.a3dSize') || 'null'); if (sz && innerWidth > 640) { dlg.style.width = Math.min(sz.w, innerWidth - 16) + 'px'; dlg.style.height = Math.min(sz.h, innerHeight - 16) + 'px'; } } catch (e) {}
+      let st = null;
+      rz.addEventListener('pointerdown', e => { e.preventDefault(); const r = dlg.getBoundingClientRect(); st = { x: e.clientX, y: e.clientY, w: r.width, h: r.height }; rz.setPointerCapture(e.pointerId); });
+      rz.addEventListener('pointermove', e => { if (!st) return; // 가운데 정렬이라 양쪽으로 커짐 → 움직인 만큼의 2배
+        const w = Math.max(560, Math.min(innerWidth - 16, st.w + (e.clientX - st.x) * 2)), h = Math.max(420, Math.min(innerHeight - 16, st.h + (e.clientY - st.y) * 2));
+        dlg.style.width = w + 'px'; dlg.style.height = h + 'px'; });
+      const end = () => { if (!st) return; st = null; try { localStorage.setItem('jamkeon.a3dSize', JSON.stringify({ w: dlg.offsetWidth, h: dlg.offsetHeight })); } catch (e) {} };
+      rz.addEventListener('pointerup', end); rz.addEventListener('pointercancel', end);
+      rz.addEventListener('dblclick', () => { dlg.style.width = ''; dlg.style.height = ''; try { localStorage.removeItem('jamkeon.a3dSize'); } catch (e) {} }); }
     const q = s => dlg.querySelector(s);
     stage = q('.a3d-stage'); bar = q('.a3d-bar'); titleEl = q('#a3d-title span'); subEl = q('#a3d-title small');
     loadEl = q('.a3d-load'); capEl = q('.a3d-cap'); sideEl = q('.a3d-side'); sideBtn = q('.a3d-hb.side');
@@ -583,7 +598,11 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let CONT_PHASE = null;   // 연속 재생 범위: 페이즈 id (null 이면 전체)
   let CARRY = null;        // 연속 재생 때 이전 기믹 끝 위치 (말·보스가 이어서 걸어감)
   let SEL = -1;            // 3D 편집에서 고른 항목 번호 (items 안의 위치)
-  let LOWQ = false;        // 느린 PC 감지되면 화질 낮춤 (해상도 1배, 그림자 끔). 이 탭에서 계속 유지
+  // 화질 단계: 0 기본 · 1 그림자 끔 · 2 해상도 낮춤 · 3 더 낮춤. 끊기면 자동으로 한 단계씩 내려감(이 탭에서 유지)
+  let QLV = 0;
+  const PX_BUDGET = [2.6e6, 2.0e6, 1.3e6, 0.85e6];
+  const prFor = (w, h) => Math.max(0.5, Math.min(Math.min(devicePixelRatio || 1, 2), Math.sqrt(PX_BUDGET[QLV] / Math.max(1, w * h))));
+  let LOWQ = false;        // = QLV >= 1 (그림자 끔)
   let VIEWOFF = 0;         // 옆 패널 때문에 화면을 민 정도 (다시 그려도 유지)
   let RENDERER = null;     // 화면 깜빡임 없게 기믹이 바뀌어도 같은 렌더러를 씀
   let SPEED = 1;           // 재생 배속 (0.1x ~ 2x, 슬라이더)
@@ -676,7 +695,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const W = () => stage.clientWidth || 800, H = () => stage.clientHeight || 600;
     if (!RENDERER) {
       RENDERER = new T.WebGLRenderer({ antialias: true, alpha: false });
-      RENDERER.setPixelRatio(LOWQ ? 1 : Math.min(devicePixelRatio || 1, 2));
+      RENDERER.setPixelRatio(prFor(stage.clientWidth || 800, stage.clientHeight || 600));
       RENDERER.shadowMap.enabled = !LOWQ;
       RENDERER.shadowMap.type = T.PCFSoftShadowMap;
       RENDERER.domElement.tabIndex = 0;
@@ -1836,7 +1855,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     hintEl.textContent = HINT;
 
-    const ro = new ResizeObserver(() => { renderer.setSize(W(), H(), false); camera.aspect = W() / H(); camera.updateProjectionMatrix(); sizeInk(); });
+    const ro = new ResizeObserver(() => { renderer.setPixelRatio(prFor(W(), H())); renderer.setSize(W(), H(), false); fpsT0 = 0; fpsN = 0; camera.aspect = W() / H(); camera.updateProjectionMatrix(); sizeInk(); });
     ro.observe(stage);
 
     let fpsT0 = 0, fpsN = 0;
@@ -1865,14 +1884,15 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (FOCUS && pawns[FOCUS]) { const s = 1 + 0.15 * Math.sin(t * 4); pawns[FOCUS].ring.scale.set(s, s, s); }
       controls.update();
       renderer.render(scene, camera);
-      // 프레임이 느리면(평균 30fps 미만) 한 번만 화질을 낮춤 → 애니메이션이 끊기지 않게
-      if (!LOWQ) {
+      // 계속 프레임을 재서(60프레임마다) 평균 40fps 아래면 화질을 한 단계씩 내림 → 전체화면·연속 재생에서도 안 끊기게
+      if (QLV < 3) {
         const now = performance.now();
-        if (fpsT0 === 0) fpsT0 = now; else if (++fpsN === 45) {
-          const avg = (now - fpsT0) / 45;
-          if (avg > 33 && !document.hidden) {
-            LOWQ = true; renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; sun.castShadow = false;
-            renderer.setSize(W(), H(), false); scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+        if (fpsT0 === 0) { fpsT0 = now; fpsN = 0; } else if (++fpsN === 60) {
+          const avg = (now - fpsT0) / 60; fpsT0 = now; fpsN = 0;
+          if (avg > 25 && !document.hidden) {
+            QLV++; LOWQ = QLV >= 1;
+            if (renderer.shadowMap.enabled) { renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); }
+            renderer.setPixelRatio(prFor(W(), H())); renderer.setSize(W(), H(), false);
           }
         }
       }
