@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261127p"></script>
-<script src="./raids.js?v=20261127p"></script>
-<script src="./sim.js?v=20261127p"></script>
+<script src="./admin.js?v=20261127q"></script>
+<script src="./raids.js?v=20261127q"></script>
+<script src="./sim.js?v=20261127q"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261127p"></script>
-<script src="./uwu-data.js?v=20261127p"></script>
-<script src="./notes-ex.js?v=20261127p"></script>
-<script src="./arena3d.js?v=20261127p"></script>
+<script src="./image-slot.js?v=20261127q"></script>
+<script src="./uwu-data.js?v=20261127q"></script>
+<script src="./notes-ex.js?v=20261127q"></script>
+<script src="./arena3d.js?v=20261127q"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -73,6 +73,7 @@ html{scroll-behavior:smooth}
 .exp-sec.in .exp-hd{opacity:1;transform:none}
 .exp-row{overflow-x:auto;overflow-y:hidden;margin-top:6px;scrollbar-width:none;cursor:grab;touch-action:pan-x pan-y;user-select:none}
 .exp-row::-webkit-scrollbar{display:none}
+.flow.snake .exp-line{display:none}.flow:not(.snake) .flow-link{display:none}
 .exp-line{clip-path:inset(0 100% 0 0);transition:clip-path 1.3s cubic-bezier(.65,0,.35,1)}
 .exp-sec.in .exp-line{clip-path:inset(0 0 0 0)}
 .exp-sec .drop{opacity:0;transform:translateY(-70px) rotate(-4deg)}
@@ -107,8 +108,8 @@ html{scroll-behavior:smooth}
     <sc-for list="{{ expNav }}" as="n"><button type="button" onClick="{{ n.go }}" aria-label="{{ n.aria }}" aria-current="{{ n.cur }}" class="{{ n.cls }}"><span class="d"></span><span class="t"><b>{{ n.code }}</b> {{ n.label }}</span></button></sc-for>
   </nav>
 
-  <div class="flow" style="position:relative;margin-top:18px">
-    <svg class="flow-link" aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none"><path d="" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1" opacity=".7"></path></svg>
+  <div class="{{ flowCls }}" style="position:relative;margin-top:18px">
+    <svg class="flow-link" aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none"><path d="" fill="none" stroke="var(--sub,#6f6c78)" stroke-width="1.1" stroke-linecap="round" opacity=".75"></path></svg>
     <sc-for list="{{ sections }}" as="sec">
       <section class="exp-sec" id="{{ sec.anchor }}" data-exp="{{ sec.key }}">
         <div class="exp-hd">
@@ -440,7 +441,7 @@ class Component extends DCLogic {
     this._onRaids=()=>this.forceUpdate();addEventListener('jam-raids',this._onRaids);
     this.wireLanding();
   }
-  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids);if(this._io)this._io.disconnect();if(this._onScroll)removeEventListener('scroll',this._onScroll);if(this._onRs)removeEventListener('resize',this._onRs)}
+  componentWillUnmount(){clearInterval(this._t);cancelAnimationFrame(this._raf);removeEventListener('jam-raids',this._onRaids);if(this._io)this._io.disconnect();if(this._ro)this._ro.disconnect();if(this._onScroll)removeEventListener('scroll',this._onScroll);if(this._onRs)removeEventListener('resize',this._onRs)}
   strip=React.createRef();
   expOf(r){return r.exp||(window.JAM_EXP_OF&&window.JAM_EXP_OF(r.en))||''}
   visRaids(){const ex=this.state.exp||'all';const v=ex==='all'?RAIDS:RAIDS.filter(r=>(this.expOf(r)||'etc')===ex);return v.length?v:RAIDS}
@@ -469,16 +470,34 @@ class Component extends DCLogic {
     const secs=[...document.querySelectorAll('.exp-sec')];if(!secs.length)return;
     if(!this._io){this._io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)en.target.classList.add('in')}),{rootMargin:'0px 0px -12% 0px',threshold:.12})}
     secs.forEach(el=>{if(!el._obs){el._obs=1;this._io.observe(el)}});
-    if(!this._onScroll){this._onScroll=()=>{cancelAnimationFrame(this._sr);this._sr=requestAnimationFrame(()=>{const ss=[...document.querySelectorAll('.exp-sec')];if(!ss.length)return;const y=innerHeight*.4;let cur=ss[0];ss.forEach(el=>{if(el.getBoundingClientRect().top<=y)cur=el});const k=cur.dataset.exp;if(k&&k!==this.state.activeSec)this.setState({activeSec:k})})};addEventListener('scroll',this._onScroll,{passive:true})}
+    if(!this._onScroll){this._onScroll=()=>{cancelAnimationFrame(this._sr);this._sr=requestAnimationFrame(()=>{const ss=[...document.querySelectorAll('.exp-sec')];if(!ss.length)return;const y=innerHeight*.4;let cur=ss[0];ss.forEach(el=>{if(el.getBoundingClientRect().top<=y)cur=el});const k=cur.dataset.exp;if(k&&k!==this.state.activeSec)this.setState({activeSec:k});this.revealSnake()})};addEventListener('scroll',this._onScroll,{passive:true})}
     if(!this._onRs){this._onRs=()=>{clearTimeout(this._rt);this._rt=setTimeout(()=>{if(Math.abs((this.state.vw||0)-innerWidth)>40)this.setState({vw:innerWidth});this.layoutLink()},150)};addEventListener('resize',this._onRs)}
+    // 글꼴 로딩·창 크기·카드 변화로 높이가 바뀌면 빨랫줄을 다시 그림
+    const flow=document.querySelector('.flow');
+    if(flow&&this._roEl!==flow){if(this._ro)this._ro.disconnect();this._roEl=flow;this._ro=new ResizeObserver(()=>{cancelAnimationFrame(this._lr);this._lr=requestAnimationFrame(()=>this.layoutLink())});this._ro.observe(flow)}
+    if(document.fonts&&!this._fontsHooked){this._fontsHooked=1;document.fonts.ready.then(()=>this.layoutLink())}
     requestAnimationFrame(()=>this.layoutLink())}
+  // 데스크톱: 모든 줄을 하나의 빨랫줄로 이음. 줄은 좌→우, 끝에서 둥글게 내려가 다음 줄은 우→좌 … (뱀처럼)
   layoutLink(){
-    const flow=document.querySelector('.flow'),path=flow&&flow.querySelector('.flow-link path');if(!path)return;
-    const fb=flow.getBoundingClientRect(),rows=[...flow.querySelectorAll('.exp-row')].map(el=>{const row=el.getBoundingClientRect(),st=el.firstElementChild.getBoundingClientRect(),b={left:Math.max(row.left,st.left),right:Math.min(row.right,st.right),top:st.top};return {l:b.left-fb.left,r:b.right-fb.left,y:b.top-fb.top+20}});
-    let d='';for(let i=0;i<rows.length-1;i++){const a=rows[i],b=rows[i+1],right=i%2===0,x=right?a.r:a.l,o=right?Math.min(46,innerWidth-fb.right+24):-Math.min(46,fb.left-8),mid=(a.y+b.y)/2;
-      const x2=right?b.r:b.l,ox=right?Math.max(x,x2)+o:Math.min(x,x2)+o;
-      d+=`M${x} ${a.y} C${ox} ${a.y+10} ${ox} ${mid} ${ox} ${mid} S${ox} ${b.y-10} ${x2} ${b.y} `}
-    path.setAttribute('d',d.trim())}
+    const flow=document.querySelector('.flow.snake'),path=flow&&flow.querySelector('.flow-link path');if(!path)return;
+    const fb=flow.getBoundingClientRect(),rows=[...flow.querySelectorAll('.exp-row')].map(el=>{const b=el.firstElementChild.getBoundingClientRect();return {l:b.left-fb.left,r:b.right-fb.left,y:b.top-fb.top+20}});
+    if(!rows.length){path.setAttribute('d','');return}
+    const rad=Math.max(14,Math.min(40,fb.left-30,innerWidth-fb.right-10));
+    let d='',ltr=true;
+    rows.forEach((w,i)=>{const x0=ltr?w.l:w.r,x1=ltr?w.r:w.l,mid=(w.l+w.r)/2;
+      d+=(i?'':`M${x0} ${w.y} `)+`Q${mid} ${w.y+40} ${x1} ${w.y} `;
+      const nx=rows[i+1];if(nx){const s=ltr?1:-1,ex=x1+s*rad,k=rad*.55;
+        d+=`C${x1+s*k} ${w.y} ${ex} ${w.y+rad-k} ${ex} ${w.y+rad} L${ex} ${nx.y-rad} C${ex} ${nx.y-rad+k} ${x1+s*k} ${nx.y} ${x1} ${nx.y} `}
+      ltr=!ltr});
+    path.setAttribute('d',d.trim());
+    // 스크롤한 만큼 줄이 그려짐
+    const L=path.getTotalLength(),samp=[];for(let i=0;i<=200;i++){const p=path.getPointAtLength(L*i/200);samp.push([L*i/200,p.y])}
+    this._snake={path,L,samp,fb0:fb.top+scrollY};path.style.strokeDasharray=L;this.revealSnake(true)}
+  revealSnake(first){const S=this._snake;if(!S||!S.path.isConnected)return;
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){S.path.style.strokeDashoffset=0;return}
+    const yView=scrollY+innerHeight*.82-S.fb0;let len=0;S.samp.forEach(([l,y])=>{if(y<=yView)len=l});
+    if(first)S.path.style.transition='none';else S.path.style.transition='stroke-dashoffset .5s cubic-bezier(.3,.7,.3,1)';
+    S.path.style.strokeDashoffset=Math.max(0,S.L-len);if(first)requestAnimationFrame(()=>{S.path.style.transition='stroke-dashoffset .5s cubic-bezier(.3,.7,.3,1)'})}
   applyTheme(){const t=THEMES[this.props.theme]||THEMES['라벤더'];const s=document.documentElement.style;
     Object.entries(t).forEach(([k,v])=>s.setProperty('--'+k,v));
     s.setProperty('--bad','rgba(226,64,52,.30)');s.setProperty('--badS','rgba(200,40,30,.8)');s.setProperty('--safe','rgba(40,170,90,.25)');s.setProperty('--safeS','rgba(30,140,70,.9)');s.setProperty('--buf','rgba(60,170,220,.25)');s.setProperty('--bufS','rgba(40,130,190,.9)')}
@@ -507,7 +526,7 @@ class Component extends DCLogic {
     const EXPS=window.JAM_EXPS||[];
     // 확장팩별 구역: 신생 → … → 최신, 마지막에 기타. 카드가 있는 구역만
     const groups=[...EXPS.map(([k,t,code])=>({k,t,code})),{k:'etc',t:'기타',code:'ETC'}].map(g=>({...g,list:RAIDS.filter(r=>(this.expOf(r)||'etc')===g.k)})).filter(g=>g.list.length);
-    const mkCard=(r,i,NC)=>{const f=(i+.5)/NC,tt=20+80*f*(1-f),top=128+DROPS[i%6]*.7,st=this.statsOf(r.id),fl=flip===r.id;
+    const mkCard=(r,i,NC,fx)=>{const f=fx!=null?fx:(i+.5)/NC,tt=20+80*f*(1-f),top=128+DROPS[i%6]*.7,st=this.statsOf(r.id),fl=flip===r.id;
       return {...r,suffix:suffixOf(r),kindLabel:({ult:'Ultimate',ex:'Extreme',raid:'Raid',ally:'Alliance',etc:'Duty'})[r.kind||'ult']||'Ultimate',tries:st.tries,status:st.status,
         rows:[{l:'총 시간',v:fmtH(st.hours)},{l:'평균',v:st.sessions?fmtH(st.hours/st.sessions):'—'},{l:'최고 진도',v:st.best},{l:'마지막 트라이',v:st.last}],
         swayStyle:{position:'absolute',left:'clamp(18px,2.4vw,44px)',right:'clamp(18px,2.4vw,44px)',top:tt,transformOrigin:'50% 0',animation:sway?`sway ${5+i*.7}s ease-in-out ${-i*1.3}s infinite`:'none'},
@@ -523,10 +542,13 @@ class Component extends DCLogic {
     const MINW=240,CARD_H=410,IMG_H=236,narrow=avail<2*MINW;
     const sections=groups.map((g,si)=>{const n=g.list.length,per=narrow?n:Math.max(1,Math.floor(avail/MINW)),nl=Math.ceil(n/per),each=Math.ceil(n/nl);
       const lines=Array.from({length:nl},(_,li)=>g.list.slice(li*each,li*each+each)).filter(x=>x.length).map((list,li)=>{const NC=list.length,cols=narrow?NC:each;
-        return {stripStyle:{position:'relative',height:CARD_H+190,width:narrow?`max(100%, ${NC*260}px)`:`min(${NC/each*100}%, ${NC*310}px)`,margin:narrow?0:'0 auto'},
-          gridStyle:{position:'absolute',inset:0,display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},
-          cards:list.map((r,i)=>({...mkCard(r,i,NC),cardH:CARD_H,imgH:IMG_H,dropStyle:{animationDelay:((li*each+i)*70+150)+'ms'}}))}});
+        // 데스크톱: 줄(빨랫줄)은 항상 전체 폭, 카드 묶음만 가운데. 실이 걸리는 높이는 전체 폭 기준 위치로 계산
+        const g=narrow?1:Math.min(NC/each,NC*310/avail),off=(1-g)/2;
+        return {stripStyle:{position:'relative',height:CARD_H+190,width:narrow?`max(100%, ${NC*260}px)`:'100%'},
+          gridStyle:{position:'absolute',top:0,bottom:0,left:(off*100)+'%',width:(g*100)+'%',display:'grid',gridTemplateColumns:`repeat(${NC},minmax(0,1fr))`},
+          cards:list.map((r,i)=>({...mkCard(r,i,NC,narrow?null:off+g*(i+.5)/NC),cardH:CARD_H,imgH:IMG_H,dropStyle:{animationDelay:((li*each+i)*70+150)+'ms'}}))}});
       return {key:g.k,anchor:'exp-'+g.k,code:g.code,label:g.t,count:n,no:String(si+1).padStart(2,'0'),lines}});
+    const flowCls=narrow?'flow':'flow snake';
     const act=this.state.activeSec||(groups[0]&&groups[0].k);
     const expNav=groups.map(g=>({code:g.code,label:g.t,aria:`${g.code} ${g.t}로 이동`,cur:g.k===act?'true':'false',cls:g.k===act?'on':'',go:()=>{const el=document.getElementById('exp-'+g.k);if(el)el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}}));
     const cards=[];
@@ -538,7 +560,7 @@ class Component extends DCLogic {
       edgeLeave:()=>{if(this.state.edge)this.setState({edge:null})},
       prevStyle:arrow('l'),nextStyle:arrow('r')};
     const base={...strip,isLanding:!view,isDetail:!!view,cards,
-      sections,expNav,rowDown:e=>this.rowDown(e),rowMove:e=>this.rowMove(e),rowUp:e=>this.rowUp(e),totalLabel:`${String(RAIDS.length).padStart(2,"0")} Raids · 누적 ${grand}릴`,
+      sections,expNav,flowCls,rowDown:e=>this.rowDown(e),rowMove:e=>this.rowMove(e),rowUp:e=>this.rowUp(e),totalLabel:`${String(RAIDS.length).padStart(2,"0")} Raids · 누적 ${grand}릴`,
       hintLabel:mode==='hover'?'Hover to flip · Click to open':'Click to flip · 노트 열기 버튼으로 이동',goHome:()=>this.setState({view:null,flip:null})};
     if(!view)return {...base,raid:{},minis:[],feed:[],chips:[],stats:[],logs:[],phaseOpts:[],flow:[],form};
 
