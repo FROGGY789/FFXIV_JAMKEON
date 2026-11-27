@@ -107,7 +107,7 @@
   window.Arena3D = {
     open: (items, opts) => open(items, opts), register: items => REG.push(items) - 1,
     // 페이즈 연속 재생: 그 페이즈 첫 기믹부터 끝까지 이어서
-    playPhase: pid => { const u = U(); const ph = u && u.PH.find(p => p.id === pid); if (!ph || !ph.cards.length) return; CONT = true; CONT_PHASE = pid; CARRY = null; open(ph.cards[0].d, { autoplay: true }); }
+    playPhase: pid => { const u = U(); const ph = u && u.PH.find(p => p.id === pid); if (!ph || !ph.cards.length) return; CONT = true; CONT_PHASE = pid; CARRY = null; open(ph.cards[0].d, { autoplay: true }); goFull(); }
   };
 
   /* ---------- 카드 정보 (window.UWU) ---------- */
@@ -339,7 +339,11 @@
 dialog.a3d{border:0;padding:0;margin:auto;width:min(1200px,100vw - 24px);height:min(860px,100dvh - 24px);max-width:none;max-height:none;border-radius:18px;
   background:var(--a3d-bg);color:var(--a3d-ink);box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:inherit}
 dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
-.a3d-in:fullscreen{width:100vw;height:100vh;background:var(--a3d-bg);color:var(--a3d-ink)}
+.a3d-in:fullscreen{width:100vw;height:100vh;background:var(--a3d-bg);color:var(--a3d-ink);position:relative;grid-template-rows:auto minmax(0,1fr)}
+.a3d-in:fullscreen .a3d-bar{position:absolute;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--a3d-bg) 90%,transparent);backdrop-filter:blur(8px);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .4s}
+.a3d-in:fullscreen.idle .a3d-bar{transform:translateY(100%);opacity:0;pointer-events:none}
+.a3d-in:fullscreen.idle{cursor:none}
+.a3d-in:fullscreen.idle .a3d-hint{opacity:0;transition:opacity .4s}
 .a3d-in:-webkit-full-screen{width:100vw;height:100vh;background:var(--a3d-bg)}
 .a3d-in{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
 .a3d-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--a3d-line)}
@@ -487,6 +491,15 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     [prevBtn, nextBtn].forEach(b => b.addEventListener('click', () => { CONT = false; go(+b.dataset.nav, false); }));
     q('.a3d-x').addEventListener('click', () => dlg.close());
     q('.a3d-hb.fs').addEventListener('click', toggleFull);
+    // 전체화면에서 마우스를 2.5초 안 움직이면 아래 바를 숨김 (움직이거나 바 위에 있으면 다시 보임)
+    { const inner = q('.a3d-in'); let idleT = 0;
+      const wake = () => {
+        inner.classList.remove('idle'); clearTimeout(idleT);
+        if (document.fullscreenElement !== inner && document.webkitFullscreenElement !== inner) return;
+        idleT = setTimeout(() => { if (!inner.querySelector('.a3d-bar:hover, .a3d-bar :focus-visible, .a3d-side:hover')) inner.classList.add('idle'); else wake(); }, 2500);
+      };
+      ['pointermove', 'pointerdown', 'keydown', 'wheel'].forEach(t => inner.addEventListener(t, wake, { passive: true }));
+      document.addEventListener('fullscreenchange', wake); document.addEventListener('webkitfullscreenchange', wake); }
     // 단축키: 스페이스 재생/멈춤 · F 전체화면 · ←/→ 이전/다음 기믹
     document.addEventListener('keydown', e => {
       if (!dlg.open || e.defaultPrevented) return;
@@ -512,6 +525,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     dlg.addEventListener('close', () => { if (sideEl.dataset.mode === 'tools') { sideEl.dataset.mode = ''; sideEl.innerHTML = ''; sideEl.classList.remove('on'); if (OPTS.toolsClose) OPTS.toolsClose(); } if (document.fullscreenElement && dlg.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {}); CONT = false; CONT_PHASE = null; CARRY = null; EDIT = false; VIEWOFF = 0; SEL = -1; camState = null; CUR = null; if (dirty()) { EDITS = JSON.parse(JSON.stringify(SAVED)); applyAll(); refresh2D(); } teardown(); dropRenderer(); });
   }
 
+  // 연속 재생은 바로 전체화면으로 (이미 전체화면이면 그대로)
+  function goFull() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const el = dlg && dlg.querySelector('.a3d-in'), rq = el && (el.requestFullscreen || el.webkitRequestFullscreen);
+    if (!rq) return;
+    try { const r = rq.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  }
   function toggleFull() {
     const fe = document.fullscreenElement || document.webkitFullscreenElement;
     if (fe) (document.exitFullscreen || document.webkitExitFullscreen).call(document);

@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script src="./admin.js?v=20261127c"></script>
-<script src="./raids.js?v=20261127c"></script>
-<script src="./sim.js?v=20261127c"></script>
+<script src="./admin.js?v=20261127d"></script>
+<script src="./raids.js?v=20261127d"></script>
+<script src="./sim.js?v=20261127d"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261127c"></script>
-<script src="./uwu-data.js?v=20261127c"></script>
-<script src="./notes-ex.js?v=20261127c"></script>
-<script src="./arena3d.js?v=20261127c"></script>
+<script src="./image-slot.js?v=20261127d"></script>
+<script src="./uwu-data.js?v=20261127d"></script>
+<script src="./notes-ex.js?v=20261127d"></script>
+<script src="./arena3d.js?v=20261127d"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -264,6 +264,9 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
         </div>
         <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}">
         <div style="display:grid;gap:8px;margin-top:16px;border-top:1px solid var(--line,#dddbe2);padding-top:14px">
+          <div role="radiogroup" aria-label="기록 분류" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--bg,#f6f5f8);border:1px solid var(--line,#dddbe2);border-radius:12px;padding:3px">
+            <sc-for list="{{ catOpts }}" as="c"><button type="button" role="radio" aria-checked="{{ c.on }}" onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button></sc-for>
+          </div>
           <input type="date" value="{{ form.date }}" onChange="{{ setDate }}" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <label style="display:grid;gap:3px;font-size:11.5px;color:var(--sub,#6f6c78)">시작<input type="time" aria-label="시작 시각" value="{{ form.start }}" onChange="{{ setStart }}" style="width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--bg,#f6f5f8);font-size:13px;color:var(--ink,#16151a)"></label>
@@ -284,7 +287,11 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
         </sc-if>
         <sc-if value="{{ readOnly }}" hint-placeholder-val="{{ false }}"><p style="margin:16px 0 0;border-top:1px solid var(--line,#dddbe2);padding-top:12px;font-size:12.5px;color:var(--sub,#6f6c78);line-height:1.55">기록 추가·사진은 관리자 로그인 후 가능. 오른쪽 아래 관리자 버튼.</p></sc-if>
       </div>
-      <div style="display:grid;gap:10px">
+      <div style="display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <sc-for list="{{ logFilters }}" as="f"><button type="button" onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+      </div>
+      <sc-if value="{{ logsEmpty }}" hint-placeholder-val="{{ false }}"><p style="margin:4px 0 0;font-size:13px;color:var(--sub,#6f6c78)">이 분류로 적은 기록 없음</p></sc-if>
       <sc-for list="{{ logs }}" as="l">
         <div class="log-card" style="background:var(--card,#ececef);border-radius:16px;padding:12px 14px">
           <div class="log-photo"><image-slot id="log-{{ l.id }}" shape="rounded" radius="12" placeholder="이 날 사진 (끌어다 놓거나 클릭)"></image-slot></div>
@@ -293,6 +300,7 @@ html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent,#a597e3
             <sc-if value="{{ l.canEdit }}"><span style="display:inline-flex;gap:2px;align-items:center"><button onClick="{{ l.edit }}" title="이 기록 수정" style="border:none;background:none;cursor:pointer;color:var(--sub,#6f6c78);font-size:12px;font-weight:700;padding:2px 6px">수정</button><button onClick="{{ l.remove }}" title="삭제" style="border:none;background:none;cursor:pointer;color:var(--sub,#6f6c78);font-size:15px;line-height:1;padding:2px 4px">×</button></span></sc-if>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px">
+            <span style="{{ l.catStyle }}">{{ l.catLabel }}</span>
             <span style="font-size:15px;font-weight:600">{{ l.summary }}</span>
             <span style="font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--accent,#a597e3) 28%,transparent)">{{ l.best }}</span>
           </div>
@@ -368,12 +376,16 @@ const segs=html=>{const out=[];let b=0,hl=0;String(html).split(/(<\/?b>|<span cl
  else if(tok)out.push({t:dec(tok.replace(/<[^>]+>/g,'')),style:{fontWeight:b?700:'inherit',background:hl?'linear-gradient(transparent 42%, color-mix(in srgb, var(--accent) 38%, transparent) 42%)':'none',borderRadius:2}})});return out};
 const fmtH=h=>(Math.round(h*10)/10)+'시간';
 // 시작~끝 시각으로 시간 계산 (자정 넘기면 다음 날로)
+// 기록 분류: 트라이(진도 뚫기) / 반복클리어(파밍) / 숙련(손에 익히기) / 재활(오랜만에 감 찾기)
+const CATS=[['try','트라이','#7b61ff'],['farm','반복클리어','#2e9e55'],['skill','숙련','#2f6fe4'],['rehab','재활','#d2552b']];
+const CAT_MAP=Object.fromEntries(CATS.map(c=>[c[0],c]));
+const catOf=l=>CAT_MAP[l&&l.cat]||CATS[0];
 const spanH=(a,b)=>{if(!a||!b)return 0;const m=t=>{const[h,mi]=t.split(':').map(Number);return h*60+mi};let d=m(b)-m(a);if(d<=0)d+=1440;return Math.round(d/6)/10};
 const logH=l=>l.start&&l.end?spanH(l.start,l.end):(+l.hours||0);
 
 class Component extends DCLogic {
   state={view:null,flip:null,logs:SEED,learned:{},open:{},filter:'all',form:this.blankForm('uwu')};
-  blankForm(id){const last=this.state&&((this.state.logs||{})[id]||[])[0];return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],memo:'',members:{...((last&&last.members)||{})},jobs:{...((last&&last.jobs)||{})}}}
+  blankForm(id){const last=this.state&&((this.state.logs||{})[id]||[])[0];return {date:new Date().toISOString().slice(0,10),start:'20:00',end:'',best:this.phasesOf(id)[0],cat:(last&&last.cat)||'try',memo:'',members:{...((last&&last.members)||{})},jobs:{...((last&&last.jobs)||{})}}}
   phasesOf(id){const r=RAIDS.find(x=>x.id===id);const ns=window.JamNotes&&window.JamNotes.forRaid(id);if(ns)return [...ns.PH.map(p=>p.name),'클리어'];
     if(id==='uwu')return ['P1 가루다','P2 이프리트','P3 타이탄','P4 라하브레아','P5 알테마','클리어'];
     return [...Array.from({length:r.n},(_,i)=>'P'+(i+1)),'클리어']}
@@ -482,13 +494,16 @@ class Component extends DCLogic {
       isEditingLog:!!this.state.editId,addLabel:this.state.editId?'수정 저장':'기록 추가',
       cancelEdit:()=>this.setState({editId:null,form:this.blankForm(view)}),
       addLog:()=>{if(!form.start||!form.end){alert('시작·끝 시각을 넣을 것');return}const mem={},jobs={};ROLES.forEach(r=>{const v=((form.members||{})[r]||'').trim();if(v)mem[r]=v;const jb=(form.jobs||{})[r];if(jb)jobs[r]=jb});
-        const eid=this.state.editId;const e={id:eid||Date.now(),date:form.date,start:form.start,end:form.end,hours:spanH(form.start,form.end),best:form.best,memo:form.memo.replace(/\s+$/,''),members:mem,jobs};
+        const eid=this.state.editId;const e={id:eid||Date.now(),date:form.date,start:form.start,end:form.end,hours:spanH(form.start,form.end),best:form.best,cat:form.cat||'try',memo:form.memo.replace(/\s+$/,''),members:mem,jobs};
         this.setState(s=>({editId:null,form:{...s.form,end:'',memo:''}}));
         if(eid)this.persistLogs(L=>{L[view]=(L[view]||[]).map(x=>x.id===eid?{...x,...e}:x)},`트라이 일지 수정: ${view} ${e.date}`);
         else this.persistLogs(L=>{L[view]=[e,...(L[view]||[])]},`트라이 일지 추가: ${view} ${e.date}`)},
-      logs:L.map(l=>({...l,hasMembers:ROLES.some(r=>(l.members||{})[r]||(l.jobs||{})[r]),memberList:ROLES.filter(r=>(l.members||{})[r]||(l.jobs||{})[r]).map(r=>{const jc=(l.jobs||{})[r],j=JOB_MAP[jc];return {r,n:(l.members||{})[r]||'',icon:j?jobIcon(jc):'',jobName:j?j[1]:'',dot:roleDot(r,26)}}),dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
+      catOpts:CATS.map(([k,t,c])=>{const on=(form.cat||'try')===k;return {label:t,on:String(on),pick:()=>this.setState(s=>({form:{...s.form,cat:k}})),style:{border:'none',borderRadius:9,padding:'8px 4px',fontSize:12.5,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',background:on?c:'transparent',color:on?'#fff':'var(--sub,#6f6c78)',transition:'background .2s,color .2s'}}}),
+      logsEmpty:L.length>0&&(this.state.logCat||'all')!=='all'&&!L.some(l=>catOf(l)[0]===this.state.logCat),
+      logFilters:[['all','전체','var(--ink,#16151a)'],...CATS].map(([k,t,c])=>{const on=(this.state.logCat||'all')===k,n=k==='all'?L.length:L.filter(l=>catOf(l)[0]===k).length;return {label:`${t} ${n}`,pick:()=>this.setState({logCat:k}),style:{border:'1px solid '+(on?c:'var(--line,#dddbe2)'),background:on?c:'transparent',color:on?(k==='all'?'var(--bg,#f6f5f8)':'#fff'):'var(--ink,#16151a)',borderRadius:999,padding:'5px 11px',fontSize:12,fontWeight:700,cursor:'pointer'}}}),
+      logs:L.filter(l=>(this.state.logCat||'all')==='all'||catOf(l)[0]===this.state.logCat).map(l=>({...l,catLabel:catOf(l)[1],catStyle:{fontSize:11,fontWeight:700,borderRadius:999,padding:'2px 8px',color:'#fff',background:catOf(l)[2]},hasMembers:ROLES.some(r=>(l.members||{})[r]||(l.jobs||{})[r]),memberList:ROLES.filter(r=>(l.members||{})[r]||(l.jobs||{})[r]).map(r=>{const jc=(l.jobs||{})[r],j=JOB_MAP[jc];return {r,n:(l.members||{})[r]||'',icon:j?jobIcon(jc):'',jobName:j?j[1]:'',dot:roleDot(r,26)}}),dateLabel:l.date.replace(/-/g,'.'),summary:l.start&&l.end?`${l.start} ~ ${l.end} · ${fmtH(logH(l))}`:`${l.tries?l.tries+'회 · ':''}${fmtH(logH(l))}`,hasMemo:!!l.memo,
         canEdit:!!(window.JamAdmin&&window.JamAdmin.on),
-        edit:()=>{this.setState({editId:l.id,form:{date:l.date,start:l.start||'',end:l.end||'',best:l.best,memo:l.memo||'',members:{...(l.members||{})},jobs:{...(l.jobs||{})}}});
+        edit:()=>{this.setState({editId:l.id,form:{date:l.date,start:l.start||'',end:l.end||'',best:l.best,cat:l.cat||'try',memo:l.memo||'',members:{...(l.members||{})},jobs:{...(l.jobs||{})}}});
           setTimeout(()=>{const t=document.querySelector('textarea[placeholder^="오늘 막힌 곳"]');if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.focus()}},50)},
         remove:()=>{if(!confirm(`${l.date} 기록을 삭제할까?`))return;this.persistLogs(L=>{L[view]=(L[view]||[]).filter(x=>x.id!==l.id)},`트라이 일지 삭제: ${view} ${l.date}`)}})),
       noLogs:!L.length};
