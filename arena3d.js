@@ -377,6 +377,12 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(3px)}
 .a3d-cap{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:10px;align-items:center;pointer-events:none}
 .a3d-cap>div{background:color-mix(in srgb,var(--a3d-bg) 88%,transparent);border:1px solid var(--a3d-line);border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.45;max-width:560px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .a3d-cap b{display:inline-block;margin-right:8px;font-weight:800}
+.a3d-cap>div:has(.kp){max-width:min(400px,calc(50% - 190px))}
+@media(max-width:900px){.a3d-cap>div:has(.kp){max-width:none}}
+.a3d-cap .kp{margin-top:8px;padding-top:7px;border-top:1px dashed var(--a3d-line);font-size:13px;line-height:1.5}
+.a3d-cap .kp em{display:block;font-style:normal;font:800 10px/1.4 'JetBrains Mono',monospace;letter-spacing:.16em;color:#7b61ff;margin-bottom:3px}
+.a3d-cap .kp p{margin:0}.a3d-cap .kp p+p{margin-top:2px;font-weight:700}
+.a3d-cap .kp p+p::before{content:'→ ';color:#7b61ff}
 .a3d-cap i{font-style:normal;color:var(--a3d-sub);font-size:12px;font-weight:700;margin-right:6px}
 .a3d-cast{position:absolute;left:50%;top:64px;translate:-50% 0;width:min(360px,calc(100% - 24px));pointer-events:none;display:none;text-align:center;
   font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8),0 0 8px rgba(0,0,0,.5)}
@@ -1321,6 +1327,9 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const i1 = document.createElement('i'); i1.textContent = `${cur + 1} / ${STEPS.length}`;
       const b1 = document.createElement('b'); b1.textContent = stp.name === String(cur + 1) ? '' : stp.name;
       box.append(i1, b1, document.createTextNode(stp.cap));
+      // KEY POINT: 이 기믹의 핵심 패턴(첫 줄)과 처리(둘째 줄)
+      const kp = meta && window.JamNotes && window.JamNotes.keyPoint && window.JamNotes.keyPoint(meta.key);
+      if (kp) { const k = document.createElement('div'); k.className = 'kp'; const em = document.createElement('em'); em.textContent = 'KEY POINT'; k.appendChild(em); kp.forEach(t => { const p = document.createElement('p'); p.textContent = t; k.appendChild(p); }); box.appendChild(k); }
       syncLines();
       if (EDIT) { const d = document.createElement('span'); d.className = 'a3d-dirty'; d.textContent = dirty() ? '  · 저장 안 됨' : ''; box.appendChild(d); }
       capEl.appendChild(box);
