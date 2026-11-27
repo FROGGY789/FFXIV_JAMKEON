@@ -1196,7 +1196,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     // 마우스를 올리면 팝오버
     function showPop(role, x, y) {
-      if (!role || !POP3D) { popEl.style.display = 'none'; popEl.dataset.role = ''; return; }
+      if (!role || !POP3D || !meta) { popEl.style.display = 'none'; popEl.dataset.role = ''; return; } // 시뮬레이터 전략엔 롤 설명이 없어서 팝오버 안 띄움
       if (popEl.dataset.role !== role) { popEl.innerHTML = ''; popEl.appendChild(roleInfo(role)); popEl.dataset.role = role; }
       popEl.style.display = 'block';
       const r = stage.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
@@ -1366,7 +1366,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'a3d-sw'; sw.setAttribute('role', 'switch');
     sw.setAttribute('aria-checked', String(POP3D)); sw.innerHTML = '<span class="tr" aria-hidden="true"></span>설명 팝오버';
     sw.addEventListener('click', () => { POP3D = !POP3D; sw.setAttribute('aria-checked', String(POP3D)); try { localStorage.setItem('jamkeon.pop3d', POP3D ? '1' : '0'); } catch (e) {} if (!POP3D) { showPop(null); pageHide(); } });
-    gl.appendChild(sw);
+    if (meta) gl.appendChild(sw); // 설명 팝오버 스위치는 기믹 노트에서만
     const lk = document.createElement('button'); lk.type = 'button'; lk.className = 'a3d-sw'; lk.setAttribute('role', 'switch');
     lk.setAttribute('aria-checked', String(LOCKCAM)); lk.innerHTML = '<span class="tr" aria-hidden="true"></span>시점 고정';
     lk.title = '켜면 드래그로 시점이 돌거나 밀리지 않음 (휠·핀치 확대는 됨). 편집할 때 편함';
