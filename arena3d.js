@@ -943,7 +943,24 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
 
     /* --- 필드 --- */
-    const floorDisc = (function floor() {
+    const AR = items.find(o => o && o.arena === 'rect');
+    const floorDisc = AR ? (function deck() {
+      // 직사각형 갑판 (극 리바이어선 등): 반폭 w, 반길이 h. 주변은 바다. rail:false 면 난간 없음
+      const w = AR.w || 64, h = AR.h || 96;
+      const sea = new T.Mesh(track(new T.PlaneGeometry(900, 900)), track(new T.MeshStandardMaterial({ color: dark ? 0x173a5c : 0x8fc3e8, roughness: 0.6 })));
+      sea.rotation.x = -Math.PI / 2; sea.position.y = -8; sea.receiveShadow = true; G.floor.add(sea);
+      const fm = track(new T.MeshStandardMaterial({ color: pal.floor.hex, roughness: 0.95 }));
+      const deck = new T.Mesh(track(new T.BoxGeometry(w * 2, 4, h * 2)), fm); deck.position.y = -2; deck.receiveShadow = true; G.floor.add(deck);
+      const hull = new T.Mesh(track(new T.BoxGeometry(w * 2 + 2, 10, h * 2 + 2)), track(new T.MeshStandardMaterial({ color: pal.rim.hex, roughness: 0.9 }))); hull.position.y = -9; G.floor.add(hull);
+      if (AR.rail !== false) {
+        const rm = track(new T.MeshStandardMaterial({ color: pal.rim.hex, roughness: 0.6 }));
+        [[0, -h, w * 2, 1.6], [0, h, w * 2, 1.6], [-w, 0, 1.6, h * 2], [w, 0, 1.6, h * 2]].forEach(([x, z, sx, sz]) => { const r = new T.Mesh(track(new T.BoxGeometry(sx, 3, sz)), rm); r.position.set(x, 1.5, z); G.floor.add(r); });
+      }
+      const dm = track(new T.LineDashedMaterial({ color: pal.rim.hex, dashSize: 2.5, gapSize: 3 }));
+      [[V(0, .15, -h), V(0, .15, h)], [V(-w, .15, 0), V(w, .15, 0)]].forEach(pp => { const l = new T.LineSegments(track(new T.BufferGeometry().setFromPoints(pp)), dm); l.computeLineDistances(); G.floor.add(l); });
+      [['북', 0, -h - 12], ['남', 0, h + 12], ['서', -w - 12, 0], ['동', w + 12, 0]].forEach(([t, x, z]) => { const lb = label(t, { color: pal.sub.hex, halo: pal.card.hex, size: 8 }); lb.position.set(x, 4, z); G.floor.add(lb); });
+      return deck;
+    })() : (function floor() {
       const fm = track(new T.MeshStandardMaterial({ color: pal.floor.hex, roughness: 0.95 }));
       const disc = new T.Mesh(track(new T.CylinderGeometry(100, 100, 4, 128)), fm); disc.position.y = -2; disc.receiveShadow = true; G.floor.add(disc);
       const rim = new T.Mesh(track(new T.TorusGeometry(100.5, 1.4, 12, 160)), track(new T.MeshStandardMaterial({ color: pal.rim.hex, roughness: 0.6 })));

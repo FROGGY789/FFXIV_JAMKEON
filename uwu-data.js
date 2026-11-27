@@ -9,8 +9,15 @@ let aid=0;
 function draw(items){
   const id='m'+(aid++);
   let s=`<svg data-arena="${(window.__arena=window.__arena||[]).push(items)-1}" viewBox="-128 -128 256 256" role="img" xmlns="http://www.w3.org/2000/svg"><defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>`;
+  // 전장 모양: 기본 원형(반지름 100). {arena:'rect', w, h, rail} 항목이 있으면 직사각형 갑판(반폭 w, 반길이 h)
+  const AR=items.find(o=>o&&o.arena==='rect');
+  if(AR){const w=AR.w||64,h=AR.h||96;
+    s+=`<rect x="-128" y="-128" width="256" height="256" fill="color-mix(in srgb,#3d8fe0 14%,transparent)"/><rect x="${-w}" y="${-h}" width="${w*2}" height="${h*2}" rx="3" fill="var(--floor)" stroke="var(--rim)" stroke-width="${AR.rail===false?1.2:3}" ${AR.rail===false?'stroke-dasharray="5 4"':''}/><path d="M0 ${-h}V${h}M${-w} 0H${w}" stroke="var(--rim)" stroke-width=".5" stroke-dasharray="2 3"/>`;
+    [['북',0,-h-9],['남',0,h+15],['서',-w-12,4],['동',w+12,4]].forEach(([t,x,y])=>{s+=`<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--sub)">${t}</text>`});
+  }else{
   s+=`<circle r="100" fill="var(--floor)" stroke="var(--rim)" stroke-width="2.5"/><circle r="50" fill="none" stroke="var(--rim)" stroke-width=".6" stroke-dasharray="2 3"/><path d="M0 -100V100M-100 0H100" stroke="var(--rim)" stroke-width=".5" stroke-dasharray="2 3"/>`;
   [['북',0],['동',90],['남',180],['서',270]].forEach(([t,a])=>{const [x,y]=P(a,113);s+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--sub)">${t}</text>`});
+  }
   const top=[];
   for(const o of items){
     const k=K[o.k||'bad'];
