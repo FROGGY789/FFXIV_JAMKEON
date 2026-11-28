@@ -73,6 +73,19 @@
     rankings(fightIDs:$f)}}}`;
   const Q_ME = `query($c:String,$f:[Int],$me:Int){reportData{report(code:$c){
     takenMe:table(fightIDs:$f,dataType:DamageTaken,viewBy:Ability,sourceID:$me) debuffMe:table(fightIDs:$f,dataType:Debuffs,hostilityType:Friendlies,sourceID:$me)}}}`;
+  const Q_CAST = `query($c:String,$f:[Int],$me:Int,$st:Float){reportData{report(code:$c){masterData{abilities{gameID name}}
+    events(fightIDs:$f,dataType:Casts,sourceID:$me,startTime:$st,limit:10000){data nextPageTimestamp}
+    heal:table(fightIDs:$f,dataType:Healing)}}}`;
+  /* 직업별 버스트·시너지 버튼 (게임 기술 ID · 재사용 초). 로그 언어와 상관없이 ID로 셈 */
+  const BURST = {
+    Paladin: [[20, 60]], Warrior: [[7389, 60]], DarkKnight: [[16472, 120], [7390, 60]], Gunbreaker: [[16138, 60], [16164, 120]],
+    WhiteMage: [[136, 120]], Scholar: [[7436, 120]], Astrologian: [[16552, 120]],
+    Monk: [[7396, 120], [7395, 60]], Dragoon: [[3557, 120], [85, 60]], Ninja: [[2248, 120], [36957, 120], [2258, 60], [36958, 60]], Samurai: [[16482, 120]], Reaper: [[24405, 120]], Viper: [[34647, 120]],
+    Bard: [[118, 120], [25785, 110], [101, 120]], Machinist: [[2878, 120], [7414, 120]], Dancer: [[15998, 120], [16011, 120]],
+    BlackMage: [[3573, 120]], Summoner: [[25801, 120]], RedMage: [[7520, 120], [7521, 110]], Pictomancer: [[34675, 120]]
+  };
+  const HEALER = /^(WhiteMage|Scholar|Astrologian|Sage)$/;
+  const POT = /(Gemdraught|Tincture|Draught|Potion|탕약|강화약|각성약|의약)/i;
   const entries = t => { const d = t && (t.data || t); return (d && (d.entries || d.auras || d.damageTaken)) || []; };
 
   async function analyze(code, fid) {
@@ -107,20 +120,61 @@
     res.topTaken = mine.slice().sort((a, b) => b.total - a.total).slice(0, 5);
     res.onlyMe = mine.filter(e => e.hits > 0 && e.party > 0 && e.party <= e.hits + 1 && !/공격|attack/i.test(e.name));
     // ---- 피드백 요약 ----
-    res.deaths.forEach(x => res.fb.push(['사망', `${mmss(x.t)}에 「${x.by}」로 사망. 그 기믹 카드의 내 롤 위치를 다시 확인.`]));
-    res.onlyMe.slice(0, 4).forEach(x => res.fb.push(['피할 수 있던 공격', `「${x.name}」을 ${x.hits}번 맞음(파티 전체 ${x.party}번). 혼자 맞은 공격은 대부분 위치·타이밍 실수.`]));
-    res.vulns.forEach(x => res.fb.push(['실수 디버프', `「${x.name}」 ${x.n}번. 기믹 실패로 붙는 디버프라 원인 기믹을 찾아볼 것.`]));
+    // ---- xivanalysis 방식 분석: 시전 기록으로 공백(ABC)·버스트 사용 횟수·탕약·힐러 오버힐 ----
+    try {
+      let casts = [], st = fight.startTime, ab = new Map(), heal = null;
+      for (let k = 0; k < 6 && st != null; k++) {
+        const q = (await gql(Q_CAST, { c: code, f: [fid], me: me.id, st })).reportData.report;
+        if (!k) { ((q.masterData && q.masterData.abilities) || []).forEach(a => ab.set(a.gameID, a.name)); heal = q.heal; }
+        casts = casts.concat((q.events.data || []).filter(e => e.type === 'cast' && e.sourceID === me.id));
+        st = q.events.nextPageTimestamp;
+      }
+      const nm = id => ab.get(id) || ('#' + id);
+      res.casts = casts.length;
+      // ABC: 아무 것도 안 누른 구간
+      const ts = [fight.startTime, ...casts.map(e => e.timestamp).sort((a, b) => a - b)];
+      const gaps = []; for (let k = 1; k < ts.length; k++) { const g = ts[k] - ts[k - 1]; if (g > 4500) gaps.push({ at: ts[k - 1] - fight.startTime, g }); }
+      gaps.sort((a, b) => b.g - a.g); res.gaps = gaps;
+      const idle = gaps.reduce((a, x) => a + x.g - 2500, 0);
+      if (idle > 8000) res.fb.push(['쉬지 않고 누르기', `GCD가 끊긴 시간이 합쳐서 약 ${Math.round(idle / 1000)}초. 가장 긴 구간: ${gaps.slice(0, 3).map(x => `${mmss(x.at)}부터 ${(x.g / 1000).toFixed(1)}초`).join(', ')}. 보스가 사라진 구간이 아니라면 이동 중에도 쓸 수 있는 기술로 이어 가기.`, idle > 20000 ? 3 : 2]);
+      // 버스트 버튼 사용 횟수
+      const jobKey = me.subType || '';
+      (BURST[jobKey] || []).forEach(([id, cd]) => {
+        const uses = casts.filter(e => e.abilityGameID === id);
+        if (!uses.length) { if (ab.has(id)) res.fb.push(['버스트', `「${nm(id)}」 사용 기록 없음.`, 2]); return; }
+        const first = uses[0].timestamp - fight.startTime, max = Math.floor((dur - Math.min(first, 15000)) / (cd * 1000)) + 1;
+        let drift = 0; for (let k = 1; k < uses.length; k++) drift += Math.max(0, uses[k].timestamp - uses[k - 1].timestamp - cd * 1000);
+        if (uses.length < max) res.fb.push(['버스트', `「${nm(id)}」 ${uses.length}번 사용 / 최대 ${max}번 가능. ${drift > 8000 ? `재사용 대기가 끝난 뒤 평균 ${Math.round(drift / 1000 / Math.max(1, uses.length - 1))}초씩 늦게 눌러서 한 번을 잃음.` : '쿨이 돌아오면 바로 쓰기.'}`, max - uses.length >= 2 ? 3 : 2]);
+        else res.good.push(`「${nm(id)}」 ${uses.length}/${max}번 — 쿨마다 사용.`);
+        if (first > 15000 && cd >= 110) res.fb.push(['버스트', `첫 「${nm(id)}」을 ${mmss(first)}에 사용. 보통 시작 후 10초 안팎(2~3번째 GCD)에 맞춰 파티 버프와 겹치기.`, 1]);
+      });
+      // 탕약
+      const pots = casts.filter(e => POT.test(nm(e.abilityGameID)));
+      if (!pots.length && dur > 180000 && !HEALER.test(jobKey)) res.fb.push(['탕약', '탕약을 안 씀. 처음 버스트와 6분 뒤 버스트에 맞춰 쓰면 딜이 오름(연습 판은 무시해도 됨).', 1]);
+      else if (pots.length) res.good.push(`탕약 ${pots.length}번 사용.`);
+      // 힐러: 오버힐
+      if (HEALER.test(jobKey) && heal) {
+        const h = entries(heal).find(e => e.id === me.id);
+        if (h && h.total) { const oh = (h.overheal || 0) / ((h.overheal || 0) + h.total); res.overheal = oh;
+          if (oh > 0.4) res.fb.push(['힐', `오버힐 ${Math.round(oh * 100)}%. GCD 힐 대신 능력(무료) 힐·보호막을 먼저 쓰고 그 시간에 공격 마법.`, oh > 0.55 ? 2 : 1]); else res.good.push(`오버힐 ${Math.round(oh * 100)}% — 힐 낭비가 적음.`); }
+      }
+    } catch (e) { res.fb.push(['분석', '시전 기록을 못 읽어서 일부 분석을 건너뜀: ' + e.message, 1]); }
+
+    res.deaths.forEach(x => res.fb.push(['사망', `${mmss(x.t)}에 「${x.by}」로 사망. 그 기믹 카드의 내 롤 위치를 다시 확인.`, 3]));
+    res.onlyMe.slice(0, 4).forEach(x => res.fb.push(['피할 수 있던 공격', `「${x.name}」을 ${x.hits}번 맞음(파티 전체 ${x.party}번). 혼자 맞은 공격은 대부분 위치·타이밍 실수.`, 2]));
+    res.vulns.forEach(x => res.fb.push(['실수 디버프', `「${x.name}」 ${x.n}번. 기믹 실패로 붙는 디버프라 원인 기믹을 찾아볼 것.`, 2]));
     if (res.uptime != null) {
-      if (res.uptime < 0.9) res.fb.push(['업타임', `공격한 시간이 전투의 ${(res.uptime * 100).toFixed(1)}%. 이동하면서도 쓸 수 있는 기술로 GCD를 이어 가기(목표 95% 이상).`]);
+      if (res.uptime < 0.9) res.fb.push(['업타임', `공격한 시간이 전투의 ${(res.uptime * 100).toFixed(1)}%. 이동하면서도 쓸 수 있는 기술로 GCD를 이어 가기(목표 95% 이상).`, res.uptime < 0.8 ? 3 : 2]);
       else res.good.push(`업타임 ${(res.uptime * 100).toFixed(1)}% — 공격을 잘 이어 감.`);
     }
     if (res.rank != null) {
-      if (res.rank < 25) res.fb.push(['딜', `순위 ${Math.round(res.rank)}%. 시너지 타이밍·버스트 정렬을 xivanalysis 에서 확인.`]);
+      if (res.rank < 25) res.fb.push(['딜', `순위 ${Math.round(res.rank)}%. 시너지 타이밍·버스트 정렬을 위 버스트 항목에서 확인.`, 1]);
       else if (res.rank >= 75) res.good.push(`순위 ${Math.round(res.rank)}% — 상위권.`);
     }
     if (!res.deaths.length) res.good.push('사망 없음.');
     if (!res.onlyMe.length && !res.vulns.length) res.good.push('혼자 맞은 공격·실수 디버프 없음.');
-    if (!fight.kill && fight.fightPercentage != null) res.fb.unshift(['결과', `와이프 · 보스 ${(fight.fightPercentage).toFixed(1)}% 남음. ${res.partyDeaths ? `파티 사망 ${res.partyDeaths}번.` : ''}`]);
+    if (!fight.kill && fight.fightPercentage != null) res.fb.unshift(['결과', `와이프 · 보스 ${(fight.fightPercentage).toFixed(1)}% 남음. ${res.partyDeaths ? `파티 사망 ${res.partyDeaths}번.` : ''}`, 0]);
+    res.fb.sort((a, b) => (b[2] || 0) - (a[2] || 0)); const ri = res.fb.findIndex(x => x[0] === '결과'); if (ri > 0) res.fb.unshift(res.fb.splice(ri, 1)[0]);
     return res;
   }
 
@@ -172,7 +226,11 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
 .rv .stat span{font-size:12px;color:var(--sub,#6f6c78);font-weight:700}
 .rv .fb{border-radius:16px;padding:14px 16px;background:#fff3f5;border:1.5px solid #ffb3c0;color:#2a1b20;margin:12px 0}
 .rv .fb h3{margin:0 0 8px;font-size:15px;font-weight:900;color:#c8103a}
-.rv .fb ol{margin:0;padding-left:20px}.rv .fb li{margin:4px 0}.rv .fb li b{color:#c8103a;margin-right:6px}
+.rv .fb ul.sv{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rv .fb li{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:baseline;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.6)}
+.rv .fb li i{font-style:normal;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;color:#fff;background:#8a8796}
+.rv .fb li.s3 i{background:#d6113f}.rv .fb li.s2 i{background:#e58a00}.rv .fb li.s1 i{background:#3f7fd6}
+.rv .fb li b{color:#c8103a;white-space:nowrap}
 .rv .good{border-radius:16px;padding:12px 16px;background:#effaf3;border:1.5px solid #9fdcb6;color:#163a24;margin:12px 0}
 .rv .good h3{margin:0 0 6px;font-size:14px;font-weight:900;color:#1f8a55}
 .rv table{width:100%;border-collapse:collapse;font-size:13px}.rv td,.rv th{padding:6px 8px;border-bottom:1px solid var(--line,#dddbe2);text-align:left}
@@ -182,7 +240,7 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
 .rv .note{border:1px solid var(--line,#dddbe2);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .rv .note .meta{font-size:12px;color:var(--sub,#6f6c78)}
 .rv .note p{white-space:pre-wrap;margin:6px 0 0}
-@media(prefers-color-scheme:dark){.rv .fb{background:#3a1820;color:#ffe3e8;border-color:#7a2a3a}.rv .fb h3,.rv .fb li b{color:#ff8fa3}.rv .good{background:#16301f;color:#d9f5e3;border-color:#2c6a43}.rv .good h3{color:#7fe0a6}}
+@media(prefers-color-scheme:dark){.rv .fb li{background:rgba(0,0,0,.25)}.rv .fb{background:#3a1820;color:#ffe3e8;border-color:#7a2a3a}.rv .fb h3,.rv .fb li b{color:#ff8fa3}.rv .good{background:#16301f;color:#d9f5e3;border-color:#2c6a43}.rv .good h3{color:#7fe0a6}}
 `;
   let dlg, bd, tab = 'logs', cur = null;
   function boot() {
@@ -305,7 +363,7 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
         ${r.job ? stat(esc(r.job), '직업') : ''}${r.rdps != null ? stat(Math.round(r.rdps).toLocaleString(), 'rDPS') : r.dps != null ? stat(Math.round(r.dps).toLocaleString(), 'DPS') : ''}
         ${r.rank != null ? stat(Math.round(r.rank) + '%', '순위') : ''}${r.uptime != null ? stat((r.uptime * 100).toFixed(1) + '%', '업타임') : ''}
         ${r.deaths ? stat(r.deaths.length, '내 사망') : ''}${r.onlyMe ? stat(r.onlyMe.reduce((a, x) => a + x.hits, 0), '혼자 맞은 공격') : ''}</div>
-      <div class="fb"><h3>이번 판 피드백</h3>${r.fb.length ? '<ol>' + r.fb.map(([k, t]) => `<li><b>${esc(k)}</b>${esc(t)}</li>`).join('') + '</ol>' : '<p style="margin:0">눈에 띄는 실수 없음. xivanalysis 에서 스킬 순서·버프 정렬만 확인.</p>'}</div>
+      <div class="fb"><h3>이번 판 피드백</h3>${r.fb.length ? '<ul class="sv">' + r.fb.map(([k, t, v]) => `<li class="s${v || 0}"><i>${['결과', '참고', '주의', '심각'][v || 0]}</i><b>${esc(k)}</b>${esc(t)}</li>`).join('') + '</ul>' : '<p style="margin:0">눈에 띄는 실수 없음.</p>'}</div>
       ${r.good.length ? `<div class="good"><h3>잘한 점</h3>${r.good.map(esc).join('<br>')}</div>` : ''}
       ${r.topTaken && r.topTaken.length ? `<h4 style="margin:16px 0 6px">많이 맞은 공격</h4><table><tr><th>기술</th><th>내가 맞은 횟수</th><th>파티 전체</th><th>피해</th></tr>${r.topTaken.map(x => `<tr><td>${esc(x.name)}</td><td>${x.hits}</td><td>${x.party}</td><td>${Math.round(x.total).toLocaleString()}</td></tr>`).join('')}</table>` : ''}
       <h4 style="margin:18px 0 6px">반성 메모</h4>
