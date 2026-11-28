@@ -387,8 +387,9 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55)}
 .a3d-co .ring{fill:none;stroke:#ff4d6d;stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,77,109,.55));stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .55s cubic-bezier(.6,0,.3,1)}
 .a3d-co .tail{fill:none;stroke:#ff4d6d;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .6s cubic-bezier(.6,0,.3,1) .45s}
 .a3d-co.on .ring,.a3d-co.on .tail{stroke-dashoffset:0}
-.a3d-co .lbl{position:absolute;max-width:min(280px,40vw);background:#fff;color:#16151a;border:2.5px solid #ff4d6d;border-radius:12px;padding:8px 11px;font-size:14px;font-weight:700;line-height:1.45;box-shadow:0 8px 22px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s .85s,transform .35s cubic-bezier(.2,.9,.3,1.3) .85s}
-.a3d-co .lbl::before{content:'!';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#ff4d6d;color:#fff;font-size:12px;margin-right:6px;vertical-align:1px}
+.a3d-co .lbl{position:absolute;max-width:min(340px,44vw);background:#fff;color:#16151a;border:2.5px solid #ff4d6d;border-radius:12px;padding:8px 11px;font-size:14.5px;font-weight:600;line-height:1.5;box-shadow:0 8px 22px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s .85s,transform .35s cubic-bezier(.2,.9,.3,1.3) .85s}
+.a3d-co .lbl .no{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#ff4d6d;color:#fff;font-size:13px;font-weight:800;margin-right:7px;vertical-align:2px}
+.a3d-co .lbl b{font-size:18px;font-weight:900;color:#d6113f;line-height:1.35}
 .a3d-co.on .lbl{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.a3d-co .ring,.a3d-co .tail,.a3d-co .lbl{transition:none}}
 .a3d-cap>div:has(.kp){max-width:min(400px,calc(50% - 190px))}
@@ -1163,22 +1164,8 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     const LAST = STEPS.length - 1;
     /* --- 콜아웃: 주의할 곳에 O + 돼지꼬리 + 설명. 카드 항목 {co:'설명', at|xy, r, step} 이 있으면 그걸, 없으면 카드 팁/KEY POINT 를 마지막 단계에 --- */
-    const CALL = [];
-    items.forEach(o => { if (o && o.co) { const c = at(o); CALL.push({ i: Math.min(LAST, Math.max(0, (o.step || LAST + 1) - 1)), p: c, r: o.r || 14, text: String(o.co) }); } });
-    if (!CALL.length && meta) {
-      const kp = window.JamNotes && window.JamNotes.keyPoint && window.JamNotes.keyPoint(meta.key);
-      const text = meta.c.tip ? htmlText(meta.c.tip) : (kp ? kp[1] : '');
-      const pick = items.find(o => o && o.z === 'c' && o.k === 'safe') || items.find(o => o && o.z && o.k !== 'buf' && !o.env && o.z !== 'donut') || items.find(o => o && o.b != null && !o.z && (o.r || 11) >= 9);
-      if (text && pick) {
-        let p = [0, 0], r = 14;
-        if (pick.z === 'c') { p = at(pick); r = Math.min(30, pick.r + 4); }
-        else if (pick.z === 'band') { const a = xy(pick.a), b = xy(pick.b); p = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; r = Math.min(28, pick.w / 2 + 8); }
-        else if (pick.z === 'cone') { const c = at(pick), d = P(pick.dir, pick.len * 0.55); p = [c[0] + d[0], c[1] + d[1]]; r = 22; }
-        else { p = at(pick); r = (pick.r || 11) + 6; }
-        CALL.push({ i: LAST, p, r, text });
-      }
-    }
-    const coFor = i => CALL.find(c => c.i === i);
+    let CALL = [];
+    const coFor = i => CALL.filter(c => c.i === i);
     const coShown = new Set();
     // 항목에 step:N 이 있으면 그 단계(1부터)에서 나타남. 예) 장판이 깔린 뒤 생기는 회오리
     ENT.forEach(e => { const o = items[e.idx]; if (o && o.step) { e.at = Math.min(LAST, Math.max(0, o.step - 1)); e.delay = 0; e.span = e.kind === 'zone' ? 0.6 : 1; } });
@@ -1371,6 +1358,43 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       return lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST;
     };
     let pickLine = -1;
+    /* --- 콜아웃: 공략 순서 문장마다, 그 문장에 해당하는 재생 단계에서 바뀐 곳(움직인 롤·새로 깔린 장판·화살표)에 O + 돼지꼬리 + 문장 ---
+     * 카드 항목에 {co:'설명', at|xy, r, step} 을 직접 넣으면 그것도 그 단계에 추가로 나옴 */
+    function spotOf(o) {
+      if (!o) return null;
+      if (o.z === 'band') { const a = xy(o.a), b = xy(o.b); return [[a[0], a[1]], [b[0], b[1]]]; }
+      if (o.z === 'cone') { const c = at(o), d = P(o.dir, o.len * 0.6); return [[c[0] + d[0], c[1] + d[1]]]; }
+      if (o.z === 'donut') return null;
+      if (o.at || o.xy) { try { return [at(o)]; } catch (e) { return null; } }
+      return null;
+    }
+    function spotFor(si) {
+      let pts = [];
+      pawnsE.forEach(e => {
+        const a = si > 0 ? e.pos[si - 1] : (e.carry || e.pos[0]), b = e.pos[si];
+        if (e.paths[si]) pts.push(e.paths[si][e.paths[si].length - 1]);
+        else if (a && b && Math.hypot(a[0] - b[0], a[1] - b[1]) > 3) pts.push(b);
+      });
+      if (!pts.length) ENT.forEach(e => {
+        if (e.at !== si || e.env || e.kind === 'pawn' || e.kind === 'unit') return;
+        if (e.kind === 'arrow' && e.path) pts.push(e.path[e.path.length - 1]);
+        else { const q = spotOf(items[e.idx]); if (q) pts.push(...q); if (e.kind === 'zone' && items[e.idx] && items[e.idx].z === 'c' && q) e._r = items[e.idx].r; }
+      });
+      if (!pts.length) { const bo = items.find(o => o && o.b != null && !o.z && (o.r || 11) >= 9); if (bo) return { p: at(bo), r: (bo.r || 11) + 6 }; return { p: [0, 0], r: 30 }; }
+      const cx = pts.reduce((t, q) => t + q[0], 0) / pts.length, cz = pts.reduce((t, q) => t + q[1], 0) / pts.length;
+      let r = 0; pts.forEach(q => { r = Math.max(r, Math.hypot(q[0] - cx, q[1] - cz)); });
+      const zr = Math.max(0, ...ENT.filter(e => e._r).map(e => e._r));
+      return { p: [cx, cz], r: Math.max(9, Math.min(48, Math.max(r + 8, pts.length === 1 && zr ? zr + 3 : 0))) };
+    }
+    function buildCalls() {
+      CALL = [];
+      const lines = meta ? (meta.c.steps || []) : [];
+      const spots = {};
+      lines.forEach((ln, li) => { const si = lineStep(li); spots[si] = spots[si] || spotFor(si); CALL.push({ i: si, p: spots[si].p, r: spots[si].r, html: String(ln), n: li + 1 }); });
+      items.forEach(o => { if (o && o.co) CALL.push({ i: Math.min(LAST, Math.max(0, (o.step || LAST + 1) - 1)), p: at(o), r: o.r || 14, html: String(o.co) }); });
+      CALL.forEach(c => { c.text = htmlText(c.html); });
+    }
+    buildCalls();
     function syncLines() {
       if (sideEl.dataset.mode !== 'steps') return;
       let on = -1;
@@ -1380,7 +1404,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       sideEl.querySelectorAll('ol.go li').forEach(li => li.classList.toggle('on', +li.dataset.i === on));
     }
     function startStep(i) {
-      hideCo(); coShown.delete(i); coHold = null;
+      hideCo(); coShown.delete(i); coHold = null; coQ = null;
       cur = i;
       anim = { i, s: performance.now(), el: 0 };
       syncUI();
@@ -1407,7 +1431,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (EDIT) { const d = document.createElement('span'); d.className = 'a3d-dirty'; d.textContent = dirty() ? '  · 저장 안 됨' : ''; box.appendChild(d); }
       capEl.appendChild(box);
     }
-    let coHold = null;
+    let coHold = null, coQ = null;
     function tickPlay(now) {
       if (paused) return;
       if (exiting) { tickExit(now); return; }
@@ -1426,9 +1450,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       progEl.style.width = ((anim.i + Math.min(1, u)) / STEPS.length * 100) + '%';
       if (u >= 1 + HOLD_MS() / ms) {
         // 콜아웃: 이 단계에 주의할 곳이 있으면 잠깐 멈추고 O + 설명을 보여준 뒤 진행
-        const co = CO_ON && coFor(anim.i);
-        if (co && !coShown.has(anim.i)) { coShown.add(anim.i); showCo(co); coHold = { until: now + (2600 + co.text.length * 45) / SPEED }; renderCast(0, 0, false); return; }
-        if (coHold && playing && now < coHold.until) return;
+        if (CO_ON && !coShown.has(anim.i)) { coShown.add(anim.i); coQ = coFor(anim.i).slice(); }
+        if (coHold && now < coHold.until && (playing || coHold.manual)) return;
+        if (coQ && coQ.length) {
+          const co = coQ.shift(); showCo(co); renderCast(0, 0, false);
+          coHold = { until: now + (1800 + co.text.length * 55) / SPEED, manual: !playing }; return;
+        }
         if (coHold && playing) { coHold = null; hideCo(); }
         if (playing && anim.i < LAST) startStep(anim.i + 1);
         else {
@@ -1682,7 +1709,10 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       hideCo(); if (!CO_ON) return;
       coCur = co; coEl = document.createElement('div'); coEl.className = 'a3d-co';
       coEl.innerHTML = '<svg aria-hidden="true"><path class="ring" pathLength="1"/><path class="tail" pathLength="1"/></svg><div class="lbl" role="note"></div>';
-      coEl.querySelector('.lbl').textContent = co.text; stage.appendChild(coEl); placeCo();
+      const lb = coEl.querySelector('.lbl');
+      if (co.n) { const n = document.createElement('span'); n.className = 'no'; n.textContent = co.n; lb.appendChild(n); }
+      const tmp = document.createElement('div'); tmp.innerHTML = co.html || co.text;
+      tmp.childNodes.forEach(nd => { if (nd.nodeType === 3) lb.append(nd.textContent); else if (/^(B|STRONG|EM)$/.test(nd.nodeName)) { const k = document.createElement('b'); k.textContent = nd.textContent; lb.appendChild(k); } else lb.append(nd.textContent || ''); }); stage.appendChild(coEl); placeCo();
       requestAnimationFrame(() => requestAnimationFrame(() => coEl && coEl.classList.add('on')));
     }
     function placeCo() {
