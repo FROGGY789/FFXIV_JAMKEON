@@ -7,9 +7,9 @@
 <link rel="icon" href="./favicon.svg?v=2" type="image/svg+xml">
 <link rel="icon" href="./favicon-64.png?v=2" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=2">
-<script src="./admin.js?v=20261128a"></script>
-<script src="./raids.js?v=20261128a"></script>
-<script src="./sim.js?v=20261128a"></script>
+<script src="./admin.js?v=20261128b"></script>
+<script src="./raids.js?v=20261128b"></script>
+<script src="./sim.js?v=20261128b"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,10 @@
 <helmet>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="./image-slot.js?v=20261128a"></script>
-<script src="./uwu-data.js?v=20261128a"></script>
-<script src="./notes-ex.js?v=20261128a"></script>
-<script src="./arena3d.js?v=20261128a"></script>
+<script src="./image-slot.js?v=20261128b"></script>
+<script src="./uwu-data.js?v=20261128b"></script>
+<script src="./notes-ex.js?v=20261128b"></script>
+<script src="./arena3d.js?v=20261128b"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -35,6 +35,14 @@ input,select,textarea,button{font:inherit;color:inherit}
 @media(min-width:900px){.log-grid{grid-template-columns:minmax(300px,380px) minmax(0,1fr)}}
 .log-photo{aspect-ratio:16/9;height:auto;margin:0 0 10px;border-radius:12px;overflow:hidden} /* 파판 스샷(16:9)이 거의 그대로 보이게 */
 .log-photo image-slot{display:block;width:100%;height:100%}
+.pv{position:fixed;inset:0;z-index:200;background:rgba(8,8,14,.88);display:grid;place-items:center;opacity:0;transition:opacity .2s;overflow:hidden;cursor:zoom-out}
+.pv.on{opacity:1}
+.pv img{max-width:96vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);cursor:grab;user-select:none;-webkit-user-drag:none;transition:transform .08s linear;touch-action:none}
+.pv-x{position:fixed;top:14px;right:16px;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:26px;cursor:pointer}
+.pv-x:hover{background:rgba(255,255,255,.26)}
+.pv-h{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;white-space:nowrap}
+.log-photo image-slot[data-filled]{cursor:zoom-in}
+
 html:not(.adm-on) .log-photo:not(:has(image-slot[data-filled])){display:none}
 html.adm-on .log-photo:not(:has(image-slot[data-filled])){aspect-ratio:auto;height:90px}
 /* 랜딩 배경: 은은한 오로라 */
@@ -418,6 +426,27 @@ const jobOrder=r=>{const L=JOBS[r[0]]||[];if(r[0]!=='D')return L;const melee=L.s
 const roleDot=(r,sz)=>({minWidth:sz,height:sz-6,padding:'0 5px',borderRadius:999,background:ROLE_C[r[0]],color:'#fff',fontSize:10.5,fontWeight:700,display:'inline-grid',placeItems:'center'});
 const MONO="'JetBrains Mono',monospace";
 const dec=t=>t.replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&');
+// 일지 사진 크게 보기: 더블클릭 → 화면 가득(휠 확대, 끌어서 이동, 클릭·Esc·× 닫기). 관리자 위치 조정은 Shift+더블클릭
+(function(){if(window.__pv)return;window.__pv=1;
+  let ov=null;
+  function open(src){
+    ov=document.createElement('div');ov.className='pv';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','사진 크게 보기');
+    ov.innerHTML='<img alt="일지 사진"><button type="button" class="pv-x" aria-label="닫기">×</button><div class="pv-h">휠: 확대 · 끌기: 이동 · 더블클릭: 원래 크기 · Esc: 닫기</div>';
+    const img=ov.querySelector('img');img.src=src;document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add('on'));
+    let z=1,x=0,y=0,drag=null,moved=false;const apply=()=>{img.style.transform=`translate(${x}px,${y}px) scale(${z})`};
+    ov.addEventListener('wheel',e=>{e.preventDefault();const r=img.getBoundingClientRect(),cx=e.clientX-(r.left+r.width/2),cy=e.clientY-(r.top+r.height/2),nz=Math.max(1,Math.min(6,z*(e.deltaY<0?1.15:1/1.15)));x-=cx*(nz/z-1);y-=cy*(nz/z-1);z=nz;if(z===1){x=0;y=0}apply()},{passive:false});
+    img.addEventListener('pointerdown',e=>{drag={sx:e.clientX,sy:e.clientY,x,y};moved=false;img.setPointerCapture(e.pointerId)});
+    img.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;x=drag.x+dx;y=drag.y+dy;apply()});
+    img.addEventListener('pointerup',()=>{drag=null});
+    img.addEventListener('dblclick',e=>{e.stopPropagation();z=z>1?1:2.5;x=0;y=0;apply()});
+    ov.addEventListener('click',e=>{if(e.target===img&&(moved||z>1))return;close()});
+    ov.querySelector('.pv-x').addEventListener('click',close);
+  }
+  function close(){if(!ov)return;const o=ov;ov=null;o.classList.remove('on');setTimeout(()=>o.remove(),200)}
+  addEventListener('keydown',e=>{if(ov&&e.key==='Escape'){e.preventDefault();close()}});
+  document.addEventListener('dblclick',e=>{const slot=e.target.closest&&e.target.closest('.log-photo image-slot[data-filled]');if(!slot||e.shiftKey)return;
+    const img=slot.shadowRoot&&slot.shadowRoot.querySelector('.frame img');if(!img||!img.src)return;e.preventDefault();e.stopImmediatePropagation();open(img.currentSrc||img.src)},true);
+})();
 const segs=html=>{const out=[];let b=0,hl=0;String(html).split(/(<\/?b>|<span class="hl">|<\/span>)/).forEach(tok=>{
  if(tok==='<b>')b++;else if(tok==='</b>')b--;else if(tok==='<span class="hl">')hl++;else if(tok==='</span>')hl--;
  else if(tok)out.push({t:dec(tok.replace(/<[^>]+>/g,'')),style:{fontWeight:b?700:'inherit',background:hl?'linear-gradient(transparent 42%, color-mix(in srgb, var(--accent) 38%, transparent) 42%)':'none',borderRadius:2}})});return out};
