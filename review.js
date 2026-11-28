@@ -65,8 +65,10 @@
   }
 
   /* ---------- 데이터 ---------- */
-  const Q_CHAR = `query($n:String,$s:String,$r:String){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){id name recentReports(limit:15){data{code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty}}}}}}`;
-  const Q_REPORT = `query($c:String){reportData{report(code:$c){code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty}}}}`;
+  const Q_CHAR = `query($n:String,$s:String,$r:String){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){id name recentReports(limit:40){data{code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty encounterID gameZone{id name}}}}}}}`;
+  const Q_MINE = `query{userData{currentUser{id}}}`;
+  const Q_UREP = `query($u:Int){reportData{reports(userID:$u,limit:40){data{code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty encounterID gameZone{id name}}}}}}`;
+  const Q_REPORT = `query($c:String){reportData{report(code:$c){code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty encounterID gameZone{id name}}}}}`;
   const Q_FIGHT = `query($c:String,$f:[Int]){reportData{report(code:$c){code title startTime masterData{actors(type:"Player"){id name server subType}}
     fights(fightIDs:$f){id name kill fightPercentage startTime endTime}
     dmg:table(fightIDs:$f,dataType:DamageDone) deaths:table(fightIDs:$f,dataType:Deaths) taken:table(fightIDs:$f,dataType:DamageTaken,viewBy:Ability)
@@ -220,6 +222,16 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
 .rv .fights{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .rv .fights button{font-size:12.5px;padding:6px 10px;background:var(--bg,#f6f5f8);border:1px solid var(--line,#dddbe2)}
 .rv .fights button.kill{border-color:#3fbf7f;color:#1f8a55}
+.rv .fights button span{color:var(--sub,#6f6c78);font-weight:500;margin-left:4px}
+.rv .tabs2{display:flex;gap:4px}
+.rv details.zone summary{display:flex;gap:10px;align-items:baseline;cursor:pointer;list-style:none}
+.rv details.zone summary::-webkit-details-marker{display:none}
+.rv details.zone summary::before{content:'▸';transition:transform .2s;display:inline-block}
+.rv details.zone[open] summary::before{transform:rotate(90deg)}
+.rv details.zone h4{margin:0}
+.rv .boss{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line,#dddbe2)}
+.rv .boss .bh{display:flex;gap:8px;align-items:baseline}
+.rv details.byurl{margin-top:14px}.rv details.byurl summary{cursor:pointer}
 .rv .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:12px 0}
 .rv .stat{border-radius:14px;padding:12px;background:var(--card,#ececef)}
 .rv .stat b{display:block;font-size:22px;font-weight:900;letter-spacing:-.02em}
@@ -301,23 +313,72 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
     bd.querySelector('.out').addEventListener('click', () => { lsSet(TOK, null); renderSet(); });
   }
 
-  async function renderLogs() {
-    bd.innerHTML = `<div class="row" style="margin:0 0 12px"><input class="url" placeholder="FFLogs 로그 주소 붙여넣기 (예: https://www.fflogs.com/reports/AbCd1234#fight=5)" style="flex:1;min-width:240px"><button type="button" class="go">열기</button><button type="button" class="re">새로고침</button></div>
-      <div class="err" aria-live="polite"></div><div class="list"><p class="hint">불러오는 중…</p></div>`;
-    bd.querySelector('.re').addEventListener('click', renderLogs);
+  let view = lsGet('jamkeon.review.view', 'zone'), reps = null;
+  async function renderLogs(force) {
+    bd.innerHTML = `<div class="row" style="margin:0 0 12px"><div class="tabs2"><button type="button" data-v="zone">던전·레이드별</button><button type="button" data-v="rep">로그별</button></div>
+      <button type="button" class="re" style="margin-left:auto">새로고침</button></div>
+      <div class="err" aria-live="polite"></div><div class="list"><p class="hint">최근 전투 불러오는 중…</p></div>
+      <details class="byurl"><summary class="hint">목록에 없는 로그를 주소로 열기</summary><div class="row"><input class="url" placeholder="https://www.fflogs.com/reports/AbCd1234#fight=5" style="flex:1;min-width:240px"><button type="button" class="go">열기</button></div></details>`;
+    bd.querySelectorAll('[data-v]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === view)); b.addEventListener('click', () => { view = b.dataset.v; lsSet('jamkeon.review.view', view); renderLogs(); }); });
+    bd.querySelector('.re').addEventListener('click', () => renderLogs(true));
     bd.querySelector('.go').addEventListener('click', async () => {
       const u = bd.querySelector('.url').value.trim(); const m = u.match(/reports\/([A-Za-z0-9]+)/) || u.match(/^([A-Za-z0-9]{12,})$/);
       if (!m) { setErr('로그 주소에서 코드를 못 찾음'); return; }
       const f = u.match(/fight=(\d+)/);
-      if (f && f[1] !== 'last') { openFight(m[1], +f[1]); return; }
-      try { const r = (await gql(Q_REPORT, { c: m[1] })).reportData.report; drawReports([r]); } catch (e) { fail(e); }
+      if (f) { openFight(m[1], +f[1]); return; }
+      try { const r = (await gql(Q_REPORT, { c: m[1] })).reportData.report; reps = [r].concat((reps || []).filter(x => x.code !== r.code)); draw(); } catch (e) { fail(e); }
     });
-    if (!cfg.name) { bd.querySelector('.list').innerHTML = '<p class="hint">설정에서 캐릭터 이름을 넣으면 최근 기록이 자동으로 뜸. 아니면 위에 로그 주소를 붙여넣기.</p>'; return; }
+    if (reps && !force) { draw(); return; }
     try {
-      const c = (await gql(Q_CHAR, { n: cfg.name, s: cfg.server, r: cfg.region })).characterData.character;
-      if (!c) { bd.querySelector('.list').innerHTML = `<p class="hint">FFLogs 에서 "${esc(cfg.name)}" (${esc(cfg.server)}) 캐릭터를 못 찾음. 이름·서버 확인, 또는 로그 주소 붙여넣기.</p>`; return; }
-      drawReports((c.recentReports && c.recentReports.data) || []);
+      // 캐릭터의 최근 로그 + (FFLogs 로그인이면) 내가 올린 로그를 합침
+      const all = new Map();
+      if (cfg.name) {
+        const c = (await gql(Q_CHAR, { n: cfg.name, s: cfg.server, r: cfg.region })).characterData.character;
+        ((c && c.recentReports && c.recentReports.data) || []).forEach(r => all.set(r.code, r));
+        if (!c) setErr(`FFLogs 에서 "${cfg.name}" (${cfg.server}) 캐릭터를 못 찾음. 설정에서 이름·서버 확인.`);
+      }
+      const t = lsGet(TOK, null);
+      if (t && t.user) {
+        try { const u = (await gql(Q_MINE)).userData.currentUser; if (u) ((await gql(Q_UREP, { u: u.id })).reportData.reports.data || []).forEach(r => { if (!all.has(r.code)) all.set(r.code, r); }); } catch (e) {}
+      }
+      reps = [...all.values()].sort((a, b) => b.startTime - a.startTime);
+      draw();
     } catch (e) { fail(e); }
+  }
+  function draw() { if (view === 'rep') drawReports(reps); else drawZones(reps); }
+  function fightBtn(r, f) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = f.kill ? 'kill' : '';
+    b.innerHTML = `<b>${f.kill ? '클리어' : (f.fightPercentage != null ? f.fightPercentage.toFixed(1) + '%' : '와이프')}</b> · ${mmss(f.endTime - f.startTime)} <span>${new Date(r.startTime + f.startTime).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>`;
+    b.title = f.name; b.addEventListener('click', () => openFight(r.code, f.id)); return b;
+  }
+  // 던전·레이드(전투 지역) → 보스 → 트라이
+  function drawZones(list) {
+    const l = bd.querySelector('.list');
+    const zones = new Map();
+    (list || []).forEach(r => (r.fights || []).forEach(f => {
+      const zn = (f.gameZone && f.gameZone.name) || (r.zone && r.zone.name) || '기타';
+      if (!zones.has(zn)) zones.set(zn, { name: zn, last: 0, bosses: new Map() });
+      const z = zones.get(zn), at = r.startTime + f.startTime; z.last = Math.max(z.last, at);
+      if (!z.bosses.has(f.name)) z.bosses.set(f.name, []);
+      z.bosses.get(f.name).push({ r, f, at });
+    }));
+    if (!zones.size) { l.innerHTML = '<p class="hint">최근 전투 기록 없음. FFLogs 에 로그가 올라가 있는지, 설정의 캐릭터 이름·서버를 확인.</p>'; return; }
+    l.innerHTML = '';
+    [...zones.values()].sort((a, b) => b.last - a.last).forEach(z => {
+      const pulls = [...z.bosses.values()].flat(), kills = pulls.filter(x => x.f.kill).length;
+      const d = document.createElement('details'); d.className = 'rep zone';
+      if (l.children.length < 2) d.open = true;
+      d.innerHTML = `<summary><h4>${esc(z.name)}</h4><span class="meta">전투 ${pulls.length}번 · 클리어 ${kills}번 · 마지막 ${new Date(z.last).toLocaleDateString('ko-KR')}</span></summary>`;
+      [...z.bosses.entries()].forEach(([bn, arr]) => {
+        arr.sort((a, b) => b.at - a.at);
+        const best = arr.some(x => x.f.kill) ? '클리어' : '최고 ' + Math.min(...arr.map(x => x.f.fightPercentage != null ? x.f.fightPercentage : 100)).toFixed(1) + '%';
+        const box = document.createElement('div'); box.className = 'boss';
+        box.innerHTML = `<div class="bh"><b>${esc(bn)}</b><span class="meta">${arr.length}번 · ${best}</span></div><div class="fights"></div>`;
+        const fw = box.querySelector('.fights'); arr.forEach(x => fw.appendChild(fightBtn(x.r, x.f)));
+        d.appendChild(box);
+      });
+      l.appendChild(d);
+    });
   }
   function fail(e) {
     if (e.message === 'NEED_LOGIN') { bd.querySelector('.list').innerHTML = '<p class="hint">FFLogs 연결이 필요함 → 설정 탭에서 로그인.</p>'; return; }
@@ -325,17 +386,13 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
   }
   function drawReports(reps) {
     const l = bd.querySelector('.list');
-    if (!reps.length) { l.innerHTML = '<p class="hint">최근 기록 없음.</p>'; return; }
+    if (!reps || !reps.length) { l.innerHTML = '<p class="hint">최근 기록 없음.</p>'; return; }
     l.innerHTML = '';
     reps.forEach(r => {
       const d = document.createElement('div'); d.className = 'rep';
       d.innerHTML = `<h4>${esc(r.title || r.code)}</h4><div class="meta">${new Date(r.startTime).toLocaleString('ko-KR')} · ${esc(r.zone ? r.zone.name : '')} · <a href="${FF}/reports/${esc(r.code)}" target="_blank" rel="noopener">FFLogs</a></div><div class="fights"></div>`;
       const fw = d.querySelector('.fights');
-      (r.fights || []).forEach(f => {
-        const b = document.createElement('button'); b.type = 'button'; b.className = f.kill ? 'kill' : '';
-        b.textContent = `${f.name} ${f.kill ? '클리어' : (f.fightPercentage != null ? f.fightPercentage.toFixed(1) + '%' : '와이프')} · ${mmss(f.endTime - f.startTime)}`;
-        b.addEventListener('click', () => openFight(r.code, f.id)); fw.appendChild(b);
-      });
+      (r.fights || []).forEach(f => { const b = fightBtn(r, f); b.insertAdjacentText('afterbegin', f.name + ' '); fw.appendChild(b); });
       if (!(r.fights || []).length) fw.innerHTML = '<span class="meta">보스 전투 없음</span>';
       l.appendChild(d);
     });
