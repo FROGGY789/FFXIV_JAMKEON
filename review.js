@@ -69,116 +69,7 @@
   const Q_MINE = `query{userData{currentUser{id}}}`;
   const Q_UREP = `query($u:Int){reportData{reports(userID:$u,limit:40){data{code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty encounterID gameZone{id name}}}}}}`;
   const Q_REPORT = `query($c:String){reportData{report(code:$c){code title startTime zone{name} fights(killType:Encounters){id name kill fightPercentage startTime endTime difficulty encounterID gameZone{id name}}}}}`;
-  const Q_FIGHT = `query($c:String,$f:[Int]){reportData{report(code:$c){code title startTime masterData{actors(type:"Player"){id name server subType}}
-    fights(fightIDs:$f){id name kill fightPercentage startTime endTime}
-    dmg:table(fightIDs:$f,dataType:DamageDone) deaths:table(fightIDs:$f,dataType:Deaths) taken:table(fightIDs:$f,dataType:DamageTaken,viewBy:Ability)
-    rankings(fightIDs:$f)}}}`;
-  const Q_ME = `query($c:String,$f:[Int],$me:Int){reportData{report(code:$c){
-    takenMe:table(fightIDs:$f,dataType:DamageTaken,viewBy:Ability,sourceID:$me) debuffMe:table(fightIDs:$f,dataType:Debuffs,hostilityType:Friendlies,sourceID:$me)}}}`;
-  const Q_CAST = `query($c:String,$f:[Int],$me:Int,$st:Float){reportData{report(code:$c){masterData{abilities{gameID name}}
-    events(fightIDs:$f,dataType:Casts,sourceID:$me,startTime:$st,limit:10000){data nextPageTimestamp}
-    heal:table(fightIDs:$f,dataType:Healing)}}}`;
-  /* 직업별 버스트·시너지 버튼 (게임 기술 ID · 재사용 초). 로그 언어와 상관없이 ID로 셈 */
-  const BURST = {
-    Paladin: [[20, 60]], Warrior: [[7389, 60]], DarkKnight: [[16472, 120], [7390, 60]], Gunbreaker: [[16138, 60], [16164, 120]],
-    WhiteMage: [[136, 120]], Scholar: [[7436, 120]], Astrologian: [[16552, 120]],
-    Monk: [[7396, 120], [7395, 60]], Dragoon: [[3557, 120], [85, 60]], Ninja: [[2248, 120], [36957, 120], [2258, 60], [36958, 60]], Samurai: [[16482, 120]], Reaper: [[24405, 120]], Viper: [[34647, 120]],
-    Bard: [[118, 120], [25785, 110], [101, 120]], Machinist: [[2878, 120], [7414, 120]], Dancer: [[15998, 120], [16011, 120]],
-    BlackMage: [[3573, 120]], Summoner: [[25801, 120]], RedMage: [[7520, 120], [7521, 110]], Pictomancer: [[34675, 120]]
-  };
-  const HEALER = /^(WhiteMage|Scholar|Astrologian|Sage)$/;
-  const POT = /(Gemdraught|Tincture|Draught|Potion|탕약|강화약|각성약|의약)/i;
   const entries = t => { const d = t && (t.data || t); return (d && (d.entries || d.auras || d.damageTaken)) || []; };
-
-  async function analyze(code, fid) {
-    const d = (await gql(Q_FIGHT, { c: code, f: [fid] })).reportData.report;
-    const fight = d.fights[0], dur = fight.endTime - fight.startTime;
-    const actors = (d.masterData && d.masterData.actors) || [];
-    const lc = s => String(s || '').trim().toLowerCase();
-    const me = actors.find(a => lc(a.name) === lc(cfg.name)) || null;
-    const res = { code, fid, title: d.title, date: d.startTime, fight, dur, me, actors, fb: [], good: [] };
-    if (!me) { res.fb.push(['이름 확인', `이 전투에 "${cfg.name}" 캐릭터가 없음. 설정의 캐릭터 이름을 확인.`]); return res; }
-    const m = (await gql(Q_ME, { c: code, f: [fid], me: me.id })).reportData.report;
-    // 업타임 · 딜
-    const dd = entries(d.dmg).find(e => e.id === me.id || lc(e.name) === lc(me.name));
-    const total = (d.dmg && d.dmg.data && d.dmg.data.totalTime) || dur;
-    res.job = JOB[me.subType] || me.subType || (dd && dd.type) || '';
-    if (dd) { res.dps = dd.total / (total / 1000); res.uptime = dd.activeTime != null ? dd.activeTime / total : null; }
-    // 순위
-    try {
-      const rk = d.rankings && (d.rankings.data || d.rankings);
-      const f0 = Array.isArray(rk) ? rk[0] : null;
-      if (f0 && f0.roles) Object.values(f0.roles).forEach(role => (role.characters || []).forEach(c => { if (lc(c.name) === lc(me.name)) { res.rank = c.rankPercent; res.rdps = c.amount; } }));
-    } catch (e) {}
-    // 사망
-    res.deaths = entries(d.deaths).filter(e => e.id === me.id || lc(e.name) === lc(me.name)).map(e => ({ t: (e.timestamp || 0) - fight.startTime, by: (e.killingBlow && e.killingBlow.name) || (e.ability && e.ability.name) || '알 수 없음' }));
-    res.partyDeaths = entries(d.deaths).length;
-    // 실수 디버프
-    const VULN = /(받는\s*피해(량)?\s*증가|주는\s*피해(량)?\s*감소|Vulnerability Up|Damage Down|피해 증가|Doom|선고)/i;
-    res.vulns = entries(m.debuffMe).filter(a => VULN.test(a.name || '')).map(a => ({ name: a.name, n: a.totalUses || a.totalUptime && 1 || 1 }));
-    // 나만(또는 거의 나만) 맞은 기술 = 피할 수 있었던 공격일 가능성
-    const party = new Map(entries(d.taken).map(e => [e.name, e.hitCount || 0]));
-    const mine = entries(m.takenMe).map(e => ({ name: e.name, hits: e.hitCount || 0, total: e.total || 0, party: party.get(e.name) || 0 }));
-    res.topTaken = mine.slice().sort((a, b) => b.total - a.total).slice(0, 5);
-    res.onlyMe = mine.filter(e => e.hits > 0 && e.party > 0 && e.party <= e.hits + 1 && !/공격|attack/i.test(e.name));
-    // ---- 피드백 요약 ----
-    // ---- xivanalysis 방식 분석: 시전 기록으로 공백(ABC)·버스트 사용 횟수·탕약·힐러 오버힐 ----
-    try {
-      let casts = [], st = fight.startTime, ab = new Map(), heal = null;
-      for (let k = 0; k < 6 && st != null; k++) {
-        const q = (await gql(Q_CAST, { c: code, f: [fid], me: me.id, st })).reportData.report;
-        if (!k) { ((q.masterData && q.masterData.abilities) || []).forEach(a => ab.set(a.gameID, a.name)); heal = q.heal; }
-        casts = casts.concat((q.events.data || []).filter(e => e.type === 'cast' && e.sourceID === me.id));
-        st = q.events.nextPageTimestamp;
-      }
-      const nm = id => ab.get(id) || ('#' + id);
-      res.casts = casts.length;
-      // ABC: 아무 것도 안 누른 구간
-      const ts = [fight.startTime, ...casts.map(e => e.timestamp).sort((a, b) => a - b)];
-      const gaps = []; for (let k = 1; k < ts.length; k++) { const g = ts[k] - ts[k - 1]; if (g > 4500) gaps.push({ at: ts[k - 1] - fight.startTime, g }); }
-      gaps.sort((a, b) => b.g - a.g); res.gaps = gaps;
-      const idle = gaps.reduce((a, x) => a + x.g - 2500, 0);
-      if (idle > 8000) res.fb.push(['쉬지 않고 누르기', `GCD가 끊긴 시간이 합쳐서 약 ${Math.round(idle / 1000)}초. 가장 긴 구간: ${gaps.slice(0, 3).map(x => `${mmss(x.at)}부터 ${(x.g / 1000).toFixed(1)}초`).join(', ')}. 보스가 사라진 구간이 아니라면 이동 중에도 쓸 수 있는 기술로 이어 가기.`, idle > 20000 ? 3 : 2]);
-      // 버스트 버튼 사용 횟수
-      const jobKey = me.subType || '';
-      (BURST[jobKey] || []).forEach(([id, cd]) => {
-        const uses = casts.filter(e => e.abilityGameID === id);
-        if (!uses.length) { if (ab.has(id)) res.fb.push(['버스트', `「${nm(id)}」 사용 기록 없음.`, 2]); return; }
-        const first = uses[0].timestamp - fight.startTime, max = Math.floor((dur - Math.min(first, 15000)) / (cd * 1000)) + 1;
-        let drift = 0; for (let k = 1; k < uses.length; k++) drift += Math.max(0, uses[k].timestamp - uses[k - 1].timestamp - cd * 1000);
-        if (uses.length < max) res.fb.push(['버스트', `「${nm(id)}」 ${uses.length}번 사용 / 최대 ${max}번 가능. ${drift > 8000 ? `재사용 대기가 끝난 뒤 평균 ${Math.round(drift / 1000 / Math.max(1, uses.length - 1))}초씩 늦게 눌러서 한 번을 잃음.` : '쿨이 돌아오면 바로 쓰기.'}`, max - uses.length >= 2 ? 3 : 2]);
-        else res.good.push(`「${nm(id)}」 ${uses.length}/${max}번 — 쿨마다 사용.`);
-        if (first > 15000 && cd >= 110) res.fb.push(['버스트', `첫 「${nm(id)}」을 ${mmss(first)}에 사용. 보통 시작 후 10초 안팎(2~3번째 GCD)에 맞춰 파티 버프와 겹치기.`, 1]);
-      });
-      // 탕약
-      const pots = casts.filter(e => POT.test(nm(e.abilityGameID)));
-      if (!pots.length && dur > 180000 && !HEALER.test(jobKey)) res.fb.push(['탕약', '탕약을 안 씀. 처음 버스트와 6분 뒤 버스트에 맞춰 쓰면 딜이 오름(연습 판은 무시해도 됨).', 1]);
-      else if (pots.length) res.good.push(`탕약 ${pots.length}번 사용.`);
-      // 힐러: 오버힐
-      if (HEALER.test(jobKey) && heal) {
-        const h = entries(heal).find(e => e.id === me.id);
-        if (h && h.total) { const oh = (h.overheal || 0) / ((h.overheal || 0) + h.total); res.overheal = oh;
-          if (oh > 0.4) res.fb.push(['힐', `오버힐 ${Math.round(oh * 100)}%. GCD 힐 대신 능력(무료) 힐·보호막을 먼저 쓰고 그 시간에 공격 마법.`, oh > 0.55 ? 2 : 1]); else res.good.push(`오버힐 ${Math.round(oh * 100)}% — 힐 낭비가 적음.`); }
-      }
-    } catch (e) { res.fb.push(['분석', '시전 기록을 못 읽어서 일부 분석을 건너뜀: ' + e.message, 1]); }
-
-    res.deaths.forEach(x => res.fb.push(['사망', `${mmss(x.t)}에 「${x.by}」로 사망. 그 기믹 카드의 내 롤 위치를 다시 확인.`, 3]));
-    res.onlyMe.slice(0, 4).forEach(x => res.fb.push(['피할 수 있던 공격', `「${x.name}」을 ${x.hits}번 맞음(파티 전체 ${x.party}번). 혼자 맞은 공격은 대부분 위치·타이밍 실수.`, 2]));
-    res.vulns.forEach(x => res.fb.push(['실수 디버프', `「${x.name}」 ${x.n}번. 기믹 실패로 붙는 디버프라 원인 기믹을 찾아볼 것.`, 2]));
-    if (res.uptime != null) {
-      if (res.uptime < 0.9) res.fb.push(['업타임', `공격한 시간이 전투의 ${(res.uptime * 100).toFixed(1)}%. 이동하면서도 쓸 수 있는 기술로 GCD를 이어 가기(목표 95% 이상).`, res.uptime < 0.8 ? 3 : 2]);
-      else res.good.push(`업타임 ${(res.uptime * 100).toFixed(1)}% — 공격을 잘 이어 감.`);
-    }
-    if (res.rank != null) {
-      if (res.rank < 25) res.fb.push(['딜', `순위 ${Math.round(res.rank)}%. 시너지 타이밍·버스트 정렬을 위 버스트 항목에서 확인.`, 1]);
-      else if (res.rank >= 75) res.good.push(`순위 ${Math.round(res.rank)}% — 상위권.`);
-    }
-    if (!res.deaths.length) res.good.push('사망 없음.');
-    if (!res.onlyMe.length && !res.vulns.length) res.good.push('혼자 맞은 공격·실수 디버프 없음.');
-    if (!fight.kill && fight.fightPercentage != null) res.fb.unshift(['결과', `와이프 · 보스 ${(fight.fightPercentage).toFixed(1)}% 남음. ${res.partyDeaths ? `파티 사망 ${res.partyDeaths}번.` : ''}`, 0]);
-    res.fb.sort((a, b) => (b[2] || 0) - (a[2] || 0)); const ri = res.fb.findIndex(x => x[0] === '결과'); if (ri > 0) res.fb.unshift(res.fb.splice(ri, 1)[0]);
-    return res;
-  }
 
   /* ---------- 저장 ---------- */
   let notes = null;
@@ -197,10 +88,10 @@
   const css = `
 .rv-fab{position:fixed;right:150px;bottom:14px;z-index:50;font:600 12px/1 "Pretendard Variable",Pretendard,system-ui,sans-serif;padding:8px 12px;min-height:34px;border-radius:999px;border:1px solid var(--line,#dddbe2);background:color-mix(in srgb,var(--bg,#f6f5f8) 88%,transparent);color:var(--ink,#16151a);cursor:pointer;backdrop-filter:blur(6px)}
 html.rv-on .rm-fab{right:220px}
-dialog.rv{width:min(1100px,calc(100vw - 24px));height:min(860px,calc(100vh - 24px));padding:0;border:0;border-radius:20px;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:14px/1.5 "Pretendard Variable",Pretendard,system-ui,sans-serif;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+dialog.rv{width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:var(--bg,#f6f5f8);color:var(--ink,#16151a);font:14px/1.5 "Pretendard Variable",Pretendard,system-ui,sans-serif;box-shadow:0 30px 80px rgba(0,0,0,.3)}
 dialog.rv::backdrop{background:rgba(20,18,26,.45)}
 .rv-in{display:grid;grid-template-rows:auto 1fr;height:100%}
-.rv-hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line,#dddbe2)}
+.rv-hd{display:flex;align-items:center;gap:12px;padding:14px clamp(16px,3vw,40px);border-bottom:1px solid var(--line,#dddbe2)}
 .rv-hd h2{margin:0;font-size:19px;font-weight:900;letter-spacing:-.01em}
 .rv-hd .tabs{display:flex;gap:4px;margin-left:8px}
 .rv button{font:inherit;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;background:var(--card,#ececef);color:inherit}
@@ -209,7 +100,7 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
 .rv button:disabled{opacity:.5;cursor:default}
 .rv a{color:inherit;text-decoration:none}.rv .hint a{text-decoration:underline}
 .rv .x{margin-left:auto;width:36px;height:36px;padding:0;font-size:18px}
-.rv-bd{overflow:auto;padding:18px 20px}
+.rv-bd{overflow:auto;padding:20px clamp(16px,3vw,40px) 60px}
 .rv input,.rv select,.rv textarea{font:inherit;padding:9px 11px;border-radius:10px;border:1px solid var(--line,#dddbe2);background:var(--card,#ececef);color:inherit;box-sizing:border-box}
 .rv textarea{width:100%;min-height:120px;resize:vertical}
 .rv .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
@@ -279,16 +170,19 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
         <button type="button" class="x" aria-label="닫기">✕</button></div><div class="rv-bd"></div></div>`;
       document.body.appendChild(dlg);
       bd = dlg.querySelector('.rv-bd');
-      dlg.querySelector('.x').addEventListener('click', () => dlg.close());
+      const shut = () => { if (dlg.open) dlg.close(); };
+      dlg.querySelector('.x').addEventListener('click', () => { if (history.state && history.state.rv) history.back(); else shut(); });
+      dlg.addEventListener('close', () => { document.documentElement.style.overflow = ''; if (history.state && history.state.rv) history.back(); });
+      addEventListener('popstate', () => { if (dlg.open && !(history.state && history.state.rv)) shut(); });
       dlg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
     }
-    if (!dlg.open) dlg.showModal();
+    if (!dlg.open) { dlg.showModal(); document.documentElement.style.overflow = 'hidden'; try { history.pushState({ rv: 1 }, '', '#회초리'); } catch (e) {} }
     show(t || (cfg.id && cfg.name ? tab : 'set'));
   }
   function setErr(m) { const e = bd && bd.querySelector('.err'); if (e) e.textContent = m; }
   function show(t) {
     tab = t; dlg.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
-    if (t === 'set') renderSet(); else if (t === 'notes') renderNotes(); else if (t === 'fight') renderFight(); else renderLogs();
+    if (t === 'set') renderSet(); else if (t === 'notes') renderNotes(); else renderLogs();
   }
 
   function renderSet() {
@@ -398,52 +292,10 @@ dialog.rv::backdrop{background:rgba(20,18,26,.45)}
     });
   }
 
-  async function openFight(code, fid) {
-    tab = 'fight'; cur = { loading: true, code, fid }; renderFight();
-    try { cur = await analyze(code, fid); } catch (e) { cur = { err: e.message === 'NEED_LOGIN' ? 'FFLogs 연결이 필요함 → 설정 탭' : e.message, code, fid }; }
-    renderFight();
-  }
-  function xaUrl(r) { return `https://xivanalysis.com/fflogs/${r.code}/${r.fid}` + (r.me ? '/' + r.me.id : ''); }
-  function renderFight() {
-    dlg.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', 'false'));
-    const r = cur;
-    if (!r || r.loading) { bd.innerHTML = '<p class="hint">분석하는 중…</p>'; return; }
-    if (r.err) { bd.innerHTML = `<button type="button" class="back">← 기록으로</button><div class="err">${esc(r.err)}</div>`; bd.querySelector('.back').addEventListener('click', () => show('logs')); return; }
-    const f = r.fight;
-    const stat = (v, k) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`;
-    bd.innerHTML = `<div class="row" style="margin:0"><button type="button" class="back">← 기록으로</button>
-        <a href="${FF}/reports/${esc(r.code)}#fight=${r.fid}" target="_blank" rel="noopener"><button type="button">FFLogs 원본</button></a>
-        <a href="${esc(xaUrl(r))}" target="_blank" rel="noopener"><button type="button">xivanalysis 새 창</button></a>
-        <button type="button" class="xab">xivanalysis 여기서 보기</button></div>
-      <h3 style="margin:14px 0 0;font-size:18px">${esc(f.name)} · ${f.kill ? '클리어' : '와이프'} <span class="hint" style="font-weight:600">${esc(r.title || '')} · ${new Date(r.date + f.startTime).toLocaleString('ko-KR')}</span></h3>
-      <div class="stats">${stat(mmss(r.dur), '전투 시간')}${f.kill ? '' : stat((f.fightPercentage || 0).toFixed(1) + '%', '보스 남은 HP')}
-        ${r.job ? stat(esc(r.job), '직업') : ''}${r.rdps != null ? stat(Math.round(r.rdps).toLocaleString(), 'rDPS') : r.dps != null ? stat(Math.round(r.dps).toLocaleString(), 'DPS') : ''}
-        ${r.rank != null ? stat(Math.round(r.rank) + '%', '순위') : ''}${r.uptime != null ? stat((r.uptime * 100).toFixed(1) + '%', '업타임') : ''}
-        ${r.deaths ? stat(r.deaths.length, '내 사망') : ''}${r.onlyMe ? stat(r.onlyMe.reduce((a, x) => a + x.hits, 0), '혼자 맞은 공격') : ''}</div>
-      <div class="fb"><h3>이번 판 피드백</h3>${r.fb.length ? '<ul class="sv">' + r.fb.map(([k, t, v]) => `<li class="s${v || 0}"><i>${['결과', '참고', '주의', '심각'][v || 0]}</i><b>${esc(k)}</b>${esc(t)}</li>`).join('') + '</ul>' : '<p style="margin:0">눈에 띄는 실수 없음.</p>'}</div>
-      ${r.good.length ? `<div class="good"><h3>잘한 점</h3>${r.good.map(esc).join('<br>')}</div>` : ''}
-      ${r.topTaken && r.topTaken.length ? `<h4 style="margin:16px 0 6px">많이 맞은 공격</h4><table><tr><th>기술</th><th>내가 맞은 횟수</th><th>파티 전체</th><th>피해</th></tr>${r.topTaken.map(x => `<tr><td>${esc(x.name)}</td><td>${x.hits}</td><td>${x.party}</td><td>${Math.round(x.total).toLocaleString()}</td></tr>`).join('')}</table>` : ''}
-      <h4 style="margin:18px 0 6px">반성 메모</h4>
-      <textarea class="memo" placeholder="다음 트라이에서 고칠 것"></textarea>
-      <div class="row"><button type="button" class="pri savebtn">반성노트에 저장</button><span class="hint">피드백 요약과 메모가 같이 저장됨</span></div>
-      <div class="xaw"></div>`;
-    bd.querySelector('.back').addEventListener('click', () => show('logs'));
-    bd.querySelector('.xab').addEventListener('click', e => {
-      const w = bd.querySelector('.xaw');
-      if (w.firstChild) { w.innerHTML = ''; e.target.textContent = 'xivanalysis 여기서 보기'; return; }
-      w.innerHTML = `<div class="xa"><iframe src="${esc(xaUrl(r))}" title="xivanalysis" loading="lazy" referrerpolicy="no-referrer"></iframe></div><p class="hint">창 안에 안 뜨면 "xivanalysis 새 창" 버튼으로.</p>`;
-      e.target.textContent = 'xivanalysis 닫기'; w.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    const id = r.code + ':' + r.fid;
-    loadNotes().then(list => { const n = list.find(x => x.id === id); if (n) bd.querySelector('.memo').value = n.memo || ''; });
-    bd.querySelector('.savebtn').addEventListener('click', async e => {
-      e.target.disabled = true;
-      try {
-        await saveNote({ id, code: r.code, fid: r.fid, at: r.date + f.startTime, boss: f.name, kill: !!f.kill, pct: f.fightPercentage, job: r.job || '', rank: r.rank, uptime: r.uptime, deaths: (r.deaths || []).length,
-          fb: r.fb.map(([k, t]) => k + ': ' + t), memo: bd.querySelector('.memo').value.trim(), saved: Date.now() });
-        e.target.textContent = '저장됨';
-      } catch (err) { setErr('저장 실패: ' + err.message); e.target.disabled = false; }
-    });
+  function openFight(code, fid) {
+    tab = 'fight'; dlg.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    bd.scrollTop = 0;
+    window.JamFight.open(bd, { code, fid, gql, cfg, back: () => show('logs'), saveNote, loadNotes });
   }
 
   async function renderNotes() {
