@@ -387,7 +387,11 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55)}
 .a3d-co .ring{fill:none;stroke:#ff4d6d;stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,77,109,.55));stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .55s cubic-bezier(.6,0,.3,1)}
 .a3d-co .tail{fill:none;stroke:#ff4d6d;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .6s cubic-bezier(.6,0,.3,1) .45s}
 .a3d-co.on .ring,.a3d-co.on .tail{stroke-dashoffset:0}
-.a3d-co .lbl{position:absolute;max-width:min(340px,44vw);background:#fff;color:#16151a;border:2.5px solid #ff4d6d;border-radius:12px;padding:8px 11px;font-size:14.5px;font-weight:600;line-height:1.5;box-shadow:0 8px 22px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s .85s,transform .35s cubic-bezier(.2,.9,.3,1.3) .85s}
+.a3d-co .lbl{position:absolute;max-width:min(380px,46vw);background:#fff;color:#16151a;border:2.5px solid #ff4d6d;border-radius:12px;padding:8px 11px;font-size:14.5px;font-weight:600;line-height:1.5;box-shadow:0 8px 22px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s .85s,transform .35s cubic-bezier(.2,.9,.3,1.3) .85s}
+.a3d-co .lbl .hd{font-size:17px;font-weight:900;color:#16151a;letter-spacing:-.01em}
+.a3d-co .lbl .hd+.ln,.a3d-co .lbl .ln+.ln{margin-top:6px}
+.a3d-co .lbl .hd+.ln{padding-top:6px;border-top:1px dashed #f3b3c0}
+.a3d-co .lbl .why{margin-top:3px;font-size:12.5px;font-weight:600;color:#6b5560}
 .a3d-co .lbl .no{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#ff4d6d;color:#fff;font-size:13px;font-weight:800;margin-right:7px;vertical-align:2px}
 .a3d-co .lbl b{font-size:18px;font-weight:900;color:#d6113f;line-height:1.35}
 .a3d-co.on .lbl{opacity:1;transform:none}
@@ -1352,9 +1356,29 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     // 공략 순서 문장 ↔ 재생 단계: 카드에 stepMap:[단계번호,...] 이 있으면 그걸 쓰고, 없으면 순서대로 고르게 나눔
     const lineCount = meta ? (meta.c.steps || []).length : (OPTS.steps || []).length;
+    // stepMap 이 없으면: 문장과 단계 설명에 같이 나오는 낱말(롤·기술명 등)로 순서를 지키며 짝지음
+    const LINE_MAP = (() => {
+      const ls = meta ? (meta.c.steps || []) : [];
+      if (!ls.length || (meta && meta.c.stepMap)) return null;
+      const tok = t => new Set((htmlText(t).match(/[A-Z][1-4]|[가-힣A-Za-z0-9]{2,}/g) || []).map(w => w.replace(/(은|는|이|가|을|를|에|로|으로|의|와|과|도)$/, '')).filter(w => w.length >= 2 || /[A-Z][1-4]/.test(w)));
+      const st = STEPS.map((x, si) => { const t = tok((x.cap || '') + ' ' + (x.cast ? x.cast.name : '')); if (si === 0 && meta) tok(meta.c.cap || '').forEach(w => t.add(w)); return t; });
+      const n = ls.length, m = STEPS.length, even = li => n > 1 ? li * (m - 1) / (n - 1) : m - 1;
+      const sc = (li, si) => { const a = tok(ls[li]); let c = 0; a.forEach(w => { if (st[si].has(w)) c++; }); return c - 0.35 * Math.abs(si - even(li)); };
+      const f = [], bk = [];
+      for (let li = 0; li < n; li++) { f[li] = []; bk[li] = [];
+        for (let si = 0; si < m; si++) {
+          let best = li ? -1e9 : 0, arg = -1;
+          if (li) for (let q = 0; q <= si; q++) if (f[li - 1][q] > best) { best = f[li - 1][q]; arg = q; }
+          f[li][si] = best + sc(li, si); bk[li][si] = arg;
+        } }
+      let si = 0; for (let k = 1; k < m; k++) if (f[n - 1][k] > f[n - 1][si]) si = k;
+      const out = []; for (let li = n - 1; li >= 0; li--) { out[li] = si; si = bk[li][si]; }
+      return out;
+    })();
     const lineStep = i => {
       const m = meta && meta.c.stepMap;
       if (m && m[i] != null) return Math.min(LAST, Math.max(0, m[i] - 1));
+      if (LINE_MAP) return LINE_MAP[i];
       return lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST;
     };
     let pickLine = -1;
@@ -1389,10 +1413,22 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     function buildCalls() {
       CALL = [];
       const lines = meta ? (meta.c.steps || []) : [];
-      const spots = {};
-      lines.forEach((ln, li) => { const si = lineStep(li); spots[si] = spots[si] || spotFor(si); CALL.push({ i: si, p: spots[si].p, r: spots[si].r, html: String(ln), n: li + 1 }); });
+      // 재생 단계마다 콜아웃 1개: 제목(그 단계에서 일어나는 일) + 그 단계에 해당하는 공략 순서 문장 + 왜?
+      const byStep = {};
+      lines.forEach((ln, li) => { const si = lineStep(li); (byStep[si] = byStep[si] || []).push(li); });
+      for (let si = 0; si <= LAST; si++) {
+        const st = STEPS[si], sp = spotFor(si);
+        let head = strip(st.cap || '');
+        if (si === 0) head = meta ? (carry ? '다음 기믹 · ' + htmlText(meta.c.h) : '시작 위치 · ' + strip(meta.c.cap || st.cap)) : st.cap;
+        else if (st.name === '장판') head = meta && meta.c.cast && st.cast ? `${st.cast.name} 시전 → 장판·표시 확인` : '장판·표시가 깔림 → 위치 확인';
+        const ls = (byStep[si] || []).map(li => {
+          const why = meta && meta.key ? stepParts(meta.key, li) : null;
+          return { n: li + 1, html: String(lines[li]), why: why && why.own ? strip(why.own) : '' };
+        });
+        CALL.push({ i: si, p: sp.p, r: sp.r, head, ls });
+      }
       items.forEach(o => { if (o && o.co) CALL.push({ i: Math.min(LAST, Math.max(0, (o.step || LAST + 1) - 1)), p: at(o), r: o.r || 14, html: String(o.co) }); });
-      CALL.forEach(c => { c.text = htmlText(c.html); });
+      CALL.forEach(c => { c.text = (c.head || '') + (c.ls || []).map(l => htmlText(l.html) + l.why).join('') + (c.html ? htmlText(c.html) : ''); });
     }
     buildCalls();
     function syncLines() {
@@ -1454,7 +1490,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         if (coHold && now < coHold.until && (playing || coHold.manual)) return;
         if (coQ && coQ.length) {
           const co = coQ.shift(); showCo(co); renderCast(0, 0, false);
-          coHold = { until: now + (1800 + co.text.length * 55) / SPEED, manual: !playing }; return;
+          coHold = { until: now + Math.min(9000, 1800 + co.text.length * 50) / SPEED, manual: !playing }; return;
         }
         if (coHold && playing) { coHold = null; hideCo(); }
         if (playing && anim.i < LAST) startStep(anim.i + 1);
@@ -1710,9 +1746,13 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       coCur = co; coEl = document.createElement('div'); coEl.className = 'a3d-co';
       coEl.innerHTML = '<svg aria-hidden="true"><path class="ring" pathLength="1"/><path class="tail" pathLength="1"/></svg><div class="lbl" role="note"></div>';
       const lb = coEl.querySelector('.lbl');
-      if (co.n) { const n = document.createElement('span'); n.className = 'no'; n.textContent = co.n; lb.appendChild(n); }
-      const tmp = document.createElement('div'); tmp.innerHTML = co.html || co.text;
-      tmp.childNodes.forEach(nd => { if (nd.nodeType === 3) lb.append(nd.textContent); else if (/^(B|STRONG|EM)$/.test(nd.nodeName)) { const k = document.createElement('b'); k.textContent = nd.textContent; lb.appendChild(k); } else lb.append(nd.textContent || ''); }); stage.appendChild(coEl); placeCo();
+      const rich = (el, html) => { const tmp = document.createElement('div'); tmp.innerHTML = html;
+        tmp.childNodes.forEach(nd => { if (nd.nodeType === 3) el.append(nd.textContent); else if (/^(B|STRONG|EM)$/.test(nd.nodeName)) { const k = document.createElement('b'); k.textContent = nd.textContent; el.appendChild(k); } else el.append(nd.textContent || ''); }); };
+      if (co.head) { const h = document.createElement('div'); h.className = 'hd'; h.textContent = co.head; lb.appendChild(h); }
+      (co.ls || []).forEach(l => { const d = document.createElement('div'); d.className = 'ln';
+        const n = document.createElement('span'); n.className = 'no'; n.textContent = l.n; d.appendChild(n); rich(d, l.html); lb.appendChild(d);
+        if (l.why) { const w = document.createElement('div'); w.className = 'why'; w.textContent = '왜? ' + l.why; lb.appendChild(w); } });
+      if (co.html) { const d = document.createElement('div'); d.className = 'ln'; rich(d, co.html); lb.appendChild(d); } stage.appendChild(coEl); placeCo();
       requestAnimationFrame(() => requestAnimationFrame(() => coEl && coEl.classList.add('on')));
     }
     function placeCo() {
