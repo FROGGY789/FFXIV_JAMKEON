@@ -382,20 +382,6 @@ dialog.a3d::backdrop{background:rgba(10,12,20,.55)}
 .a3d-cap{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:10px;align-items:center;pointer-events:none}
 .a3d-cap>div{background:color-mix(in srgb,var(--a3d-bg) 88%,transparent);border:1px solid var(--a3d-line);border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.45;max-width:560px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .a3d-cap b{display:inline-block;margin-right:8px;font-weight:800}
-.a3d-co{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:visible}
-.a3d-co svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.a3d-co .ring{fill:none;stroke:#ff4d6d;stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,77,109,.55));stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .55s cubic-bezier(.6,0,.3,1)}
-.a3d-co .tail{fill:none;stroke:#ff4d6d;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .6s cubic-bezier(.6,0,.3,1) .45s}
-.a3d-co.on .ring,.a3d-co.on .tail{stroke-dashoffset:0}
-.a3d-co .lbl{position:absolute;max-width:min(380px,46vw);background:#fff;color:#16151a;border:2.5px solid #ff4d6d;border-radius:12px;padding:8px 11px;font-size:14.5px;font-weight:600;line-height:1.5;box-shadow:0 8px 22px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s .85s,transform .35s cubic-bezier(.2,.9,.3,1.3) .85s}
-.a3d-co .lbl .hd{font-size:17px;font-weight:900;color:#16151a;letter-spacing:-.01em}
-.a3d-co .lbl .hd+.ln,.a3d-co .lbl .ln+.ln{margin-top:6px}
-.a3d-co .lbl .hd+.ln{padding-top:6px;border-top:1px dashed #f3b3c0}
-.a3d-co .lbl .why{margin-top:3px;font-size:12.5px;font-weight:600;color:#6b5560}
-.a3d-co .lbl .no{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#ff4d6d;color:#fff;font-size:13px;font-weight:800;margin-right:7px;vertical-align:2px}
-.a3d-co .lbl b{font-size:18px;font-weight:900;color:#d6113f;line-height:1.35}
-.a3d-co.on .lbl{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){.a3d-co .ring,.a3d-co .tail,.a3d-co .lbl{transition:none}}
 .a3d-cap>div:has(.kp){max-width:min(400px,calc(50% - 190px))}
 @media(max-width:900px){.a3d-cap>div:has(.kp){max-width:none}}
 .a3d-cap .kp{margin-top:8px;padding-top:7px;border-top:1px dashed var(--a3d-line);font-size:13px;line-height:1.5}
@@ -625,8 +611,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
   let camState = null;     // 카드 넘길 때 카메라 유지
   let POP3D = true;        // 3D 안 설명 팝오버
   let PEN = false;         // 강조펜 버튼 (터치 기기용). Ctrl/⌘ 누른 채 끌어도 됨
-  let CO_ON = true;        // 콜아웃(O + 돼지꼬리 설명) 켜기
-  try { CO_ON = localStorage.getItem('jamkeon.callout') !== '0'; } catch (e) {}
   let LOCKCAM = false;     // 시점 고정: 회전·이동 막음 (확대/축소는 됨)
   try { POP3D = localStorage.getItem('jamkeon.pop3d') !== '0'; LOCKCAM = localStorage.getItem('jamkeon.lockcam') === '1'; } catch (e) {}
   const dirty = () => JSON.stringify(EDITS) !== JSON.stringify(SAVED);
@@ -1166,68 +1150,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         });
       });
     }
-    let LAST = STEPS.length - 1;
-    /* --- 콜아웃: 주의할 곳에 O + 돼지꼬리 + 설명. 카드 항목 {co:'설명', at|xy, r, step} 이 있으면 그걸, 없으면 카드 팁/KEY POINT 를 마지막 단계에 --- */
-    let CALL = [];
-    const coFor = i => CALL.filter(c => c.i === i);
-    const coShown = new Set();
+    const LAST = STEPS.length - 1;
     // 항목에 step:N 이 있으면 그 단계(1부터)에서 나타남. 예) 장판이 깔린 뒤 생기는 회오리
     ENT.forEach(e => { const o = items[e.idx]; if (o && o.step) { e.at = Math.min(LAST, Math.max(0, o.step - 1)); e.delay = 0; e.span = e.kind === 'zone' ? 0.6 : 1; } });
     // 지형(env:1): 물·돌기둥처럼 처음부터 그대로 있음. 등장 애니메이션 없음, 연속 재생 때도 안 사라짐
     ENT.forEach(e => { const o = items[e.idx]; if (o && o.env) { e.env = true; e.at = -1; e.delay = 0; e.span = 1e-4; } });
     while (pawnsE.length && pawnsE[0].pos.length < STEPS.length) extend();
-    ENT.forEach(e => { const o = items[e.idx]; if (o && o.gone) e.goneAt = o.gone - 1; });
-
-    /* --- 공략 순서 문장 1개 = 재생 단계 1개 ---
-     * 문장을 애니메이션 단계에 짝지음(카드 stepMap, 없으면 같이 나오는 낱말로 순서 지키며). 한 단계에 문장이 여러 개면
-     * 나머지 문장마다 '움직임 없는 단계'를 끼워 넣어서, 그 단계에선 콜아웃으로 설명함 */
-    const LINES = meta ? (meta.c.steps || []) : [];
-    let LINE_TO_STEP = null;
-    const BASE_OF = STEPS.map((_, k) => k);
-    if (LINES.length) {
-      let map;
-      const sm = meta && meta.c.stepMap;
-      if (sm) map = LINES.map((_, i) => Math.min(LAST, Math.max(0, (sm[i] != null ? sm[i] : LAST + 1) - 1)));
-      else {
-        const tok = t => new Set((htmlText(t).match(/[A-Z][1-4]|[가-힣A-Za-z0-9]{2,}/g) || []).map(w => w.replace(/(은|는|이|가|을|를|에|로|으로|의|와|과|도)$/, '')).filter(w => w.length >= 2 || /[A-Z][1-4]/.test(w)));
-        const st = STEPS.map((x, si) => { const t = tok((x.cap || '') + ' ' + (x.cast ? x.cast.name : '')); if (si === 0 && meta) tok(meta.c.cap || '').forEach(w => t.add(w)); return t; });
-        const n = LINES.length, m = STEPS.length, even = li => n > 1 ? li * (m - 1) / (n - 1) : m - 1;
-        const sc = (li, si) => { const a = tok(LINES[li]); let c = 0; a.forEach(w => { if (st[si].has(w)) c++; }); return c - 0.35 * Math.abs(si - even(li)); };
-        const f = [], bk = [];
-        for (let li = 0; li < n; li++) { f[li] = []; bk[li] = [];
-          for (let si = 0; si < m; si++) {
-            let best = li ? -1e9 : 0, arg = -1;
-            if (li) for (let q = 0; q <= si; q++) if (f[li - 1][q] > best) { best = f[li - 1][q]; arg = q; }
-            f[li][si] = best + sc(li, si); bk[li][si] = arg;
-          } }
-        let si = 0; for (let k = 1; k < m; k++) if (f[n - 1][k] > f[n - 1][si]) si = k;
-        map = []; for (let li = n - 1; li >= 0; li--) { map[li] = si; si = bk[li][si]; }
-      }
-      // 새 타임라인: 원래 단계 + (같은 단계에 붙은 2번째 문장부터) 끼워 넣은 단계
-      const plan = [], seen = new Set();
-      LINE_TO_STEP = [];
-      STEPS.forEach((_, si) => {
-        plan.push({ base: si });
-        LINES.forEach((ln, li) => { if (map[li] !== si) return;
-          if (!seen.has(si)) { seen.add(si); LINE_TO_STEP[li] = plan.length - 1; }
-          else { plan.push({ base: si, extra: li }); LINE_TO_STEP[li] = plan.length - 1; } });
-      });
-      if (plan.length !== STEPS.length) {
-        const newOf = []; plan.forEach((pl, k) => { if (pl.extra == null) newOf[pl.base] = k; });
-        const old = STEPS.slice();
-        STEPS.length = 0;
-        plan.forEach((pl, k) => STEPS.push(pl.extra == null ? old[pl.base] : { name: '', cap: strip(LINES[pl.extra]).slice(0, 60), dur: 0.5, still: true, line: pl.extra }));
-        STEPS.forEach((x, k) => { if (/^\d+$/.test(x.name) || x.still) x.name = String(k + 1); });
-        pawnsE.forEach(e => {
-          const pos = e.pos.slice(), paths = e.paths.slice();
-          e.pos = plan.map(pl => pos[pl.base]); e.paths = plan.map(pl => pl.extra == null ? paths[pl.base] : undefined);
-        });
-        ENT.forEach(e => { if (e.at >= 0 && newOf[e.at] != null) e.at = newOf[e.at]; if (e.goneAt != null) e.goneAt = newOf[e.goneAt]; });
-        plan.forEach((pl, k) => { BASE_OF[k] = pl.base; });
-        BASE_OF.length = plan.length;
-        LAST = STEPS.length - 1;
-      }
-    }
 
     const easeO = t => 1 - Math.pow(1 - t, 3);
     const easeIO = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -1275,7 +1203,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         }
       });
       // gone:N 항목(먹은 구슬 등)은 N번째 단계 끝에서 작아지며 사라짐
-      ENT.forEach(e => { if (e.goneAt == null) return; const g = e.goneAt;
+      ENT.forEach(e => { const o = items[e.idx]; if (!o || !o.gone) return; const g = o.gone - 1;
         if (i > g) e.g.visible = false;
         else if (i === g) { const k = 1 - clamp01((u - 0.7) / 0.3); e.g.scale.setScalar(Math.max(0.001, k)); if (k <= 0.01) e.g.visible = false; } });
       // 어그로: 그 단계까지 마지막으로 지정된 탱커
@@ -1408,71 +1336,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     // 공략 순서 문장 ↔ 재생 단계: 카드에 stepMap:[단계번호,...] 이 있으면 그걸 쓰고, 없으면 순서대로 고르게 나눔
     const lineCount = meta ? (meta.c.steps || []).length : (OPTS.steps || []).length;
-    const lineStep = i => LINE_TO_STEP && LINE_TO_STEP[i] != null ? LINE_TO_STEP[i] : (lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST);
+    const lineStep = i => {
+      const m = meta && meta.c.stepMap;
+      if (m && m[i] != null) return Math.min(LAST, Math.max(0, m[i] - 1));
+      return lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST;
+    };
     let pickLine = -1;
-    /* --- 콜아웃: 공략 순서 문장마다, 그 문장에 해당하는 재생 단계에서 바뀐 곳(움직인 롤·새로 깔린 장판·화살표)에 O + 돼지꼬리 + 문장 ---
-     * 카드 항목에 {co:'설명', at|xy, r, step} 을 직접 넣으면 그것도 그 단계에 추가로 나옴 */
-    function spotOf(o) {
-      if (!o) return null;
-      if (o.z === 'band') { const a = xy(o.a), b = xy(o.b); return [[a[0], a[1]], [b[0], b[1]]]; }
-      if (o.z === 'cone') { const c = at(o), d = P(o.dir, o.len * 0.6); return [[c[0] + d[0], c[1] + d[1]]]; }
-      if (o.z === 'donut') return null;
-      if (o.at || o.xy) { try { return [at(o)]; } catch (e) { return null; } }
-      return null;
-    }
-    function spotFor(si) {
-      let pts = [];
-      pawnsE.forEach(e => {
-        const a = si > 0 ? e.pos[si - 1] : (e.carry || e.pos[0]), b = e.pos[si];
-        if (e.paths[si]) pts.push(e.paths[si][e.paths[si].length - 1]);
-        else if (a && b && Math.hypot(a[0] - b[0], a[1] - b[1]) > 3) pts.push(b);
-      });
-      if (!pts.length) ENT.forEach(e => {
-        if (e.at !== si || e.env || e.kind === 'pawn' || e.kind === 'unit') return;
-        if (e.kind === 'arrow' && e.path) pts.push(e.path[e.path.length - 1]);
-        else { const q = spotOf(items[e.idx]); if (q) pts.push(...q); if (e.kind === 'zone' && items[e.idx] && items[e.idx].z === 'c' && q) e._r = items[e.idx].r; }
-      });
-      if (!pts.length) { const bo = items.find(o => o && o.b != null && !o.z && (o.r || 11) >= 9); if (bo) return { p: at(bo), r: (bo.r || 11) + 6, fb: 1 }; return { p: [0, 0], r: 30, fb: 1 }; }
-      const cx = pts.reduce((t, q) => t + q[0], 0) / pts.length, cz = pts.reduce((t, q) => t + q[1], 0) / pts.length;
-      let r = 0; pts.forEach(q => { r = Math.max(r, Math.hypot(q[0] - cx, q[1] - cz)); });
-      const zr = Math.max(0, ...ENT.filter(e => e._r).map(e => e._r));
-      return { p: [cx, cz], r: Math.max(9, Math.min(48, Math.max(r + 8, pts.length === 1 && zr ? zr + 3 : 0))) };
-    }
-    // 문장에 나온 롤(T1, 근딜, 힐러 …)의 그 단계 위치를 O로
-    const GROUP = { '탱커': ['T1', 'T2'], '힐러': ['H1', 'H2'], '근딜': ['D1', 'D2'], '원딜': ['D3', 'D4'], '딜러': ['D1', 'D2', 'D3', 'D4'], '전원': ['T1', 'T2', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4'] };
-    function spotLine(si, li) {
-      const t = htmlText(LINES[li] || ''), rs = new Set(t.match(/\b[THD][1-4]\b/g) || []);
-      if (!rs.size) Object.keys(GROUP).forEach(g => { if (t.includes(g)) GROUP[g].forEach(r => rs.add(r)); });
-      const pts = pawnsE.filter(e => rs.has(e.role)).map(e => e.pos[si]).filter(Boolean);
-      if (!pts.length || pts.length > 6) return null;
-      const cx = pts.reduce((a, q) => a + q[0], 0) / pts.length, cz = pts.reduce((a, q) => a + q[1], 0) / pts.length;
-      let r = 0; pts.forEach(q => { r = Math.max(r, Math.hypot(q[0] - cx, q[1] - cz)); });
-      return { p: [cx, cz], r: Math.max(9, Math.min(48, r + 8)) };
-    }
-    function buildCalls() {
-      CALL = [];
-      const lines = meta ? (meta.c.steps || []) : [];
-      // 재생 단계마다 콜아웃 1개: 제목(그 단계에서 일어나는 일) + 그 단계에 해당하는 공략 순서 문장 + 왜?
-      const byStep = {};
-      lines.forEach((ln, li) => { const si = lineStep(li); (byStep[si] = byStep[si] || []).push(li); });
-      for (let si = 0; si <= LAST; si++) {
-        const st = STEPS[si];
-        let sp = st.still ? null : spotFor(si);
-        if (!sp || sp.fb) { const li = (byStep[si] || [])[0]; const q = li != null ? spotLine(si, li) : null; if (q) sp = q; else if (!sp) sp = spotFor(si); }
-        let head = st.still ? '' : strip(st.cap || '');
-        if (st.still) head = '';
-        else if (si === 0) head = meta ? (carry ? '다음 기믹 · ' + htmlText(meta.c.h) : '시작 위치 · ' + strip(meta.c.cap || st.cap)) : st.cap;
-        else if (st.name === '장판') head = meta && meta.c.cast && st.cast ? `${st.cast.name} 시전 → 장판·표시 확인` : '장판·표시가 깔림 → 위치 확인';
-        const ls = (byStep[si] || []).map(li => {
-          const why = meta && meta.key ? stepParts(meta.key, li) : null;
-          return { n: li + 1, html: String(lines[li]), why: why && why.own ? strip(why.own) : '' };
-        });
-        CALL.push({ i: si, p: sp.p, r: sp.r, head, ls });
-      }
-      items.forEach(o => { if (o && o.co) { const bi = Math.max(0, (o.step || 99) - 1); let ni = BASE_OF.lastIndexOf(Math.min(bi, BASE_OF[LAST])); CALL.push({ i: ni < 0 ? LAST : ni, p: at(o), r: o.r || 14, html: String(o.co) }); } });
-      CALL.forEach(c => { c.text = (c.head || '') + (c.ls || []).map(l => htmlText(l.html) + l.why).join('') + (c.html ? htmlText(c.html) : ''); });
-    }
-    buildCalls();
     function syncLines() {
       if (sideEl.dataset.mode !== 'steps') return;
       let on = -1;
@@ -1482,7 +1351,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       sideEl.querySelectorAll('ol.go li').forEach(li => li.classList.toggle('on', +li.dataset.i === on));
     }
     function startStep(i) {
-      hideCo(); coShown.delete(i); coHold = null; coQ = null;
       cur = i;
       anim = { i, s: performance.now(), el: 0 };
       syncUI();
@@ -1509,7 +1377,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (EDIT) { const d = document.createElement('span'); d.className = 'a3d-dirty'; d.textContent = dirty() ? '  · 저장 안 됨' : ''; box.appendChild(d); }
       capEl.appendChild(box);
     }
-    let coHold = null, coQ = null;
     function tickPlay(now) {
       if (paused) return;
       if (exiting) { tickExit(now); return; }
@@ -1527,14 +1394,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       renderCast(anim.i, Math.min(1.5, u), true);
       progEl.style.width = ((anim.i + Math.min(1, u)) / STEPS.length * 100) + '%';
       if (u >= 1 + HOLD_MS() / ms) {
-        // 콜아웃: 이 단계에 주의할 곳이 있으면 잠깐 멈추고 O + 설명을 보여준 뒤 진행
-        if (CO_ON && !coShown.has(anim.i)) { coShown.add(anim.i); coQ = coFor(anim.i).slice(); }
-        if (coHold && now < coHold.until && (playing || coHold.manual)) return;
-        if (coQ && coQ.length) {
-          const co = coQ.shift(); showCo(co); renderCast(0, 0, false);
-          coHold = { until: now + Math.min(9000, 1800 + co.text.length * 50) / SPEED, manual: !playing }; return;
-        }
-        if (coHold && playing) { coHold = null; hideCo(); }
         if (playing && anim.i < LAST) startStep(anim.i + 1);
         else {
           anim = null; renderCast(0, 0, false);
@@ -1596,13 +1455,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     mo.title = '끄면 장판·이동이 바로 결과로 넘어감 (느린 PC용)';
     mo.addEventListener('click', () => { REDUCED = !REDUCED; mo.setAttribute('aria-checked', String(!REDUCED)); try { localStorage.setItem('jamkeon.motion', REDUCED ? 'off' : 'on'); } catch (e) {} });
     gl.appendChild(mo);
-    if (meta) {
-      const cs = document.createElement('button'); cs.type = 'button'; cs.className = 'a3d-sw'; cs.setAttribute('role', 'switch');
-      cs.setAttribute('aria-checked', String(CO_ON)); cs.innerHTML = '<span class="tr" aria-hidden="true"></span>콜아웃';
-      cs.title = '재생 중 주의할 곳에 O + 설명을 띄우고 잠깐 멈춤';
-      cs.addEventListener('click', () => { CO_ON = !CO_ON; cs.setAttribute('aria-checked', String(CO_ON)); try { localStorage.setItem('jamkeon.callout', CO_ON ? '1' : '0'); } catch (e) {} if (!CO_ON) hideCo(); });
-      gl.appendChild(cs);
-    }
     const penBtn = btn('✎ 강조펜', PEN, b => { PEN = !PEN; b.setAttribute('aria-pressed', String(PEN)); stage.classList.toggle('pen', PEN); applyLock(); });
     penBtn.title = '켜면 끌어서 그리기 (Ctrl/⌘ 누른 채 끌어도 됨). 떼면 사라짐';
     gl.appendChild(penBtn); stage.classList.toggle('pen', PEN);
@@ -1780,44 +1632,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
 
     /* --- 마우스: 클릭 = 롤 강조 / 편집 모드에서 드래그 = 옮기기 --- */
     const hintEl = stage.querySelector('.a3d-hint');
-    // 콜아웃 그리기: 화면 좌표로 매 프레임 따라감
-    let coEl = null, coCur = null;
-    function hideCo() { coCur = null; if (coEl) { const e = coEl; coEl = null; e.classList.remove('on'); setTimeout(() => e.remove(), 250); } }
-    function showCo(co) {
-      hideCo(); if (!CO_ON) return;
-      coCur = co; coEl = document.createElement('div'); coEl.className = 'a3d-co';
-      coEl.innerHTML = '<svg aria-hidden="true"><path class="ring" pathLength="1"/><path class="tail" pathLength="1"/></svg><div class="lbl" role="note"></div>';
-      const lb = coEl.querySelector('.lbl');
-      const rich = (el, html) => { const tmp = document.createElement('div'); tmp.innerHTML = html;
-        tmp.childNodes.forEach(nd => { if (nd.nodeType === 3) el.append(nd.textContent); else if (/^(B|STRONG|EM)$/.test(nd.nodeName)) { const k = document.createElement('b'); k.textContent = nd.textContent; el.appendChild(k); } else el.append(nd.textContent || ''); }); };
-      if (co.head) { const h = document.createElement('div'); h.className = 'hd'; h.textContent = co.head; lb.appendChild(h); }
-      (co.ls || []).forEach(l => { const d = document.createElement('div'); d.className = 'ln';
-        const n = document.createElement('span'); n.className = 'no'; n.textContent = l.n; d.appendChild(n); rich(d, l.html); lb.appendChild(d);
-        if (l.why) { const w = document.createElement('div'); w.className = 'why'; w.textContent = '왜? ' + l.why; lb.appendChild(w); } });
-      if (co.html) { const d = document.createElement('div'); d.className = 'ln'; rich(d, co.html); lb.appendChild(d); } stage.appendChild(coEl); placeCo();
-      requestAnimationFrame(() => requestAnimationFrame(() => coEl && coEl.classList.add('on')));
-    }
-    function placeCo() {
-      if (!coEl || !coCur) return;
-      const sw = W(), sh = H(), pr = v => { const q = v.clone().project(camera); return [(q.x + 1) / 2 * sw, (1 - q.y) / 2 * sh]; };
-      const c = pr(V(coCur.p[0], 1, coCur.p[1])), ex = pr(V(coCur.p[0] + coCur.r, 1, coCur.p[1])), ey = pr(V(coCur.p[0], 1, coCur.p[1] + coCur.r));
-      const rx = Math.max(18, Math.hypot(ex[0] - c[0], ex[1] - c[1])), ry = Math.max(14, Math.hypot(ey[0] - c[0], ey[1] - c[1]));
-      // 손그림 느낌 O: 살짝 기울고 끝이 겹치는 타원
-      let ring = ''; for (let k = 0; k <= 40; k++) { const t = -0.3 + k / 40 * (Math.PI * 2 + 0.5), w = 1 + 0.05 * Math.sin(t * 3); ring += (k ? 'L' : 'M') + (c[0] + Math.cos(t) * rx * 1.12 * w).toFixed(1) + ' ' + (c[1] + Math.sin(t) * ry * 1.12 * w).toFixed(1); }
-      coEl.querySelector('.ring').setAttribute('d', ring);
-      const lbl = coEl.querySelector('.lbl'), lw = lbl.offsetWidth || 220, lh = lbl.offsetHeight || 50;
-      const right = c[0] < sw * 0.62, up = c[1] > sh * 0.42;
-      let lx = right ? c[0] + rx + 70 : c[0] - rx - 70 - lw, ly = up ? c[1] - ry - 60 - lh : c[1] + ry + 60;
-      lx = Math.max(8, Math.min(sw - lw - 8, lx)); ly = Math.max(70, Math.min(sh - lh - 8, ly));
-      lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
-      // 돼지꼬리: 타원 가장자리 → 작은 고리 한 바퀴 → 설명 상자
-      const tx = lx + (right ? 0 : lw), ty = ly + lh / 2, ang = Math.atan2(ty - c[1], tx - c[0]);
-      const s0 = [c[0] + Math.cos(ang) * rx * 1.15, c[1] + Math.sin(ang) * ry * 1.15], m = [(s0[0] + tx) / 2, (s0[1] + ty) / 2], lr = 9, nx = -Math.sin(ang), ny = Math.cos(ang);
-      const lc = [m[0] + nx * lr, m[1] + ny * lr];
-      const tail = `M${s0[0].toFixed(1)} ${s0[1].toFixed(1)} Q${((s0[0] + m[0]) / 2 + nx * 10).toFixed(1)} ${((s0[1] + m[1]) / 2 + ny * 10).toFixed(1)} ${m[0].toFixed(1)} ${m[1].toFixed(1)} `
-        + `A${lr} ${lr} 0 1 1 ${(m[0] + 0.1).toFixed(1)} ${(m[1] + 0.1).toFixed(1)} Q${((m[0] + tx) / 2 - nx * 10).toFixed(1)} ${((m[1] + ty) / 2 - ny * 10).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`;
-      void lc; coEl.querySelector('.tail').setAttribute('d', tail);
-    }
     const HINT = EDIT
       ? '편집 중: 끌어서 옮김 · 직선 장판 끝을 끌면 길이 · 부채꼴: 꼭짓점 쪽을 끌면 이동 · 가운데는 회전 · 바깥쪽은 길이+방향 · 원형 장판 테두리를 끌면 크기 · 직선 장판 Shift+끌기: 회전 · 보스를 옮기면 장판도 같이(Shift: 보스만) · 탱커 우클릭: 어그로 별'
       : '드래그: 회전 · 휠/핀치: 확대 · 우클릭/두 손가락: 이동 · Ctrl+끌기: 강조펜 · 말 클릭: 강조 · 탱커 우클릭: 어그로 별 켜기/끄기';
@@ -2069,7 +1883,6 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       if (!REDUCED) animators.forEach(f => f(t));
       if (FOCUS && pawns[FOCUS]) { const s = 1 + 0.15 * Math.sin(t * 4); pawns[FOCUS].ring.scale.set(s, s, s); }
       controls.update();
-      if (coEl) placeCo();
       renderer.render(scene, camera);
       // 계속 프레임을 재서(60프레임마다) 평균 40fps 아래면 화질을 한 단계씩 내림 → 전체화면·연속 재생에서도 안 끊기게
       if (QLV < 3) {
@@ -2100,14 +1913,14 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
           CARRY = snapshot(); OPTS.oneStepNext = true;
           const ok = go(1, true); OPTS.oneStepNext = false; if (!ok) CARRY = null;
         } else {
-          if (cur > 0) { hideCo(); if (anim && !anim.rev) renderStep(cur, 1); anim = { i: cur, s: performance.now(), el: 0, rev: true }; cur -= 1; renderCast(0, 0, false); syncUI(); return; }
+          if (cur > 0) { if (anim && !anim.rev) renderStep(cur, 1); anim = { i: cur, s: performance.now(), el: 0, rev: true }; cur -= 1; renderCast(0, 0, false); syncUI(); return; }
           go(-1, false);
         }
       },
       syncLines,
       dispose() {
         cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
-        renderer.domElement.removeEventListener('pointerdown', onDown, true); clearSizePreview(); clearSel(); hideCo();
+        renderer.domElement.removeEventListener('pointerdown', onDown, true); clearSizePreview(); clearSel();
         renderer.domElement.removeEventListener('pointermove', onMove);
         renderer.domElement.removeEventListener('pointerup', onUp);
         renderer.domElement.removeEventListener('pointerleave', onLeave);
