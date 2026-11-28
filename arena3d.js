@@ -1166,7 +1166,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         });
       });
     }
-    const LAST = STEPS.length - 1;
+    let LAST = STEPS.length - 1;
     /* --- 콜아웃: 주의할 곳에 O + 돼지꼬리 + 설명. 카드 항목 {co:'설명', at|xy, r, step} 이 있으면 그걸, 없으면 카드 팁/KEY POINT 를 마지막 단계에 --- */
     let CALL = [];
     const coFor = i => CALL.filter(c => c.i === i);
@@ -1176,6 +1176,58 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     // 지형(env:1): 물·돌기둥처럼 처음부터 그대로 있음. 등장 애니메이션 없음, 연속 재생 때도 안 사라짐
     ENT.forEach(e => { const o = items[e.idx]; if (o && o.env) { e.env = true; e.at = -1; e.delay = 0; e.span = 1e-4; } });
     while (pawnsE.length && pawnsE[0].pos.length < STEPS.length) extend();
+    ENT.forEach(e => { const o = items[e.idx]; if (o && o.gone) e.goneAt = o.gone - 1; });
+
+    /* --- 공략 순서 문장 1개 = 재생 단계 1개 ---
+     * 문장을 애니메이션 단계에 짝지음(카드 stepMap, 없으면 같이 나오는 낱말로 순서 지키며). 한 단계에 문장이 여러 개면
+     * 나머지 문장마다 '움직임 없는 단계'를 끼워 넣어서, 그 단계에선 콜아웃으로 설명함 */
+    const LINES = meta ? (meta.c.steps || []) : [];
+    let LINE_TO_STEP = null;
+    const BASE_OF = STEPS.map((_, k) => k);
+    if (LINES.length) {
+      let map;
+      const sm = meta && meta.c.stepMap;
+      if (sm) map = LINES.map((_, i) => Math.min(LAST, Math.max(0, (sm[i] != null ? sm[i] : LAST + 1) - 1)));
+      else {
+        const tok = t => new Set((htmlText(t).match(/[A-Z][1-4]|[가-힣A-Za-z0-9]{2,}/g) || []).map(w => w.replace(/(은|는|이|가|을|를|에|로|으로|의|와|과|도)$/, '')).filter(w => w.length >= 2 || /[A-Z][1-4]/.test(w)));
+        const st = STEPS.map((x, si) => { const t = tok((x.cap || '') + ' ' + (x.cast ? x.cast.name : '')); if (si === 0 && meta) tok(meta.c.cap || '').forEach(w => t.add(w)); return t; });
+        const n = LINES.length, m = STEPS.length, even = li => n > 1 ? li * (m - 1) / (n - 1) : m - 1;
+        const sc = (li, si) => { const a = tok(LINES[li]); let c = 0; a.forEach(w => { if (st[si].has(w)) c++; }); return c - 0.35 * Math.abs(si - even(li)); };
+        const f = [], bk = [];
+        for (let li = 0; li < n; li++) { f[li] = []; bk[li] = [];
+          for (let si = 0; si < m; si++) {
+            let best = li ? -1e9 : 0, arg = -1;
+            if (li) for (let q = 0; q <= si; q++) if (f[li - 1][q] > best) { best = f[li - 1][q]; arg = q; }
+            f[li][si] = best + sc(li, si); bk[li][si] = arg;
+          } }
+        let si = 0; for (let k = 1; k < m; k++) if (f[n - 1][k] > f[n - 1][si]) si = k;
+        map = []; for (let li = n - 1; li >= 0; li--) { map[li] = si; si = bk[li][si]; }
+      }
+      // 새 타임라인: 원래 단계 + (같은 단계에 붙은 2번째 문장부터) 끼워 넣은 단계
+      const plan = [], seen = new Set();
+      LINE_TO_STEP = [];
+      STEPS.forEach((_, si) => {
+        plan.push({ base: si });
+        LINES.forEach((ln, li) => { if (map[li] !== si) return;
+          if (!seen.has(si)) { seen.add(si); LINE_TO_STEP[li] = plan.length - 1; }
+          else { plan.push({ base: si, extra: li }); LINE_TO_STEP[li] = plan.length - 1; } });
+      });
+      if (plan.length !== STEPS.length) {
+        const newOf = []; plan.forEach((pl, k) => { if (pl.extra == null) newOf[pl.base] = k; });
+        const old = STEPS.slice();
+        STEPS.length = 0;
+        plan.forEach((pl, k) => STEPS.push(pl.extra == null ? old[pl.base] : { name: '', cap: strip(LINES[pl.extra]).slice(0, 60), dur: 0.5, still: true, line: pl.extra }));
+        STEPS.forEach((x, k) => { if (/^\d+$/.test(x.name) || x.still) x.name = String(k + 1); });
+        pawnsE.forEach(e => {
+          const pos = e.pos.slice(), paths = e.paths.slice();
+          e.pos = plan.map(pl => pos[pl.base]); e.paths = plan.map(pl => pl.extra == null ? paths[pl.base] : undefined);
+        });
+        ENT.forEach(e => { if (e.at >= 0 && newOf[e.at] != null) e.at = newOf[e.at]; if (e.goneAt != null) e.goneAt = newOf[e.goneAt]; });
+        plan.forEach((pl, k) => { BASE_OF[k] = pl.base; });
+        BASE_OF.length = plan.length;
+        LAST = STEPS.length - 1;
+      }
+    }
 
     const easeO = t => 1 - Math.pow(1 - t, 3);
     const easeIO = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -1223,7 +1275,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         }
       });
       // gone:N 항목(먹은 구슬 등)은 N번째 단계 끝에서 작아지며 사라짐
-      ENT.forEach(e => { const o = items[e.idx]; if (!o || !o.gone) return; const g = o.gone - 1;
+      ENT.forEach(e => { if (e.goneAt == null) return; const g = e.goneAt;
         if (i > g) e.g.visible = false;
         else if (i === g) { const k = 1 - clamp01((u - 0.7) / 0.3); e.g.scale.setScalar(Math.max(0.001, k)); if (k <= 0.01) e.g.visible = false; } });
       // 어그로: 그 단계까지 마지막으로 지정된 탱커
@@ -1356,31 +1408,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
     }
     // 공략 순서 문장 ↔ 재생 단계: 카드에 stepMap:[단계번호,...] 이 있으면 그걸 쓰고, 없으면 순서대로 고르게 나눔
     const lineCount = meta ? (meta.c.steps || []).length : (OPTS.steps || []).length;
-    // stepMap 이 없으면: 문장과 단계 설명에 같이 나오는 낱말(롤·기술명 등)로 순서를 지키며 짝지음
-    const LINE_MAP = (() => {
-      const ls = meta ? (meta.c.steps || []) : [];
-      if (!ls.length || (meta && meta.c.stepMap)) return null;
-      const tok = t => new Set((htmlText(t).match(/[A-Z][1-4]|[가-힣A-Za-z0-9]{2,}/g) || []).map(w => w.replace(/(은|는|이|가|을|를|에|로|으로|의|와|과|도)$/, '')).filter(w => w.length >= 2 || /[A-Z][1-4]/.test(w)));
-      const st = STEPS.map((x, si) => { const t = tok((x.cap || '') + ' ' + (x.cast ? x.cast.name : '')); if (si === 0 && meta) tok(meta.c.cap || '').forEach(w => t.add(w)); return t; });
-      const n = ls.length, m = STEPS.length, even = li => n > 1 ? li * (m - 1) / (n - 1) : m - 1;
-      const sc = (li, si) => { const a = tok(ls[li]); let c = 0; a.forEach(w => { if (st[si].has(w)) c++; }); return c - 0.35 * Math.abs(si - even(li)); };
-      const f = [], bk = [];
-      for (let li = 0; li < n; li++) { f[li] = []; bk[li] = [];
-        for (let si = 0; si < m; si++) {
-          let best = li ? -1e9 : 0, arg = -1;
-          if (li) for (let q = 0; q <= si; q++) if (f[li - 1][q] > best) { best = f[li - 1][q]; arg = q; }
-          f[li][si] = best + sc(li, si); bk[li][si] = arg;
-        } }
-      let si = 0; for (let k = 1; k < m; k++) if (f[n - 1][k] > f[n - 1][si]) si = k;
-      const out = []; for (let li = n - 1; li >= 0; li--) { out[li] = si; si = bk[li][si]; }
-      return out;
-    })();
-    const lineStep = i => {
-      const m = meta && meta.c.stepMap;
-      if (m && m[i] != null) return Math.min(LAST, Math.max(0, m[i] - 1));
-      if (LINE_MAP) return LINE_MAP[i];
-      return lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST;
-    };
+    const lineStep = i => LINE_TO_STEP && LINE_TO_STEP[i] != null ? LINE_TO_STEP[i] : (lineCount > 1 ? Math.round(i * LAST / (lineCount - 1)) : LAST);
     let pickLine = -1;
     /* --- 콜아웃: 공략 순서 문장마다, 그 문장에 해당하는 재생 단계에서 바뀐 곳(움직인 롤·새로 깔린 장판·화살표)에 O + 돼지꼬리 + 문장 ---
      * 카드 항목에 {co:'설명', at|xy, r, step} 을 직접 넣으면 그것도 그 단계에 추가로 나옴 */
@@ -1404,11 +1432,22 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         if (e.kind === 'arrow' && e.path) pts.push(e.path[e.path.length - 1]);
         else { const q = spotOf(items[e.idx]); if (q) pts.push(...q); if (e.kind === 'zone' && items[e.idx] && items[e.idx].z === 'c' && q) e._r = items[e.idx].r; }
       });
-      if (!pts.length) { const bo = items.find(o => o && o.b != null && !o.z && (o.r || 11) >= 9); if (bo) return { p: at(bo), r: (bo.r || 11) + 6 }; return { p: [0, 0], r: 30 }; }
+      if (!pts.length) { const bo = items.find(o => o && o.b != null && !o.z && (o.r || 11) >= 9); if (bo) return { p: at(bo), r: (bo.r || 11) + 6, fb: 1 }; return { p: [0, 0], r: 30, fb: 1 }; }
       const cx = pts.reduce((t, q) => t + q[0], 0) / pts.length, cz = pts.reduce((t, q) => t + q[1], 0) / pts.length;
       let r = 0; pts.forEach(q => { r = Math.max(r, Math.hypot(q[0] - cx, q[1] - cz)); });
       const zr = Math.max(0, ...ENT.filter(e => e._r).map(e => e._r));
       return { p: [cx, cz], r: Math.max(9, Math.min(48, Math.max(r + 8, pts.length === 1 && zr ? zr + 3 : 0))) };
+    }
+    // 문장에 나온 롤(T1, 근딜, 힐러 …)의 그 단계 위치를 O로
+    const GROUP = { '탱커': ['T1', 'T2'], '힐러': ['H1', 'H2'], '근딜': ['D1', 'D2'], '원딜': ['D3', 'D4'], '딜러': ['D1', 'D2', 'D3', 'D4'], '전원': ['T1', 'T2', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4'] };
+    function spotLine(si, li) {
+      const t = htmlText(LINES[li] || ''), rs = new Set(t.match(/\b[THD][1-4]\b/g) || []);
+      if (!rs.size) Object.keys(GROUP).forEach(g => { if (t.includes(g)) GROUP[g].forEach(r => rs.add(r)); });
+      const pts = pawnsE.filter(e => rs.has(e.role)).map(e => e.pos[si]).filter(Boolean);
+      if (!pts.length || pts.length > 6) return null;
+      const cx = pts.reduce((a, q) => a + q[0], 0) / pts.length, cz = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+      let r = 0; pts.forEach(q => { r = Math.max(r, Math.hypot(q[0] - cx, q[1] - cz)); });
+      return { p: [cx, cz], r: Math.max(9, Math.min(48, r + 8)) };
     }
     function buildCalls() {
       CALL = [];
@@ -1417,9 +1456,12 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
       const byStep = {};
       lines.forEach((ln, li) => { const si = lineStep(li); (byStep[si] = byStep[si] || []).push(li); });
       for (let si = 0; si <= LAST; si++) {
-        const st = STEPS[si], sp = spotFor(si);
-        let head = strip(st.cap || '');
-        if (si === 0) head = meta ? (carry ? '다음 기믹 · ' + htmlText(meta.c.h) : '시작 위치 · ' + strip(meta.c.cap || st.cap)) : st.cap;
+        const st = STEPS[si];
+        let sp = st.still ? null : spotFor(si);
+        if (!sp || sp.fb) { const li = (byStep[si] || [])[0]; const q = li != null ? spotLine(si, li) : null; if (q) sp = q; else if (!sp) sp = spotFor(si); }
+        let head = st.still ? '' : strip(st.cap || '');
+        if (st.still) head = '';
+        else if (si === 0) head = meta ? (carry ? '다음 기믹 · ' + htmlText(meta.c.h) : '시작 위치 · ' + strip(meta.c.cap || st.cap)) : st.cap;
         else if (st.name === '장판') head = meta && meta.c.cast && st.cast ? `${st.cast.name} 시전 → 장판·표시 확인` : '장판·표시가 깔림 → 위치 확인';
         const ls = (byStep[si] || []).map(li => {
           const why = meta && meta.key ? stepParts(meta.key, li) : null;
@@ -1427,7 +1469,7 @@ li[data-why].has-why::marker{content:counter(list-item) ".* ";color:#d49a00;font
         });
         CALL.push({ i: si, p: sp.p, r: sp.r, head, ls });
       }
-      items.forEach(o => { if (o && o.co) CALL.push({ i: Math.min(LAST, Math.max(0, (o.step || LAST + 1) - 1)), p: at(o), r: o.r || 14, html: String(o.co) }); });
+      items.forEach(o => { if (o && o.co) { const bi = Math.max(0, (o.step || 99) - 1); let ni = BASE_OF.lastIndexOf(Math.min(bi, BASE_OF[LAST])); CALL.push({ i: ni < 0 ? LAST : ni, p: at(o), r: o.r || 14, html: String(o.co) }); } });
       CALL.forEach(c => { c.text = (c.head || '') + (c.ls || []).map(l => htmlText(l.html) + l.why).join('') + (c.html ? htmlText(c.html) : ''); });
     }
     buildCalls();
